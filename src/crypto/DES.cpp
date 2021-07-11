@@ -15,7 +15,7 @@ namespace whiteice
     bool DES::encrypt(dynamic_bitset& data, const Keyschedule<dynamic_bitset>& k) 
     {
       try{
-	
+
 	// input data must be 64 bits
 	if(data.size() != 64) return false;      
 	
@@ -43,7 +43,7 @@ namespace whiteice
 	{
 	  dynamic_bitset L, R, pR, pL;
 	  
-	  L.resize(3);
+	  L.resize(32);
 	  R.resize(32);
 	  
 	  pL.resize(32); // previous round
@@ -97,6 +97,7 @@ namespace whiteice
 	
       }
       catch(std::exception& e){
+	std::cout << "DES exception: " << e.what() << std::endl;
 	return false;
       }
     }
@@ -554,6 +555,7 @@ namespace whiteice
     bool TDES::encrypt(dynamic_bitset& data, const Keyschedule<dynamic_bitset>& k) 
     {
       try{
+
       	// input data must be 64 bits
 	if(data.size() != 64) return false;      
 	
@@ -568,7 +570,7 @@ namespace whiteice
 	PartialKeyschedule k1(k, 0, 16);
 	PartialKeyschedule k2(k, 16, 16);
 	PartialKeyschedule k3(k, 32, 16);
-	
+
 	if(des.encrypt(data, k1) == false) return false;
 	if(des.decrypt(data, k2) == false) return false;
 	if(des.encrypt(data, k3) == false) return false;
@@ -655,6 +657,7 @@ namespace whiteice
 	// input data must be 64 bits
 	if(data.size() != 64) return false;      
 	
+
 	// keys must be 48 bits long
 	if(k.keybits() != 48) return false;      
 	
@@ -912,9 +915,9 @@ namespace whiteice
       const 
     {
       // each key has 16 rounds
-      
-      unsigned int k = n % keys.size();
-      n /= keys.size();
+
+      unsigned int k = n % keys[0]->size();
+      n /= keys[0]->size();
       
       if(n >= keys.size())
 	throw std::out_of_range("DES round key out of range - not so many keys");
@@ -944,8 +947,8 @@ namespace whiteice
     
     PartialKeyschedule::PartialKeyschedule(const PartialKeyschedule& k)
     {
-      this->begin = begin;
-      this->len = len;
+      this->begin = k.begin;
+      this->len = k.len;
       
       ks = k.ks->copy();
     }

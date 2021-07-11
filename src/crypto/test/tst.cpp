@@ -365,16 +365,10 @@ void des_test()
 	throw test_exception("3DES encryption failure.");
       }
       
-      std::cout << "B" << std::endl;
-      std::cout.flush();
-      
       if(des.decrypt(data, *tdeskey) == false){
 	delete tdeskey;
 	throw test_exception("3DES decryption failure.");
       }
-      
-      std::cout << "C" << std::endl;
-      std::cout.flush();
       
       delete tdeskey;
       
