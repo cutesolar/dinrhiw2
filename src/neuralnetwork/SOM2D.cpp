@@ -323,7 +323,7 @@ namespace whiteice
 	  }
 
 	  s = cublasSaxpy(cublas_handle, som_dimension, (const float*)&h,
-			  (const float*)&(somtable[winner]), 1, 
+			  (const float*)(source[dindex].data), 1, 
 			  (float*)&(somtable[index]), 1);
 
 	  if(s != CUBLAS_STATUS_SUCCESS){
@@ -452,7 +452,7 @@ namespace whiteice
 	    }
 	    
 	    s = cublasSaxpy(cublas_handle, som_dimension, (const float*)&h,
-			    (const float*)&(somtable[winner]), 1, 
+			    (const float*)(source[dindex].data), 1, 
 			    (float*)&(somtable[index]), 1);
 	    
 	    if(s != CUBLAS_STATUS_SUCCESS){
