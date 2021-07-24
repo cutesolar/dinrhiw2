@@ -73,7 +73,7 @@ int main()
   
   std::vector< vertex< whiteice::math::blas_real<float> > > data;
   std::vector< vertex< whiteice::math::blas_real<float> > > pdata;
-  data.resize(5000);
+  data.resize(100);
   init_data< whiteice::math::blas_real<float> >(data, 10);
   
   dataset<> ds;
@@ -84,9 +84,11 @@ int main()
   
   
   {
-    SOM2D* som = new SOM2D(100, 100, 10);
+    SOM2D* som = new SOM2D(10, 10, 10);
 
-    hierarchicalTraining(som, pdata);
+    // hierarchicalTraining(som, pdata);
+    som->randomize();
+    som->learn(pdata);
     som->show(true);
 
     
@@ -148,6 +150,15 @@ template <typename T>
 void init_data(std::vector< vertex<T> >& data,
 	       unsigned int dimension) 
 {
+  for(unsigned int i=0;i<data.size();i++){
+    data[i].resize(dimension);
+    for(unsigned int j=0;j<data[i].size();j++){
+      data[i][j] = T(rand()/((float)RAND_MAX) - 0.5f);;
+    }
+  }
+  
+  
+#if 0
   // creates test data which has three clusters
   std::vector<T> mean[3];
   std::vector<T> spread[3]; // (equal distribution spread around mean)
@@ -175,7 +186,7 @@ void init_data(std::vector< vertex<T> >& data,
     }
   }
   
-  
+#endif
 }
 
 

@@ -48,7 +48,7 @@ namespace whiteice
     
     
     // calculates average error by using the best match vector for given dataset's vectors
-    whiteice::math::blas_real<float> getError(const std::vector< whiteice::math::vertex< whiteice::math::blas_real<float> > >& data);
+    whiteice::math::blas_real<float> getError(const std::vector< whiteice::math::vertex< whiteice::math::blas_real<float> > >& data) const;
     
     float somdistance(const whiteice::math::vertex< whiteice::math::blas_real<float> >& v1,
 		      const whiteice::math::vertex< whiteice::math::blas_real<float> >& v2) const ;
@@ -103,8 +103,11 @@ namespace whiteice
     
   private:
     
-    // finds the closest vector from som
+    // finds the closest vector from som (maximum inner product)
     unsigned int find_winner(const whiteice::math::blas_real<float>* vmemory) const ;
+
+    // finds vertex which has the smallest distance to given vertex: min(i) ||som_i - vmemory||
+    unsigned int find_winner_sub(const whiteice::math::blas_real<float>* vmemory) const;
     
     // calculates wrap-a-round distance for coordinates with given delta
     float wraparound_sqdistance(float x1, float x2, float y1, float y2) const ;

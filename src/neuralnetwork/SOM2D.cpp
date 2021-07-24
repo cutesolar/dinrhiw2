@@ -191,7 +191,8 @@ namespace whiteice
   
   
   // learns given data
-  bool SOM2D::learn(const std::vector < vertex< whiteice::math::blas_real<float> > >& source, bool full) 
+  bool SOM2D::learn(const std::vector < vertex< whiteice::math::blas_real<float> > >& source,
+		    bool full) 
   {        
     if(source.size() <= 0) return false;
     if(source[0].size() != som_dimension) return false;
@@ -209,11 +210,11 @@ namespace whiteice
 #endif
     
     const unsigned int MAXSTEPS = 20000;
-    const unsigned int CNGSTEPS = 50*som_height*som_width;
+    const unsigned int CNGSTEPS = 5000*som_height*som_width;
     const unsigned int ETA_DELTA = MAXSTEPS / 100;
     
     learning_rate0 = 0.1f;
-    hvariance0 = sqrtf(som_height*som_width);
+    hvariance0 = (som_height*som_width)/2.0f;
     hvariance_t1 = ((float)MAXSTEPS)/(logf(hvariance0));
     learning_rate_t2 = ((float)MAXSTEPS);
     
@@ -221,7 +222,7 @@ namespace whiteice
     float learning_rate = learning_rate0;
 
     std::list< whiteice::math::blas_real<float> > errors;
-    whiteice::math::blas_real<float> convergence_ratio = 0.0001; // 0.01% stdev
+    whiteice::math::blas_real<float> convergence_ratio = 0.01; // 1% stdev
     bool convergence = false;
     
     if(eta) eta->start(0.0, (double)(MAXSTEPS + CNGSTEPS));
@@ -288,7 +289,7 @@ namespace whiteice
       // UPDATES SOM LATTICE
       
       // winner coordinates as floats
-      float wx = winner % som_width , wy = winner / som_width;
+      float wx = winner % som_width , wy = (int)(winner / som_width);
       
       // winner index (back) to somtable memory index
       winner *= som_dimension;
@@ -298,10 +299,15 @@ namespace whiteice
       
       for(unsigned int index=0;index<som_height*som_width*som_dimension;index += som_dimension){
 	// calculates h() function for a given point
+
+	x = (int)((index/som_dimension) % som_width);
+	y = (int)((index/som_dimension) / som_width);
 	
 	h = wraparound_sqdistance(x, wx, y, wy) / (-2.0f * hvariance);
 	h = learning_rate * expf(h);
 
+	// std::cout << "h = " << h << std::endl;
+	
 	if(h > 0.001){
 	  // printf("H(%d,%d) = %f\n", (int)x, (int)y, h);
 
@@ -333,17 +339,16 @@ namespace whiteice
 	  
 	  // w += h*x (
 	  cblas_saxpy(som_dimension,  h,
-		      (float*)&(somtable[winner]),  1,
+		      (float*)(source[dindex].data),  1,
 		      (float*)&(somtable[index]), 1);
+	  /*
+	  cblas_saxpy(som_dimension,  h,
+		      (float*)&(somtable[winner]),  1,
+		      (float*)&(somtable[index]), 1);	  
+	  */
 #endif
 	}
 	
-	x++;
-	if(x >= som_width){
-	  x = 0.0f;
-	  y++;
-	}
-		
       }
     
       
@@ -351,14 +356,20 @@ namespace whiteice
 
       // NO UPDATE IN TRAINING PHASE
       //learning_rate = learning_rate0 * expf( i / (-learning_rate_t2));
-      //hvariance = hvariance0 * expf(i/(-hvariance_t1)) * expf(i/(-hvariance_t1));      
+      //hvariance = hvariance0 * expf(i/(-hvariance_t1)) * expf(i/(-hvariance_t1));
+
+      // std::cout << "hvariance = " << hvariance << std::endl;
     }
-    
+
+    convergence = false;
+    errors.clear();
     
     // CONVERGENCE PHASE
     if(full && convergence == false)
       for(unsigned int i=0, eta_counter=0;i<CNGSTEPS;i++, eta_counter++){
 	if(convergence == true) break;
+
+	// std::cout << "CONVERGENCE PHASE: " << i << " ETA_DELTA: " << eta_counter << std::endl;
 	
 	if(eta){
 	  eta->update((double)(i+MAXSTEPS));
@@ -412,7 +423,7 @@ namespace whiteice
 	// UPDATES SOM LATTICE
 	
 	// winner coordinates as floats
-	float wx = winner % som_width , wy = winner / som_width;
+	float wx = winner % som_width , wy = (int)(winner / som_width);
 	
 	// winner index (back) to somtable memory index
 	winner *= som_dimension;
@@ -426,7 +437,7 @@ namespace whiteice
 	  // calculates h() function for a given point
 	  
 	  h = wraparound_sqdistance(x, wx, y, wy) / (-2.0f * hvariance);
-	  h = 0.01f * expf(h);
+	  h = 0.1f * expf(h);
 
 #ifdef CUBLAS
 	  if(h > 0.001){
@@ -453,13 +464,15 @@ namespace whiteice
 	  }
 	  
 #else
+	  // w = (1-h)*w + h*x => w = w + h*(x-w)
+	  
 	  if(h > 0.001){
 	    // w -= h*w <=> w = (1 - h) * w
 	    cblas_sscal(som_dimension, (1 - h), (float*)&(somtable[index]), 1);
 	    
 	    // w += h*x
 	    cblas_saxpy(som_dimension,  h,
-			(float*)&(somtable[winner]), 1,
+			(float*)(source[dindex].data), 1,
 			(float*)&(somtable[index]), 1);
 	  }
 #endif
@@ -477,12 +490,14 @@ namespace whiteice
 	
 	// UPDATES LEARNING PARAMETERS
 	
-	hvariance = 0.5 + ((CNGSTEPS - i)/((float)CNGSTEPS))*5;
+	hvariance = 0.05 + ((CNGSTEPS - i)/((float)CNGSTEPS))*5;
+	
+	// std::cout << "hvariance = " << hvariance << std::endl;
       }
     
     
     if(eta){
-      report_convergence(CNGSTEPS, MAXSTEPS+CNGSTEPS, errors, eta, source);
+      report_convergence(CNGSTEPS+MAXSTEPS, MAXSTEPS+CNGSTEPS, errors, eta, source);
       
       delete eta;
     }
@@ -641,7 +656,7 @@ namespace whiteice
   
 
   // calculates average error by using the best match vector for given dataset's vectors
-  whiteice::math::blas_real<float> SOM2D::getError(const std::vector< whiteice::math::vertex< whiteice::math::blas_real<float> > >& data)
+  whiteice::math::blas_real<float> SOM2D::getError(const std::vector< whiteice::math::vertex< whiteice::math::blas_real<float> > >& data) const 
   {
     whiteice::math::blas_real<float> error = 0.0f;
 
@@ -656,12 +671,13 @@ namespace whiteice
       for(unsigned int i=0;i<data.size();i++){
 	//const unsigned int index = rng.rand() % data.size();
 	const unsigned int index = i;
-	const unsigned int somindex = activate(data[index]);
+	const unsigned int somindex = find_winner_sub(data[index].data);
+	//std::cout << "somindex = " << somindex << "/" << som_width*som_height << std::endl;
 	auto delta = (*this)(somindex) - data[index];
 	
 	err += delta.norm();
       }
-
+      
 #pragma omp critical
       {
 	error += err;
@@ -692,27 +708,29 @@ namespace whiteice
 	int j = index / som_width;
 	
 	auto v = (*this)(i,j);
-	whiteice::math::blas_real<float> err = 10e6;
+	whiteice::math::blas_real<float> err = 0.0f;
 	
 	{
 	  auto delta = ((*this)(i-1,j) - v).norm();
-	  if(delta < err) err = delta;
+	  err += delta;
 	}
 	
 	{
 	  auto delta = ((*this)(i+1,j) - v).norm();
-	  if(delta < err) err = delta;
+	  err += delta;
 	}
 	
 	{
 	  auto delta = ((*this)(i,j-1) - v).norm();
-	  if(delta < err) err = delta;
+	  err += delta;
 	}
 	
 	{
 	  auto delta = ((*this)(i,j+1) - v).norm();
-	  if(delta < err) err = delta;
+	  err += delta;
 	}
+
+	err /= 4.0f;
 
 	uval += err;
       }
@@ -824,10 +842,10 @@ namespace whiteice
     
     // finally converts indexes to coordinates
     
-    float y1 = (float)( (winner[0] / som_height) );
-    float y2 = (float)( (winner[1] / som_height) );
-    float x1 = (float)( (winner[0] % som_height) );
-    float x2 = (float)( (winner[1] % som_height) );
+    float y1 = (float)( (winner[0] / som_width) );
+    float y2 = (float)( (winner[1] / som_width) );
+    float x1 = (float)( (winner[0] % som_width) );
+    float x2 = (float)( (winner[1] % som_width) );
     
     return sqrtf(wraparound_sqdistance(x1, x2, y1, y2));
   }
@@ -1259,6 +1277,79 @@ namespace whiteice
     }
 
 #endif
+    
+    return winner;
+  }
+
+
+  // finds vertex which has the smallest distance to given vertex: min(i) ||som_i - vmemory||
+  unsigned int SOM2D::find_winner_sub(const whiteice::math::blas_real<float>* vmemory)
+    const 
+  {
+    // calculates inner products and finds the biggest one
+    const unsigned int N = som_dimension*som_width*som_height;
+    
+    unsigned int winner = 0;
+    float tmp, result = 0;
+
+#ifdef CUBLAS
+#error "NOT IMPLEMENTED"
+    auto s = cublasSdot(cublas_handle, som_dimension,
+			(const float*)vmemory, 1, (const float*)&(somtable[0]), 1,
+			(float*)&result);
+    
+    if(s != CUBLAS_STATUS_SUCCESS){
+      whiteice::logging.error("SOM2D::find_winner(): cublasSdot() failed.");
+      throw CUDAException("CUBLAS cublasSdot() failed.");
+    }
+    
+    for(unsigned int i=som_dimension;i<N;i+= som_dimension){
+      
+      auto s = cublasSdot(cublas_handle, som_dimension,
+			  (const float*)vmemory, 1, (const float*)&(somtable[i]), 1,
+			  (float*)&tmp);
+      
+      if(s != CUBLAS_STATUS_SUCCESS){
+	whiteice::logging.error("SOM2D::find_winner(): cublasSdot() failed.");
+	throw CUDAException("CUBLAS cublasSdot() failed.");
+      }
+      
+      if(result < tmp){
+	result = tmp;
+	winner = i/som_dimension;
+      }
+      
+    }
+
+    gpu_sync();
+
+#else
+    whiteice::math::blas_real<float>* delta =
+      (whiteice::math::blas_real<float>*)malloc(sizeof(whiteice::math::blas_real<float>)*som_dimension);
+
+    memcpy(delta, &(somtable[0]), sizeof(whiteice::math::blas_real<float>)*som_dimension);
+
+    float alpha = -1.0f;
+    cblas_saxpy(som_dimension, alpha, (float*)vmemory, 1, (float*)delta, 1);
+    result = cblas_sdot(som_dimension, (float*)delta, 1, (float*)delta, 1);
+    
+    
+    for(unsigned int i=som_dimension;i<N;i+= som_dimension){
+      memcpy(delta, &(somtable[i]), sizeof(whiteice::math::blas_real<float>)*som_dimension);
+      cblas_saxpy(som_dimension, alpha, (float*)vmemory, 1, (float*)delta, 1);
+      tmp = cblas_sdot(som_dimension, (float*)delta, 1, (float*)delta, 1);
+
+      if(result > tmp){
+	result = tmp;
+	winner = i/som_dimension;
+      }
+    }
+
+    free(delta);
+
+#endif
+
+    //winner = rand() % (som_width*som_height);
     
     return winner;
   }
