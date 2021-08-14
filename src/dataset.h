@@ -143,6 +143,9 @@ namespace whiteice
        * which will be overwritten. Ignores the first line which may contain headers and
        * reads at most LINES of vertex data or unlimited amount of data (if set to 0).
        *
+       * if realData is true then import real data and not complex data 
+       * (one number per number instead of 2 numbers per number)
+       *
        * NOTE: in general, importAscii() cannot load data written using exportAscii() because
        *       exportAscii() dumps data from a given cluster. 
        *                     However, if there is only a single
@@ -150,7 +153,8 @@ namespace whiteice
        */
       bool importAscii(const std::string& filename,
 		       const int cluster_index = -1, // -1 means create new cluster
-		       const unsigned int LINES=0) ;
+		       const unsigned int LINES=0,
+		       const bool realData = false) ;
       
       // accesses data from cluster zero
       const math::vertex<T>& operator[](unsigned int index) const ;

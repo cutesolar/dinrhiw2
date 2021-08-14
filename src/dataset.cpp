@@ -1468,11 +1468,15 @@ namespace whiteice
    * imports space, "," or ";" separated floating point numbers as vectors into cluster 0
    * which will be overwritten. Ignores the first line which may contain headers and
    * reads at most LINES of vertex data or unlimited amount of data (if set to 0).
+   *
+   * if realData is true then import real data and not complex data
+   * * (one number per number instead of 2 numbers per number)
    */
   template <typename T>
   bool dataset<T>::importAscii(const std::string& filename,
 			       const int cluster_index,
-			       const unsigned int LINES) 
+			       const unsigned int LINES,
+			       const bool realData) 
   {
     std::vector< math::vertex<T> > import;
 
@@ -1551,6 +1555,7 @@ namespace whiteice
 	}
 
 	line.push_back(v);
+	if(realData) line.push_back(0.0); // adds zero complex element
 	
 	while(*s == ' ' || *s == ',' || *s == ';' || *s == '\t' || *s == '|')
 	  s++;
