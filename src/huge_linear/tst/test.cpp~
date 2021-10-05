@@ -1,0 +1,11 @@
+/*
+ * HugeLinear optimizer testcases
+ */
+
+
+int main(void)
+{
+  printf("ERROR: HugeLinear testcases not implemented.\n");
+
+  return -1;
+}

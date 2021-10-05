@@ -83,6 +83,7 @@ int main()
   arch.push_back(4);
   arch.push_back(10);
   arch.push_back(10);
+  //arch.push_back(10);  
   arch.push_back(4);
 
 
@@ -108,6 +109,20 @@ int main()
   math::convert(sweights, weights);
 
   // sweights = abs(sweights); // drop complex parts of initial weights
+
+  // randomize sweights [also superresolution parts]
+  {
+    RNG< math::blas_real<double> > rng;
+    
+    for(unsigned int i=0;i<sweights.size();i++)
+    {
+      for(unsigned int k=0;k<sweights[i].size();k++){
+	sweights[i][k] = rng.normal();
+      }
+      
+    }
+    
+  }
   
   snet.importdata(sweights);
   snet.exportdata(sweights);
@@ -180,14 +195,14 @@ int main()
   data.add(0, inputs);
   data.add(1, outputs);
   
-  data.preprocess(0);
-  data.preprocess(1);
+  //data.preprocess(0);
+  //data.preprocess(1);
 
   data2.add(0, inputs2);
   data2.add(1, outputs2);
 
-  data2.preprocess(0);
-  data2.preprocess(1);
+  //data2.preprocess(0);
+  //data2.preprocess(1);
 
   if(data2.save("simpleproblem.ds") == false){
     printf("ERROR: saving data to file failed!\n");
@@ -208,7 +223,7 @@ int main()
     math::superresolution<math::blas_real<double>,
 			  math::modular<unsigned int> > error(1000.0f), min_error(1000.0f), latest_error(1000.0f);
     math::superresolution<math::blas_real<double>,
-			  math::modular<unsigned int> > lrate(0.05f);
+			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.05
     
     while(abs(error)[0].real() > math::blas_real<double>(0.001f) && counter < 100000){
       error = math::superresolution<math::blas_real<double>,
@@ -267,9 +282,9 @@ int main()
 	  auto cDF = DF;
 	  cDF.conj();
 	  
-	  // grad = delta*cDF;
+	  grad = delta*cDF; // was commented out..
 
-#if 1
+#if 0
 	  grad.resize(cDF.xsize());
 	  grad.zero();
 	  
@@ -289,7 +304,7 @@ int main()
 	  
 	  for(unsigned int n=0;n<delta.size();n++)
 	    for(unsigned int l=0;l<delta[0].size();l++)
-	      if(l != k) delta[n][l] = 0.0f;
+	      if(l != n) delta[n][l] = 0.0f;
 	  
 	  if(snet.mse_gradient(delta, grad) == false) // returns: delta*conj(DF)
 	    std::cout << "gradient failed." << std::endl;
@@ -314,16 +329,18 @@ int main()
 				  math::modular<unsigned int> > alpha(1e-3f);
 
       
-      weights -= lrate * sumgrad /*+ (alpha*weights)*/;
+      weights -= lrate * sumgrad + (alpha*weights);/*+ (alpha*weights)*/;
       
       if(snet.importdata(weights) == false)
 	std::cout << "import failed." << std::endl;
 
       auto abserror = abs(error);
 
+#if 0
       for(unsigned int i=1;i<abserror.size();i++)
 	abserror[0] += abserror[i];
-
+#endif
+      
       if(abserror[0].real() < min_error[0].real()){
 	min_error = abserror;
       }
@@ -340,7 +357,9 @@ int main()
 
       latest_error = abserror;
       
-      std::cout << counter << " : " << abserror[0].real() << std::endl;
+      std::cout << counter << " : " << abserror
+		<< " (lrate: " << lrate[0].real() << ")" 
+		<< std::endl;
       
       counter++;
     }

@@ -1,0 +1,61 @@
+# GNU Makefile
+##################################################
+
+CC = gcc
+CXX = g++
+
+SOURCES = tst/test.cpp HugeLinear.cpp \
+	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
+	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
+
+OBJECTS= HugeLinear.o
+
+EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
+	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
+	../math/real.o 	../dataset.o ../conffile.o ../MemoryCompressor.o ../linear_ETA.o \
+	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \
+	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
+	../math/modular.o ../math/superresolution.o \
+	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
+	../math/quaternion.o
+
+
+TARGET1_OBJECTS=tst/test.o 
+
+TARGET1=testsuite1
+
+OPTIMIZE=-fPIC -O3 -g -DAMD64 -ffast-math -mtune=native -ftree-vectorize -fopenmp -mtune=native
+CFLAGS=-g -O2 -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess -I/usr/include/ -I/usr/local/include -DOPENBLAS -I/usr/include/x86_64-linux-gnu/openblas-pthread/ 
+
+CXXFLAGS=-Wall $(CFLAGS) -g -O2 -g -I. -I.. -I../.. -I../math -I../neuralnetwork $(OPTIMIZE)
+
+LIBS= -L/usr/local/lib -lgmp -lz -lpthread -L/usr/lib/  -L/usr/lib/x86_64-linux-gnu/openblas-pthread/ -lopenblas -lstdc++
+
+##################################################
+
+all: test1
+
+test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+clean:
+	$(RM) $(OBJECTS)
+	$(RM) $(TARGET1_OBJECTS)
+	$(RM) $(TARGET1)
+	$(RM) *~
+
+realclean: clean
+	$(RM) *.o *.rpo
+	$(RM) tst/*.o tst/*.rpo
+
+depend:
+	$(CXX) $(CXXFLAGS) -MM $(SOURCES) > Makefile.depend
+
+##################################################
+# must have initially empty dependencies file
+
+include Makefile.depend
+
+
+
+

@@ -4636,6 +4636,8 @@ ac_config_files="$ac_config_files src/datamining/Makefile src/hmm/Makefile"
 
 ac_config_files="$ac_config_files src/reinforcement/Makefile src/rnn/Makefile"
 
+ac_config_files="$ac_config_files src/huge_linear/Makefile"
+
 ac_config_files="$ac_config_files tools/Makefile"
 
 ac_config_files="$ac_config_files dinrhiw.pc"
@@ -5339,6 +5341,7 @@ do
     "src/hmm/Makefile") CONFIG_FILES="$CONFIG_FILES src/hmm/Makefile" ;;
     "src/reinforcement/Makefile") CONFIG_FILES="$CONFIG_FILES src/reinforcement/Makefile" ;;
     "src/rnn/Makefile") CONFIG_FILES="$CONFIG_FILES src/rnn/Makefile" ;;
+    "src/huge_linear/Makefile") CONFIG_FILES="$CONFIG_FILES src/huge_linear/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "dinrhiw.pc") CONFIG_FILES="$CONFIG_FILES dinrhiw.pc" ;;
 

@@ -1,0 +1,60 @@
+# GNU Makefile
+##################################################
+
+CC = @CC@
+CXX = @CXX@
+
+SOURCES = tst/test.cpp HugeLinear.cpp \
+	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
+	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
+
+OBJECTS= HugeLinear.o
+
+EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
+	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
+	../math/real.o 	../dataset.o ../conffile.o ../MemoryCompressor.o ../linear_ETA.o \
+	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \
+	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
+	../math/modular.o ../math/superresolution.o \
+	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
+	../math/quaternion.o
+
+TARGET1_OBJECTS=tst/test.o 
+
+TARGET1=testsuite1
+
+OPTIMIZE=@optimization_flags@
+CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
+
+CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -I. -I.. -I../.. -I../math -I../neuralnetwork $(OPTIMIZE)
+
+LIBS= @EXTRA_LIBPATHS@ -lgmp -lz -lpthread @EXTRA_LIBS@
+
+##################################################
+
+all: test1
+
+test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+clean:
+	$(RM) $(OBJECTS)
+	$(RM) $(TARGET1_OBJECTS)
+	$(RM) $(TARGET1)
+	$(RM) *~
+
+realclean: clean
+	$(RM) *.o *.rpo
+	$(RM) tst/*.o tst/*.rpo
+
+depend:
+	$(CXX) $(CXXFLAGS) -MM $(SOURCES) > Makefile.depend
+
+##################################################
+# must have initially empty dependencies file
+
+include Makefile.depend
+
+
+
+
