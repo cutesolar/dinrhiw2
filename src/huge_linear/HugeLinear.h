@@ -18,6 +18,8 @@
 
 #include "vertex.h"
 #include "matrix.h"
+#include "RNG.h"
+
 
 namespace whiteice
 {
@@ -25,14 +27,14 @@ namespace whiteice
   class DataSourceInterface {
   public:
 
-    virtual const unsigned long getNumber() = 0; // number of data vector pairs (x,y)
-    virtual const unsigned long getInputDimension() = 0; // x input vector dimension
-    virtual const unsigned long getOutputDimension() = 0; // y output vector dimension
+    virtual const unsigned long getNumber() const = 0; // number of data vector pairs (x,y)
+    virtual const unsigned long getInputDimension() const = 0; // x input vector dimension
+    virtual const unsigned long getOutputDimension() const = 0; // y output vector dimension
 
     // gets index:th data points or return false (bad index or unknown error)
-    virtual const bool getData(unsigned long index,
+    virtual const bool getData(const unsigned long index,
 			       math::vertex< math::blas_real<float> > & x,
-			       math::vertex< math::blas_real<float> >& y) = 0;
+			       math::vertex< math::blas_real<float> >& y) const = 0;
   };
   
   
@@ -49,25 +51,40 @@ namespace whiteice
     bool getSolution(math::matrix< math::blas_real<float> >& A,
 		     math::vertex< math::blas_real<float> >& b);
     
-    float estimateSolutionMSE();
-
-    // removes solution and resets to empty HugeLinear
-    void reset();
+    float estimateSolutionMSE(); // mean squared error of the solution
+    unsigned int getIterations(); // number of iterations computed so far
     
   private:
 
+    // calculates MSE error for the linear model parameters
+    float getError(const DataSourceInterface* data,
+		   const std::vector<unsigned long>& dset,
+		   const math::matrix< math::blas_real<float> >& A,
+		   const math::vertex< math::blas_real<float> >& b) const;
+
+    
+    // optimization loop
     void optimizer_loop();
 
     // threading data
     std::thread* optimizer_thread;
-    std::mutex solution_lock, start_lock;
+    std::mutex solution_lock, start_lock;    
 
     bool running; // as long as not converged and runnign == true, keeps iterating results
+    bool thread_has_started;
     bool converged;  // true if converged and has stopped computing results
+
+    DataSourceInterface* data;
 
     // model data
     math::matrix< math::blas_real<float> > A;
     math::vertex< math::blas_real<float> > b;
+
+    unsigned int iterations;
+    float current_solution_mse;
+
+    // random number source
+    whiteice::RNG< math::blas_real<float> > rng;
     
   };
   
