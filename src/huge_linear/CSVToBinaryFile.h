@@ -34,24 +34,44 @@ namespace whiteice
     bool addVector(const math::vertex< math::blas_real<float> >& v);
     bool removeVector(const unsigned long index);
 
+    // sets and opens file for the data, tries to load() binfile but if it fails
+    // creates a new file
+    bool setFile(const std::string& binfile);
+
     bool load(const std::string& binfile, const unsigned long numVectors=0);
     bool save(const std::string& binfile) const;
 
     // sets all values to zero (slow for large files)
     bool zero();
+
+    // empties vectors file
+    bool clear();
     
   private:
-
 			 
     unsigned long numVectors;
     unsigned long vectorLength;
     FILE* binaryFile;
   };
+
+  // helper functions
+
+  // removes spaces and control characters from the start and end of the string
+  void trim(std::string& line);
+
+  // tokenizes string by using delimiters.
+  bool tokenize(const std::string& line, const std::string& separators,
+		std::vector<std::string>& tokens);
+
+  // parses single CSV file line to vertex values
+  bool parseCSVFloatsLine(const std::string& line, const std::string& SEPARATORS,
+			  math::vertex< math::blas_real<float> >& data);
   
   // csv: comma separeted file of floats without labels
   bool CSVToBinaryFile(const std::string& csvfile,
 		       BinaryVectorsFile& binout);
 
+  // FIXME: not implemented
   bool BinaryFileToCSV(const BinaryVectorsFile& binout,
 		       const std::string& csvfile);
   

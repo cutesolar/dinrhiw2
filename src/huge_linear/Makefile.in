@@ -4,11 +4,11 @@
 CC = @CC@
 CXX = @CXX@
 
-SOURCES = tst/test.cpp HugeLinear.cpp CSVToBinaryFile.cpp \
+SOURCES = tst/test.cpp HugeLinear.cpp CSVToBinaryFile.cpp OneHotEncoder.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
 
-OBJECTS= HugeLinear.o CSVToBinaryFile.o
+OBJECTS= HugeLinear.o CSVToBinaryFile.o OneHotEncoder.o
 
 EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
