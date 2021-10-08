@@ -38,6 +38,12 @@ namespace whiteice
     // creates a new file
     bool setFile(const std::string& binfile);
 
+    // tells if we have file open
+    bool hasFile() const;
+
+    // closes binary file and deletes it, if it is open.
+    bool deleteFile();
+
     bool load(const std::string& binfile, const unsigned long numVectors=0);
     bool save(const std::string& binfile) const;
 
@@ -51,7 +57,9 @@ namespace whiteice
 			 
     unsigned long numVectors;
     unsigned long vectorLength;
+    
     FILE* binaryFile;
+    std::string binaryFilename;
   };
 
   // helper functions

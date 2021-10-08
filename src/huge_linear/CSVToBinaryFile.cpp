@@ -166,6 +166,7 @@ namespace whiteice
       fseek(handle, 0, SEEK_SET);
       if(binaryFile) fclose(binaryFile);
       binaryFile = handle;
+      binaryFilename = binfile;
       
       return true;
     }
@@ -175,6 +176,27 @@ namespace whiteice
     }
   }
   
+  // tells if we have file open
+  bool BinaryVectorsFile::hasFile() const
+  {
+    if(binaryFile != NULL) return true;
+    else return false;
+  }
+  
+  // closes binary file and deletes it, if it is open.
+  bool BinaryVectorsFile::deleteFile()
+  {
+    if(binaryFile == NULL) return false;
+
+    if(remove(binaryFilename.c_str()) != 0)
+      return false;
+
+    fclose(binaryFile);
+    binaryFile = NULL;
+    binaryFilename = "";
+
+    return true;
+  }
   
   bool BinaryVectorsFile::load(const std::string& binfile,
 			       const unsigned long numVectors)
@@ -198,6 +220,7 @@ namespace whiteice
 
       if(binaryFile) fclose(binaryFile);
       binaryFile = handle;
+      binaryFilename = binfile;
 
       return true;
     }
@@ -226,6 +249,7 @@ namespace whiteice
 
       if(binaryFile) fclose(binaryFile);
       binaryFile = handle;
+      binaryFilename = binfile;
 
       return true;
     }

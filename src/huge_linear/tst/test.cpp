@@ -8,7 +8,7 @@
 
 #include "HugeLinear.h"
 #include "CSVToBinaryFile.h"
-
+#include "OneHotEncoder.h"
 
 using namespace whiteice;
 
@@ -18,7 +18,7 @@ bool simple_test();
 bool helper_functions_test();
 bool binaryfile_test();
 bool csv_load2bin_test();
-
+bool one_hot_encoding_test();
 
 int main(void)
 {
@@ -28,7 +28,9 @@ int main(void)
 
   // binaryfile_test();
 
-  csv_load2bin_test();
+  // csv_load2bin_test();
+
+  one_hot_encoding_test();
 
   return 0;;
 }
@@ -353,4 +355,16 @@ bool csv_load2bin_test()
   printf("CSVToBinaryFile() function worked OK..\n");
   
   return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+
+
+bool one_hot_encoding_test()
+{
+  printf("Testing OneHotEncoder tests..\n");
+
+  
+
+  return false;
 }

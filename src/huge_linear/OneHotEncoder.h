@@ -11,17 +11,21 @@
 #include "vertex.h"
 
 #include <vector>
+#include <set>
 #include <map>
 
 namespace whiteice
 {
   struct oneHotEncodingInfo
   {
-    std::vector<unsigned long> discretized; // discretized column variables
-    std::vector< std::map<float, unsigned long> > dmap; // maps discretized variables to indicator vars
+    std::set<unsigned long> discretized; // discretized column variables
+    std::map< unsigned long, std::map<float, unsigned long> > dmap; // maps discretized variables to indicator vars
 
-    std::vector<unsigned long> numeric; // numerical column variables
-    std::vector< std::vector<float> > nbins; // divisions to divide numerical value to bin and 0/1 value
+    std::set<unsigned long> numeric; // numerical column variables
+    std::map< unsigned long, std::vector<float> > nbins; // divisions to divide numerical value to bin and 0/1 value
+
+    unsigned long NUM_ORIGINAL_VARIABLES;
+    unsigned long NUM_DISCRETIZED_VARIABLES;
     
   };
 
