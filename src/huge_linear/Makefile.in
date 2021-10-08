@@ -4,7 +4,7 @@
 CC = @CC@
 CXX = @CXX@
 
-SOURCES = tst/test.cpp HugeLinear.cpp CSVToBinaryFile.cpp OneHotEncoder.cpp \
+SOURCES = tst/test.cpp tst/csvoptimizer.cpp HugeLinear.cpp CSVToBinaryFile.cpp OneHotEncoder.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
 
@@ -20,8 +20,10 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/quaternion.o
 
 TARGET1_OBJECTS=tst/test.o 
-
 TARGET1=testsuite1
+
+TARGET2_OBJECTS=tst/csvoptimizer.o
+TARGET2=csvoptimizer
 
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
@@ -32,15 +34,20 @@ LIBS= @EXTRA_LIBPATHS@ -lgmp -lz -lpthread @EXTRA_LIBS@
 
 ##################################################
 
-all: test1
+all: test1 test2
 
 test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test2: $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET2) $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
 
 clean:
 	$(RM) $(OBJECTS)
 	$(RM) $(TARGET1_OBJECTS)
 	$(RM) $(TARGET1)
+	$(RM) $(TARGET2_OBJECTS)
+	$(RM) $(TARGET2)
 	$(RM) *~
 
 realclean: clean
