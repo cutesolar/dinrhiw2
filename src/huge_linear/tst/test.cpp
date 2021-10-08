@@ -364,7 +364,58 @@ bool one_hot_encoding_test()
 {
   printf("Testing OneHotEncoder tests..\n");
 
-  
+  // generates test CSV file
+  std::string filename = "one_hot_encoding_data.csv";
+  const unsigned int DIM = 10;
+  const unsigned int NSAMPLES=1000;
+    
+  {
+    std::string line;
 
-  return false;
+    RNG< math::blas_real<float> > rng;
+    
+    FILE* handle = fopen(filename.c_str(), "w");
+
+    char buffer[80];
+
+    for(unsigned int i=0;i<NSAMPLES;i++){
+      snprintf(buffer, 80, "%f", rng.uniform().c[0]);
+      line = buffer;
+      
+      for(unsigned int d=1;d<DIM;d++){
+	snprintf(buffer, 80, ",%f", rng.uniform().c[0]);
+	line += buffer;
+      }
+
+      line += "\r\n";
+
+      fputs(line.c_str(), handle);
+    }
+    
+    fclose(handle);
+  }
+
+  BinaryVectorsFile in, out;
+  struct oneHotEncodingInfo info;
+  std::set<unsigned long> ignored; // empty set
+
+  in.setVectorLength(DIM);
+  in.setFile("one_hot_encoding_data.bin");
+
+  if(CSVToBinaryFile(filename, in) == false){
+    printf("ERROR: loading data using CSVToBinaryFile FAILED.\n");
+    return false;
+  }
+
+  out.setFile("one_hot_encoding_data.bin2");
+
+  if(calculateOneHotEncoding(in, ignored, out, info) == false){
+    printf("ERROR: one-hot-encoding data to binary file FAILED.\n");
+    return false;
+  }
+
+  
+  printf("One Hot Encoding code seems to function OK.\n");
+  
+  return true;
 }

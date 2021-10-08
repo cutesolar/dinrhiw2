@@ -42,7 +42,7 @@ namespace whiteice
     std::vector< float > values; // for a single column
     math::vertex< math::blas_real<float> > v, u;
     
-    for(unsigned long c=0;c<unique.size();c++){
+    for(unsigned long c=0;c<input.getVectorLength();c++){
 
       if(ignoreVariables.find(c) != ignoreVariables.end()){
 	continue; // don't process ignored variables

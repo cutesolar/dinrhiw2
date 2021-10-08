@@ -30,6 +30,7 @@ namespace whiteice
   };
 
   bool calculateOneHotEncoding(const BinaryVectorsFile& input,
+			       std::set<unsigned long>& ignoreVariables,
 			       BinaryVectorsFile& output,
 			       struct oneHotEncodingInfo& info);
 
