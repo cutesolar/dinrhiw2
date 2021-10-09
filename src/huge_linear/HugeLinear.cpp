@@ -142,7 +142,8 @@ namespace whiteice
       float error = 0.0f;
 
 #pragma omp for nowait schedule(auto)
-      for(unsigned long i=0;i<dset.size() && !failure;i++){
+      for(unsigned long i=0;i<dset.size();i++){
+	if(failure) continue;
 	
 	if(data->getData(dset[i], x, y) == false){
 	  failure = true;
@@ -232,7 +233,7 @@ namespace whiteice
       else{
 	// uses all data for low data cases
 	if(NUMSAMPLES == data->getNumber()){
-	  for(unsigned long i=0;i<NUMSAMPLES;i++){
+	  for(unsigned long index=0;index<NUMSAMPLES;index++){
 	    dtrain.push_back(index);
 	    dtest.push_back(index);
 	  }
@@ -362,7 +363,8 @@ namespace whiteice
 	math::vertex< math::blas_real<float> > x, y;
 	
 #pragma omp for nowait schedule(auto)	
-	for(unsigned long index=0;index<dtrain.size() && running;index++){
+	for(unsigned long index=0;index<dtrain.size();index++){
+	  if(running == false) continue;
 	  
 	  if(data->getData(dtrain[index], x, y) == false){
 	    running = false;
