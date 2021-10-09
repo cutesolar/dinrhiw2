@@ -92,6 +92,28 @@ namespace whiteice
 
     v.resize(vectorLength);
 
+    unsigned long offset = index*vectorLength*sizeof(float);
+    unsigned long sz     = sizeof(float)*vectorLength;
+    const unsigned int SIZE = sizeof(float)*vectorLength;
+    unsigned long bytesRead = 0;
+    char* pointer = (char*)&(v[0]);
+
+    while(bytesRead < SIZE){
+      ssize_t bytes = pread(fileno(binaryFile), pointer, sz, offset);
+      //printf("pread(,,%d,%d) = %d\n", (int)sz, (int)offset, (int)bytes);
+      if(bytes <= 0) return false;
+
+      pointer += bytes;
+      sz -= bytes;
+      offset += bytes;
+
+      bytesRead += bytes;
+    }
+    
+    return true;
+    
+
+#if 0
     if(fseek(binaryFile, index*vectorLength*sizeof(float), SEEK_SET) == 0){
 
       if(fread(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength)
@@ -101,6 +123,7 @@ namespace whiteice
       
     }
     else return false;
+#endif
   }
   
   bool BinaryVectorsFile::setVector(const unsigned long index,
@@ -112,11 +135,14 @@ namespace whiteice
 
     if(fseek(binaryFile, index*vectorLength*sizeof(float), SEEK_SET) == 0){
 
-      if(fwrite(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength)
+      if(fwrite(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength){
+	fflush(binaryFile); // slow we cannot use cache anymore
 	return true;
-      else
+      }
+      else{
 	return false;
-      
+      }
+	
     }
     else return false;
   }
@@ -131,6 +157,7 @@ namespace whiteice
 
       if(fwrite(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength){
 	numVectors++;
+	fflush(binaryFile); // slow we cannot use cache anymore
 	return true;
       }
       else{
@@ -295,7 +322,7 @@ namespace whiteice
       if(fread(v, sizeof(float), vectorLength, binaryFile) != vectorLength)
 	return false;
     
-      if(fwrite(v, sizeof(float), vectorLength, binaryFile) != vectorLength)
+      if(fwrite(v, sizeof(float), vectorLength, handle) != vectorLength)
 	return false;
     }
 
@@ -331,6 +358,7 @@ namespace whiteice
 	return false;
     }
 
+    fflush(binaryFile);
     free(v);
     
     return true;
@@ -490,9 +518,6 @@ namespace whiteice
       }
       
       line2 = buffer;
-
-      std::cout << "line1 = " << line1 << std::endl;
-      std::cout << "line2 = " << line2 << std::endl;
 
       math::vertex< math::blas_real<float> > vector1, vector2;
 

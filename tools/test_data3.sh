@@ -50,7 +50,7 @@ ARCH="141-141-141-141-4"
 ##################################################
 # testing
 
- ./nntool -v commviol-test.ds $ARCH commviol-nn.cfg use
+./nntool -v commviol-test.ds $ARCH commviol-nn.cfg use
 
 ##################################################
 # predicting [stores results to dataset]

@@ -138,8 +138,9 @@ namespace whiteice
 
 #pragma omp parallel
     {
-      math::vertex< math::blas_real<float> > x, y;
       float error = 0.0f;
+
+      math::vertex< math::blas_real<float> > x, y;
 
 #pragma omp for nowait schedule(auto)
       for(unsigned long i=0;i<dset.size();i++){
@@ -149,7 +150,7 @@ namespace whiteice
 	  failure = true;
 	  continue;
 	}
-	
+
 	auto delta = y - A*x - b;
 	
 	error += (delta*delta)[0].c[0];
@@ -164,6 +165,7 @@ namespace whiteice
 
     
     if(failure){
+      printf("HugeLinear::getError() FAILURE!\n");
       return INFINITY;
     }
 
@@ -212,10 +214,10 @@ namespace whiteice
     // divides data to training and testing sets [50.000 samples or number of samples from each]
     std::vector<unsigned long> dtrain, dtest;
     // 100.000 samples from dataset
-    unsigned long NUMSAMPLES = data->getNumber() > 100000 ? 100000 : data->getNumber(); 
+    const unsigned long NUMSAMPLES = data->getNumber() > 100000 ? 100000 : data->getNumber(); 
 
     if(overfit == false){
-      if(NUMSAMPLES > 10){
+      if(NUMSAMPLES > 100){
 	for(unsigned long i=0;i<NUMSAMPLES;i++){
 	  
 	  const unsigned long index = (unsigned long)(((unsigned long)rng.rand64()) % data->getNumber());
@@ -229,29 +231,29 @@ namespace whiteice
 	  }
 	  
 	}
-      }
-      else{
-	// uses all data for low data cases
-	if(NUMSAMPLES == data->getNumber()){
+
+	if(dtrain.size() == 0 || dtest.size() == 0){
+	  // uses all data for low data cases
 	  for(unsigned long index=0;index<NUMSAMPLES;index++){
-	    dtrain.push_back(index);
-	    dtest.push_back(index);
-	  }
-	}
-	else{
-	  for(unsigned long i=0;i<NUMSAMPLES;i++){
-	    const unsigned long index =
-	      (unsigned long)(((unsigned long)rng.rand64()) % data->getNumber());
 	    dtrain.push_back(index);
 	    dtest.push_back(index);
 	  }
 	}
 	
       }
+      else{
+	// uses all data for low data cases
+	for(unsigned long index=0;index<NUMSAMPLES;index++){
+	  dtrain.push_back(index);
+	  dtest.push_back(index);
+	}
+      }
     }
     else{
       // overfit data
-      for(unsigned long i=0;i<data->getNumber();i++){
+      const unsigned long NUMSAMPLES = data->getNumber() > 100000 ? 100000 : data->getNumber();
+	  
+      for(unsigned long i=0;i<NUMSAMPLES;i++){
 	dtrain.push_back(i);
 	dtest.push_back(i);
       }
@@ -269,14 +271,28 @@ namespace whiteice
     A.resize(data->getOutputDimension(), data->getInputDimension());
     b.resize(data->getOutputDimension());
 
-    // normally distributed variables
-    rng.normal(A);
-    rng.normal(b);
+    // normally distributed variables (initialization)
+    {
+      rng.normal(A);
+      rng.normal(b);
+
+      const math::blas_real<float> a_scaling = sqrt(1.0f/((float)A.xsize()));
+      const math::blas_real<float> b_scaling = 0.01f;
+
+      b = b_scaling*b;
+
+      for(unsigned int j=0;j<A.ysize();j++){
+	for(unsigned int i=0;i<A.xsize();i++){
+	  A(j,i) *= a_scaling;
+	}
+      }
+      
+    }
 
     if(running == false)
       return;
 
-    const unsigned int MAXITERS = 1000000; // 1.000.000 iterations max
+    const unsigned int MAXITERS = 2000000; // 2.000.000 iterations max
     float curError = INFINITY;
 
     {
@@ -424,23 +440,26 @@ namespace whiteice
 
 	if(running == false)
 	   return;
-
+	
 	//printf("ITER %d LINE SEARCH: lrate=%f error=%f (current best error=%f)\n",
 	//       iterations, lrate.c[0], error, curError);
       }
       while(error >= curError && lrate >= 1e-30);
 
+
+#if 1
       // adaptive starting learning rate
       if(loop_iterations <= 1){
-	lrate0 *= 1.5f;
+	lrate0 *= 4.0f;
 
 	if(lrate0 >= 1e20) lrate0 = 1e20;
       }
       else{
-	lrate0 *= (1.0f/1.5f);
+	lrate0 = 2.0f*lrate;
 
 	if(lrate0 <= 1e-20) lrate0 = 1e-20;
       }
+#endif
 
       //printf("ITER %d FOUND STEP: lrate=%f error=%f (current best error=%f)\n",
       //	     iterations, lrate.c[0], error, curError);
@@ -487,6 +506,7 @@ namespace whiteice
       iterations++;
     }
 
+    printf("HugeLinear: SOLUTION CONVERGED!\n");
     running = false;
     converged = true;
   }
