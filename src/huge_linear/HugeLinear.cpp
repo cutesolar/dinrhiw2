@@ -11,7 +11,7 @@
 namespace whiteice
 {
   
-  HugeLinear::HugeLinear()
+  HugeLinear::HugeLinear(bool overfit_)
   {
     current_solution_mse = INFINITY;
     iterations = 0;
@@ -21,6 +21,8 @@ namespace whiteice
 
     running = false;
     converged = false;
+    
+    overfit = overfit_;
   }
   
   HugeLinear::~HugeLinear()
@@ -131,24 +133,45 @@ namespace whiteice
   {
     if(data == NULL) return INFINITY;
 
-    float error = 0.0f;
+    float esum = 0.0f;
+    bool failure = false;
 
-    math::vertex< math::blas_real<float> > x, y;
+#pragma omp parallel
+    {
+      math::vertex< math::blas_real<float> > x, y;
+      float error = 0.0f;
 
-    for(unsigned long i=0;i<dset.size();i++){
-
-      if(data->getData(dset[i], x, y) == false){
-	return INFINITY;
+#pragma omp for nowait schedule(auto)
+      for(unsigned long i=0;i<dset.size() && !failure;i++){
+	
+	if(data->getData(dset[i], x, y) == false){
+	  failure = true;
+	  continue;
+	}
+	
+	auto delta = y - A*x - b;
+	
+	error += (delta*delta)[0].c[0];
       }
 
-      auto delta = y - A*x - b;
+#pragma omp critical
+      {
+	esum += error;
+      }
       
-      error += (delta*delta)[0].c[0];
     }
 
-    error /= (float)(data->getNumber());
+    
+    if(failure){
+      return INFINITY;
+    }
 
-    return error;
+
+    esum /= (float)(dset.size());
+
+    // printf("HugeLinear::getError() = %f\n", error); 
+
+    return esum;
   }
   
   
@@ -190,24 +213,44 @@ namespace whiteice
     // 100.000 samples from dataset
     unsigned long NUMSAMPLES = data->getNumber() > 100000 ? 100000 : data->getNumber(); 
 
-    if(NUMSAMPLES > 10){
-      for(unsigned long i=0;i<NUMSAMPLES;i++){
-	
-	const unsigned long index = (unsigned long)(((unsigned long)rng.rand64()) % data->getNumber());
-	const unsigned int r = (rng.rand() & 1);
-	
-	if(r == 0){
-	  dtrain.push_back(index);
+    if(overfit == false){
+      if(NUMSAMPLES > 10){
+	for(unsigned long i=0;i<NUMSAMPLES;i++){
+	  
+	  const unsigned long index = (unsigned long)(((unsigned long)rng.rand64()) % data->getNumber());
+	  const unsigned int r = (rng.rand() & 1);
+	  
+	  if(r == 0){
+	    dtrain.push_back(index);
+	  }
+	  else{
+	    dtest.push_back(index);
+	  }
+	  
+	}
+      }
+      else{
+	// uses all data for low data cases
+	if(NUMSAMPLES == data->getNumber()){
+	  for(unsigned long i=0;i<NUMSAMPLES;i++){
+	    dtrain.push_back(index);
+	    dtest.push_back(index);
+	  }
 	}
 	else{
-	  dtest.push_back(index);
+	  for(unsigned long i=0;i<NUMSAMPLES;i++){
+	    const unsigned long index =
+	      (unsigned long)(((unsigned long)rng.rand64()) % data->getNumber());
+	    dtrain.push_back(index);
+	    dtest.push_back(index);
+	  }
 	}
-      
+	
       }
     }
     else{
-      // uses all data for low data cases
-      for(unsigned long i=0;i<NUMSAMPLES;i++){
+      // overfit data
+      for(unsigned long i=0;i<data->getNumber();i++){
 	dtrain.push_back(i);
 	dtest.push_back(i);
       }
@@ -296,6 +339,8 @@ namespace whiteice
       whiteice::logging.info(buffer);
     }
 
+    math::blas_real<float> lrate0 = 1.0f; // starting learning rate
+
     while(running && iterations < MAXITERS){
 
       // calculates gradient
@@ -306,24 +351,43 @@ namespace whiteice
       
       Axx.resize(data->getOutputDimension(), data->getInputDimension());
       Axx.zero();
-      
-      for(unsigned long index=0;index<dtrain.size();index++){
+
+#pragma omp parallel
+      {
+	math::matrix< math::blas_real<float> > Axx_thread;
+	
+	Axx_thread.resize(data->getOutputDimension(), data->getInputDimension());
+	Axx_thread.zero();
+
 	math::vertex< math::blas_real<float> > x, y;
 	
-	if(data->getData(dtrain[index], x, y) == false){
-	  running = false;
-	  return;
-	}
-	
-	// calculates Axx term (NOT a constant during computations, must be updated during every iteration)
-	auto Ax = A*x;
-	
-	for(unsigned int j=0;j<data->getOutputDimension();j++){
-	  for(unsigned int i=0;i<data->getInputDimension();i++){
-	    Axx(j,i) += Ax[j]*x[i];
+#pragma omp for nowait schedule(auto)	
+	for(unsigned long index=0;index<dtrain.size() && running;index++){
+	  
+	  if(data->getData(dtrain[index], x, y) == false){
+	    running = false;
+	    continue;
+	  }
+	  
+	  // calculates Axx term (NOT a constant during computations, must be updated during every iteration)
+	  auto Ax = A*x;
+	  
+	  for(unsigned int j=0;j<data->getOutputDimension();j++){
+	    for(unsigned int i=0;i<data->getInputDimension();i++){
+	      Axx_thread(j,i) += Ax[j]*x[i];
+	    }
 	  }
 	}
+
+#pragma omp critical
+	{
+	  Axx += Axx_thread;
+	}
+	
       }
+
+      if(running == false)
+	return;
       
       Axx /= math::blas_real<float>(dtrain.size());
       
@@ -341,9 +405,10 @@ namespace whiteice
       
       // gradient line search
       float error = curError;
-      math::blas_real<float> lrate = 1.0f; // learning rate
+      math::blas_real<float> lrate = lrate0; // learning rate
       math::matrix< math::blas_real<float> > AA;
       math::vertex< math::blas_real<float> > BB;
+      unsigned int loop_iterations = 0;
 
       do{
 	lrate *= 0.5f;
@@ -353,10 +418,27 @@ namespace whiteice
 
 	error = getError(data, dtest, AA, BB);
 
+	loop_iterations++;
+
+	if(running == false)
+	   return;
+
 	//printf("ITER %d LINE SEARCH: lrate=%f error=%f (current best error=%f)\n",
 	//       iterations, lrate.c[0], error, curError);
       }
-      while(error >= curError && lrate >= 1e-20);
+      while(error >= curError && lrate >= 1e-30);
+
+      // adaptive starting learning rate
+      if(loop_iterations <= 1){
+	lrate0 *= 1.5f;
+
+	if(lrate0 >= 1e20) lrate0 = 1e20;
+      }
+      else{
+	lrate0 *= (1.0f/1.5f);
+
+	if(lrate0 <= 1e-20) lrate0 = 1e-20;
+      }
 
       //printf("ITER %d FOUND STEP: lrate=%f error=%f (current best error=%f)\n",
       //	     iterations, lrate.c[0], error, curError);
@@ -373,7 +455,7 @@ namespace whiteice
 	whiteice::logging.info(buffer);
       }
       
-      if(lrate > 1e-20){
+      if(lrate > 1e-30){
 	curError = error;
 	
 	if(curError < current_solution_mse){

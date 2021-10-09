@@ -41,7 +41,7 @@ namespace whiteice
   class HugeLinear {
   public:
 
-    HugeLinear();
+    HugeLinear(bool overfit_ = false);
     ~HugeLinear();
 
     bool startOptimize(DataSourceInterface* data);    
@@ -79,6 +79,8 @@ namespace whiteice
     // model data
     math::matrix< math::blas_real<float> > A;
     math::vertex< math::blas_real<float> > b;
+
+    bool overfit; // if true overfit to data
 
     unsigned int iterations;
     float current_solution_mse;

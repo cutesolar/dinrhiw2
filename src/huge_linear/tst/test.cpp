@@ -399,7 +399,6 @@ bool one_hot_encoding_test()
   struct oneHotEncodingInfo info;
   std::set<unsigned long> ignored; // empty set
 
-  in.setVectorLength(DIM);
   in.setFile("one_hot_encoding_data.bin");
 
   if(CSVToBinaryFile(filename, in) == false){

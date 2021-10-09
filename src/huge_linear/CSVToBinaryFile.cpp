@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <assert.h>
 
+#include <iostream>
 #include <bits/stdc++.h>
 
 
@@ -21,7 +22,15 @@ namespace whiteice
   
   BinaryVectorsFile::BinaryVectorsFile(const std::string& binfile)
   {
-    this->setFile(binfile);
+    numVectors = 0;
+    vectorLength = 0;
+    binaryFile = NULL;
+    
+    if(this->setFile(binfile) == false){
+      numVectors = 0;
+      vectorLength = 0;
+      binaryFile = NULL;
+    }
   }
   
   BinaryVectorsFile::~BinaryVectorsFile()
@@ -481,6 +490,9 @@ namespace whiteice
       }
       
       line2 = buffer;
+
+      std::cout << "line1 = " << line1 << std::endl;
+      std::cout << "line2 = " << line2 << std::endl;
 
       math::vertex< math::blas_real<float> > vector1, vector2;
 
