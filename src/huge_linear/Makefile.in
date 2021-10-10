@@ -6,7 +6,8 @@ CXX = @CXX@
 
 SOURCES = tst/test.cpp tst/csvoptimizer.cpp HugeLinear.cpp CSVToBinaryFile.cpp OneHotEncoder.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
-	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
+	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
+	FP-growth/src/fptree.cpp
 
 OBJECTS= HugeLinear.o CSVToBinaryFile.o OneHotEncoder.o
 
@@ -17,7 +18,8 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
-	../math/quaternion.o
+	../math/quaternion.o \
+	FP-growth/src/fptree.cpp
 
 TARGET1_OBJECTS=tst/test.o 
 TARGET1=testsuite1
@@ -26,7 +28,7 @@ TARGET2_OBJECTS=tst/csvoptimizer.o
 TARGET2=csvoptimizer
 
 OPTIMIZE=@optimization_flags@
-CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
+CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@ -IFP-growth
 
 CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -I. -I.. -I../.. -I../math -I../neuralnetwork $(OPTIMIZE)
 

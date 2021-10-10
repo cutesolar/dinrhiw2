@@ -161,6 +161,17 @@ int main(int argc, char *argv[])
     printf("Input OHE binary file dimensions: %d\n", (int)intmp.getVectorLength());
     printf("Input OHE binary file samples: %d\n", (int)intmp.getNumberOfVectors());
 
+    printf("Dataming frequent patterns..\n");
+    
+    std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
+
+    if(calculateFrequentPatterns(intmp, 0.30f, fpatterns) == false){
+      printf("Error in datamining frequent pattens.\n");
+      exit(-1);
+    }
+
+    printf("Number of patterns: %d\n", (int)fpatterns.size());
+
     bool overfit = true; // enable overfit to find a global optimum point (hopefully)
     
     HugeLinear solver(overfit);

@@ -28,7 +28,10 @@ namespace whiteice
     bool setNumberOfVectors(const unsigned int numvec);
     unsigned long getNumberOfVectors() const;
 
+    // NOTE: getVector() is thread-safe so that you can read data from multiple threads (OpenMP)
+    // (if you don't write in between)
     bool getVector(const unsigned long index, math::vertex< math::blas_real<float> >& v) const;
+    
     bool setVector(const unsigned long index, const math::vertex< math::blas_real<float> >& v);
 
     bool addVector(const math::vertex< math::blas_real<float> >& v);
@@ -41,10 +44,13 @@ namespace whiteice
     // tells if we have file open
     bool hasFile() const;
 
+    // returns true and filename if binfile is open, otherwise returns false
+    bool getFile(std::string& filename);
+
     // closes binary file and deletes it, if it is open.
     bool deleteFile();
 
-    bool load(const std::string& binfile, const unsigned long numVectors=0);
+    bool load(const std::string& binfile);
     bool save(const std::string& binfile) const;
 
     // sets all values to zero (slow for large files)

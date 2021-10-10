@@ -11,6 +11,9 @@
 #include <string>
 #include <algorithm>
 
+#include "fptree.hpp"
+
+
 
 namespace whiteice
 {
@@ -160,6 +163,51 @@ namespace whiteice
     }
 
     assert(index == info.NUM_DISCRETIZED_VARIABLES);
+
+    return true;
+  }
+
+
+  // initial implementation, TODO: keep transactions on DISK and NOT loaded to memory
+  bool calculateFrequentPatterns
+  (const BinaryVectorsFile& input, // binary valued 0/1 vectors
+   const float minimum_support, // 0.00-1.00 percentage of lines has pattern
+   std::multimap< unsigned long, std::set<unsigned long> >& fpatterns)
+  {
+    if(input.hasFile() == false || input.getNumberOfVectors() == 0)
+      return false;
+
+    if(minimum_support < 0.0f || minimum_support > 1.0f)
+      return false;
+
+    fpatterns.clear();
+
+    // transaction data is loaded to memory (SLOW) [TODO should keep transactions on disk]
+    std::vector<Transaction> data;
+    math::vertex< math::blas_real<float> > v;
+
+    for(unsigned long index=0;index<input.getNumberOfVectors(); index++){
+      if(input.getVector(index, v) == false)
+	return false;
+
+      Transaction s;
+
+      for(unsigned long i=0;i<v.size();i++){
+	if(v[i] > 0.5) s.push_back(i); // assumes data is 0,1 valued binary data
+      }
+
+      data.push_back(s);
+    }
+
+    const unsigned long min_support = minimum_support*input.getNumberOfVectors();
+
+    const FPTree fptree(data, min_support);
+
+    std::set<Pattern> patterns = fptree_growth( fptree );
+
+    printf("Number of patterns: %d\n", (int)patterns.size());
+    
+    // NOT DONE: convert results to multimap format
 
     return true;
   }

@@ -12,6 +12,14 @@
 
 namespace whiteice
 {
+  // binary file format is:
+  // BINARY = NUMVECTORS (<VECTOR>)^NVECTORS TIMES
+  // NUMVECTORS = <UNSIGNED LONG>
+  // VECTOR = <FLOAT>*
+  //
+  // Dimension of vector is calculated from:
+  // (FILESIZE - sizeof(UNSIGNED LONG))/(NVECTORS*sizeof(FLOAT))
+  
 
   BinaryVectorsFile::BinaryVectorsFile()
   {
@@ -47,8 +55,11 @@ namespace whiteice
 
     // resize file to have size (veclen*numVectors*sizeof(float))
 
-    if(ftruncate(fileno(binaryFile), (off_t)(veclen*numVectors*sizeof(float))) == 0){
-      fseek(binaryFile, 0, SEEK_SET);
+    if(ftruncate(fileno(binaryFile),
+		 (off_t)(sizeof(unsigned long)+veclen*numVectors*sizeof(float))) == 0){
+      if(fseek(binaryFile, 0, SEEK_SET) != 0)
+	return false;
+      
       vectorLength = veclen;
       return true;
     }
@@ -69,8 +80,18 @@ namespace whiteice
 
     // resize file to have size (veclen*numVectors*sizeof(float))
 
-    if(ftruncate(fileno(binaryFile), (off_t)(vectorLength*numvec*sizeof(float))) == 0){
-      fseek(binaryFile, 0, SEEK_SET);
+    if(ftruncate(fileno(binaryFile),
+		 (off_t)(sizeof(unsigned long)+vectorLength*numvec*sizeof(float))) == 0){
+      if(fseek(binaryFile, 0, SEEK_SET) != 0){
+	return false;
+      }
+
+      if(fwrite(&numvec, sizeof(unsigned long), 1, binaryFile) != 1){
+	return false;
+      }
+
+      fflush(binaryFile);
+      
       numVectors = numvec;
       return true;
     }
@@ -83,7 +104,12 @@ namespace whiteice
   {
     return numVectors;
   }
-  
+
+  /*
+   * NOTE: pread() is thread-safe so that we can do multiple reads from different (OpenMP) threads
+   * You will have to do fflush(binaryFile) after write (automatically done for now after writes)
+   * so that file read from disk by pread() is not cached somewhere.
+   */
   bool BinaryVectorsFile::getVector(const unsigned long index,
 				    math::vertex< math::blas_real<float> >& v) const
   {
@@ -92,7 +118,7 @@ namespace whiteice
 
     v.resize(vectorLength);
 
-    unsigned long offset = index*vectorLength*sizeof(float);
+    unsigned long offset = sizeof(unsigned long)+index*vectorLength*sizeof(float);
     unsigned long sz     = sizeof(float)*vectorLength;
     const unsigned int SIZE = sizeof(float)*vectorLength;
     unsigned long bytesRead = 0;
@@ -133,7 +159,7 @@ namespace whiteice
     if(index >= numVectors || vectorLength == 0) return false;
     if(v.size() != vectorLength) return false;
 
-    if(fseek(binaryFile, index*vectorLength*sizeof(float), SEEK_SET) == 0){
+    if(fseek(binaryFile, sizeof(unsigned long)+index*vectorLength*sizeof(float), SEEK_SET) == 0){
 
       if(fwrite(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength){
 	fflush(binaryFile); // slow we cannot use cache anymore
@@ -153,7 +179,7 @@ namespace whiteice
     if(binaryFile == NULL) return false;
     if(v.size() != vectorLength) return false;
 
-    if(fseek(binaryFile, numVectors*vectorLength*sizeof(float), SEEK_SET) == 0){
+    if(fseek(binaryFile, sizeof(unsigned long)+numVectors*vectorLength*sizeof(float), SEEK_SET) == 0){
 
       if(fwrite(&(v[0]), sizeof(float), vectorLength, binaryFile) == vectorLength){
 	numVectors++;
@@ -198,8 +224,17 @@ namespace whiteice
     if(handle == NULL) return false;
 
     // resize file to data size
-    if(ftruncate(fileno(handle), (off_t)(vectorLength*numVectors*sizeof(float))) == 0){
-      fseek(handle, 0, SEEK_SET);
+    if(ftruncate(fileno(handle),
+		 (off_t)(sizeof(unsigned long)+vectorLength*numVectors*sizeof(float))) == 0){
+      if(fseek(handle, 0, SEEK_SET) != 0)
+	return false;
+
+      if(fwrite(&numVectors, sizeof(unsigned long), 1, handle) != 1){
+	return false;
+      }
+
+      fflush(handle);
+      
       if(binaryFile) fclose(binaryFile);
       binaryFile = handle;
       binaryFilename = binfile;
@@ -218,6 +253,18 @@ namespace whiteice
     if(binaryFile != NULL) return true;
     else return false;
   }
+
+
+  // returns true and filename if binfile is open, otherwise returns false
+  bool BinaryVectorsFile::getFile(std::string& filename)
+  {
+    if(binaryFile == NULL) return false;
+    if(binaryFilename.length() == 0) return false;
+
+    filename = binaryFilename;
+    
+    return true;
+  }
   
   // closes binary file and deletes it, if it is open.
   bool BinaryVectorsFile::deleteFile()
@@ -234,63 +281,37 @@ namespace whiteice
     return true;
   }
   
-  bool BinaryVectorsFile::load(const std::string& binfile,
-			       const unsigned long numVectors)
+  bool BinaryVectorsFile::load(const std::string& binfile)
   {
     FILE* handle = fopen(binfile.c_str(), "w+");
     if(handle == NULL) return false;
 
-    fseek(handle, 0L, SEEK_END);
+    if(fseek(handle, 0L, SEEK_END) != 0)
+      return false;
+    
     const unsigned long size = ftell(handle);
-    fseek(handle, 0L, SEEK_SET);
-    
-    if(numVectors != 0){
-      
-      if((size % numVectors) != 0){
-	fclose(handle);
-	return false;
-      }
+    if(fseek(handle, 0L, SEEK_SET) != 0)
+      return false;
 
-      this->numVectors = numVectors;
-      this->vectorLength = size / numVectors;
+    unsigned long numvec = 0;
 
-      if(binaryFile) fclose(binaryFile);
-      binaryFile = handle;
-      binaryFilename = binfile;
-
-      return true;
+    if(fread(&numvec, sizeof(unsigned long), 1, handle) != 1){
+      return false;
     }
-    else{
-      // tries to detect numVectors from a filename
-
-      const char* start = binfile.c_str();
-      unsigned int npos = binfile.find_last_of('.');
-      char* start_pos = ((char*)start) + npos;
-      char* endptr = start_pos;
-
-      const long numvec = strtol(start_pos, &endptr, 10);
-
-      if(endptr == start_pos){
-	fclose(handle);
-	return false;
-      }
-
-      if((size % ((unsigned long)numvec)) != 0){
-	fclose(handle);
-	return false;
-      }
-
-      this->numVectors = (unsigned long)numvec;
-      this->vectorLength = size / numVectors;
-
-      if(binaryFile) fclose(binaryFile);
-      binaryFile = handle;
-      binaryFilename = binfile;
-
-      return true;
-    }
-
     
+    if( ((size-sizeof(unsigned long)) % (numvec*sizeof(float))) != 0){
+      fclose(handle);
+      return false;
+    }
+    
+    this->numVectors = numvec;
+    this->vectorLength = (size-sizeof(unsigned long)) / (numvec*sizeof(float));
+    
+    if(binaryFile) fclose(binaryFile);
+    binaryFile = handle;
+    binaryFilename = binfile;
+    
+    return true;
   }
   
   bool BinaryVectorsFile::save(const std::string& binfile) const
@@ -299,9 +320,7 @@ namespace whiteice
     if(this->numVectors == 0 || this->vectorLength == 0)
       return false;
     
-    std::string newfilename = binfile + std::string(".") + std::to_string(numVectors);
-
-    FILE *handle = fopen(newfilename.c_str(), "w");
+    FILE *handle = fopen(binfile.c_str(), "w");
 
     if(handle == NULL) return false;
 
@@ -316,6 +335,26 @@ namespace whiteice
       fclose(handle);
       free(v);
       return false;
+    }
+
+    if(fseek(handle, 0, SEEK_SET) != 0){
+      fclose(handle);
+      free(v);
+      return false;
+    }
+    
+    // writes number of vectors
+    {
+      unsigned long numvec = 0;
+
+      if(fread(&numvec, sizeof(unsigned long), 1, binaryFile) != 1)
+	return false;
+
+      if(numvec != numVectors) // should not never happned
+	return false; 
+      
+      if(fwrite(&numvec, sizeof(unsigned long), 1, handle) != 1)
+	return false;
     }
 
     for(unsigned long i=0;i<numVectors;i++){
@@ -346,7 +385,7 @@ namespace whiteice
       return false;
     }
 
-    if(fseek(binaryFile, 0, SEEK_SET) != 0){
+    if(fseek(binaryFile, sizeof(unsigned long), SEEK_SET) != 0){
       free(v);
       return false;
     }

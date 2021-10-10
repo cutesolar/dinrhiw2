@@ -38,6 +38,16 @@ namespace whiteice
   bool oneHotEncoding(const math::vertex< math::blas_real<float> >& input,
 		      math::vertex< math::blas_real<float> >& encoded,
 		      const struct oneHotEncodingInfo& info);
+
+  // calculates frequent patterns from data using FP-Growth algorithm
+  // returns multimap of support in rows, and set of data vector column values (unsigned long)
+  // NOW: loads data to memory, modify to keep data on disk!!
+  bool calculateFrequentPatterns
+  (const BinaryVectorsFile& input, // binary valued 0/1 vectors
+   const float minimum_support, // 0.00-1.00 percentage of lines has pattern
+   std::multimap< unsigned long, std::set<unsigned long> >& fpatterns);
+				 
+  
 };
 
 #endif
