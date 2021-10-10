@@ -249,7 +249,7 @@ namespace whiteice
 
   BinaryFileFPDataSource::BinaryFileFPDataSource
   (const whiteice::BinaryVectorsFile& x_,
-   const std::multimap< unsigned long, std::set<unsigned long> >& fpatterns_,
+   const std::vector< std::set<unsigned long> >& fpatterns_,
    const whiteice::BinaryVectorsFile& y_) : x(&x_), y(&y_), fpatterns(fpatterns_)
   {
     
@@ -282,6 +282,7 @@ namespace whiteice
     if(index >= this->y->getNumberOfVectors()) return false;
 
     x.resize(this->x->getVectorLength() + fpatterns.size());
+    x.zero();
 
     math::vertex< math::blas_real<float> > in;
 
@@ -291,23 +292,24 @@ namespace whiteice
     if(x.write_subvertex(in, 0) == false) return false;
 
     // populates rest of the vector with frequent pattern variables
-    std::multimap< unsigned long, std::set<unsigned long> >::const_iterator iter =
-      fpatterns.begin();
-
-    unsigned long i = in.size();
     
-    for(;iter != fpatterns.end();iter++, i++){
+    unsigned long i = in.size();
+
+#pragma omp parallel for schedule(auto)
+    for(unsigned long j=0;j<fpatterns.size();j++){
       bool value = true;
 
-      for(auto& pattern : iter->second){
-	if(in[pattern] == false){
+      const auto& pattern = fpatterns[j];
+
+      for(const auto& item : pattern){
+	if(in[item] < 0.5f){
 	  value = false;
 	  break;
 	}
       }
 
       if(value) x[i] = 1.0f;
-      else x[i] = 0.0f;
+      i++;
     }
     
     return true;

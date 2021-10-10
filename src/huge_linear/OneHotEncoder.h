@@ -59,8 +59,8 @@ namespace whiteice
   public:
     
     BinaryFileFPDataSource(const whiteice::BinaryVectorsFile& x_,
-			 const std::multimap< unsigned long, std::set<unsigned long> >& fpatterns_,
-			 const whiteice::BinaryVectorsFile& y_);
+			   const std::vector< std::set<unsigned long> >& fpatterns_,
+			   const whiteice::BinaryVectorsFile& y_);
   
     virtual const unsigned long getNumber() const; // number of data vector pairs (x,y)
   
@@ -77,7 +77,7 @@ namespace whiteice
     const whiteice::BinaryVectorsFile* x;
     const whiteice::BinaryVectorsFile* y;
 
-    const std::multimap< unsigned long, std::set<unsigned long> >& fpatterns;
+    const std::vector< std::set<unsigned long> >& fpatterns;
   };
   
   

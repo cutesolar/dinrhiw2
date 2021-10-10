@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 
     printf("Number of patterns: %d\n", (int)fpatterns_all.size());
 
-    std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
+    std::vector< std::set<unsigned long> > fpatterns;
     
     std::multimap< unsigned long, std::set<unsigned long> >::reverse_iterator index =
       fpatterns_all.rbegin();
@@ -185,13 +185,13 @@ int main(int argc, char *argv[])
     for(unsigned long i=0;i<NUMFPATTERNS && index!=fpatterns_all.rend();index++){
       if(index->second.size() <= 1) continue;
 
-      fpatterns.insert(*index);
+      fpatterns.push_back(index->second);
       i++;
     }
 
     fpatterns_all.clear();
 
-    printf("Frequent %ld patterns generated.\n", fpatterns.size());
+    printf("%ld frequent patterns generated.\n", fpatterns.size());
     fflush(stdout);
 
     const bool overfit = true; // enable overfit to find a global optimum point (hopefully)
