@@ -98,6 +98,9 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 
+
+
+
 int main(int argc, char *argv[])
 {
   printf("CSVOPTIMIZER\n");
@@ -162,20 +165,40 @@ int main(int argc, char *argv[])
     printf("Input OHE binary file samples: %d\n", (int)intmp.getNumberOfVectors());
 
     printf("Dataming frequent patterns..\n");
-    
-    std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
 
-    if(calculateFrequentPatterns(intmp, 0.60f, fpatterns) == false){
+    const unsigned long NUMFPATTERNS = 50000; // uses 50.000 first patterns
+    
+    std::multimap< unsigned long, std::set<unsigned long> > fpatterns_all;
+
+    if(calculateFrequentPatterns(intmp, 0.60f, fpatterns_all) == false){
       printf("Error in datamining frequent pattens.\n");
       exit(-1);
     }
 
-    printf("Number of patterns: %d\n", (int)fpatterns.size());
+    printf("Number of patterns: %d\n", (int)fpatterns_all.size());
 
-    bool overfit = true; // enable overfit to find a global optimum point (hopefully)
+    std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
+    
+    std::multimap< unsigned long, std::set<unsigned long> >::iterator index =
+      fpatterns_all.begin();
+    
+    for(unsigned long i=0;i<NUMFPATTERNS && index!=fpatterns_all.end();index++){
+
+      std::cout << "support: " << index->first << " size: " << index->second.size() << std::endl;
+      
+      if(index->second.size() <= 1) continue;
+
+      fpatterns.insert(*index);
+      i++;
+    }
+
+    fpatterns_all.clear();
+
+    const bool overfit = true; // enable overfit to find a global optimum point (hopefully)
     
     HugeLinear solver(overfit);
-    BinaryFileDataSource source(intmp, out);
+    //BinaryFileDataSource source(intmp, out);
+    BinaryFileFPDataSource source(intmp, fpatterns, out);
 
     printf("Starting optimization solver..\n");
     

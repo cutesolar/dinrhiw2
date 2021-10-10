@@ -235,14 +235,84 @@ namespace whiteice
     
     std::set<Pattern> patterns;
     
-    fptree_growth(fptree, patterns);
+    fptree_growth(fptree, patterns); // THIS IS SLOW AND BADLY CODED. AFAIK.
 
-    printf("Number of patterns: %d\n", (int)patterns.size());
-    
-    // NOT DONE: convert results to multimap format
+    for(const Pattern& p : patterns){
+      fpatterns.insert(std::pair< unsigned long, std::set<unsigned long> >(p.second, p.first));
+    }
 
     return true;
   }
+
+
+  //////////////////////////////////////////////////////////////////////
+
+  BinaryFileFPDataSource::BinaryFileFPDataSource
+  (const whiteice::BinaryVectorsFile& x_,
+   const std::multimap< unsigned long, std::set<unsigned long> >& fpatterns_,
+   const whiteice::BinaryVectorsFile& y_) : x(&x_), y(&y_), fpatterns(fpatterns_)
+  {
+    
+  }
+  
+  const unsigned long BinaryFileFPDataSource::getNumber() const // number of data vector pairs (x,y)
+  {
+    if(x->getNumberOfVectors() == y->getNumberOfVectors())
+      return x->getNumberOfVectors();
+    else 
+      return 0;
+  }
+  
+  const unsigned long BinaryFileFPDataSource::getInputDimension() const  // x input vector dimension
+  {
+    return (x->getVectorLength() + fpatterns.size());
+  }
+  
+  const unsigned long BinaryFileFPDataSource::getOutputDimension() const // y output vector dimension
+  {
+    return y->getVectorLength();
+  }
+  
+  // gets index:th data points or return false (bad index or unknown error)
+  const bool BinaryFileFPDataSource::getData(const unsigned long index,
+					     math::vertex< math::blas_real<float> > & x,
+					     math::vertex< math::blas_real<float> >& y) const
+  {
+    if(index >= this->x->getNumberOfVectors()) return false;
+    if(index >= this->y->getNumberOfVectors()) return false;
+
+    x.resize(this->x->getVectorLength() + fpatterns.size());
+
+    math::vertex< math::blas_real<float> > in;
+
+    if(this->x->getVector(index, in) == false) return false;
+    if(this->y->getVector(index, y) == false) return false;
+
+    if(x.write_subvertex(in, 0) == false) return false;
+
+    // populates rest of the vector with frequent pattern variables
+    std::multimap< unsigned long, std::set<unsigned long> >::const_iterator iter =
+      fpatterns.begin();
+
+    unsigned long i = in.size();
+    
+    for(;iter != fpatterns.end();iter++, i++){
+      bool value = true;
+
+      for(auto& pattern : iter->second){
+	if(in[pattern] == false){
+	  value = false;
+	  break;
+	}
+      }
+
+      if(value) x[i] = 1.0f;
+      else x[i] = 0.0f;
+    }
+    
+    return true;
+  }
+  
   
 };
 
