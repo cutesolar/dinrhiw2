@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 
     fpatterns_all.clear();
 
-    printf("Frequent patterns generated.\n");
+    printf("Frequent %ld patterns generated.\n", fpatterns.size());
     fflush(stdout);
 
     const bool overfit = true; // enable overfit to find a global optimum point (hopefully)
@@ -217,10 +217,14 @@ int main(int argc, char *argv[])
       
       if(iter > iteration_seen){
 	iteration_seen = iter;
+
+	float mse = solver.estimateSolutionMSE();
 	
-	printf("Solver error after %d iterations. MSE: %f.\n",
+	printf("Error after %d iterations. RMS (MSE): %f (%f). Input/output dimensions: %ld / %ld.\n",
 	       iter,
-	       solver.estimateSolutionMSE());
+	       sqrt(mse), mse,
+	       source.getInputDimension(), source.getOutputDimension());
+	fflush(stdout);
       }
     }
 
