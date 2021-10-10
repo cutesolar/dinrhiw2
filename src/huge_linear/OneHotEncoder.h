@@ -39,6 +39,10 @@ namespace whiteice
 		      math::vertex< math::blas_real<float> >& encoded,
 		      const struct oneHotEncodingInfo& info);
 
+
+  
+
+
   // calculates frequent patterns from data using FP-Growth algorithm
   // returns multimap of support in rows, and set of data vector column values (unsigned long)
   // NOW: loads data to memory, modify to keep data on disk!!

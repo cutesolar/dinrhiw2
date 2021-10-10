@@ -167,6 +167,45 @@ namespace whiteice
     return true;
   }
 
+  
+  class BinaryFileTransactionSource : public TransactionSourceInterface
+  {
+  public:
+    BinaryFileTransactionSource(const BinaryVectorsFile& input) : data(&input)
+    {
+    }
+    
+    virtual const unsigned long getNumberOf() const // number of data vector pairs (x,y)
+    {
+      return data->getNumberOfVectors();
+    }
+    
+    // gets index:th data points or return false (bad index or unknown error)
+    virtual const bool getData(const unsigned long index,
+			       Transaction& dataset) const
+    {
+      if(index >= data->getNumberOfVectors()) return false;
+
+      math::vertex< math::blas_real<float> > v;
+
+      if(data->getVector(index, v) == false)
+	return false;
+
+      dataset.clear();
+
+      for(unsigned long i=0;i<v.size();i++){
+	if(v[i] > 0.5) dataset.push_back(i); // assumes data is 0,1 valued binary data
+      }
+
+      return true;
+    }
+
+  private:
+
+    const BinaryVectorsFile* const data;
+    
+  };
+
 
   // initial implementation, TODO: keep transactions on DISK and NOT loaded to memory
   bool calculateFrequentPatterns
@@ -182,30 +221,21 @@ namespace whiteice
 
     fpatterns.clear();
 
-    // transaction data is loaded to memory (SLOW) [TODO should keep transactions on disk]
-    std::vector<Transaction> data;
-    math::vertex< math::blas_real<float> > v;
+    BinaryFileTransactionSource source(input);
 
-    for(unsigned long index=0;index<input.getNumberOfVectors(); index++){
-      if(input.getVector(index, v) == false)
-	return false;
+    unsigned long min_support = minimum_support*input.getNumberOfVectors();
 
-      Transaction s;
+    if(min_support < 1000) min_support = 1000;
 
-      for(unsigned long i=0;i<v.size();i++){
-	if(v[i] > 0.5) s.push_back(i); // assumes data is 0,1 valued binary data
-      }
+    const FPTree fptree(&source, min_support);
 
-      data.push_back(s);
-    }
-
-    const unsigned long min_support = minimum_support*input.getNumberOfVectors();
-
-    const FPTree fptree(data, min_support);
-
-    data.clear(); // frees memory immediately when possible
-
-    std::set<Pattern> patterns = fptree_growth( fptree );
+    printf("FP tree constructed (%ld %f support). Now generating frequent patterns...\n",
+	   min_support, min_support/(float)input.getNumberOfVectors());
+    fflush(stdout);
+    
+    std::set<Pattern> patterns;
+    
+    fptree_growth(fptree, patterns);
 
     printf("Number of patterns: %d\n", (int)patterns.size());
     

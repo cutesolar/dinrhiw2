@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
     
     std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
 
-    if(calculateFrequentPatterns(intmp, 0.30f, fpatterns) == false){
+    if(calculateFrequentPatterns(intmp, 0.60f, fpatterns) == false){
       printf("Error in datamining frequent pattens.\n");
       exit(-1);
     }
