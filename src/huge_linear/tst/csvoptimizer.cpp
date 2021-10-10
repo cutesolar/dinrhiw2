@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 
     printf("Dataming frequent patterns..\n");
 
-    const unsigned long NUMFPATTERNS = 50000; // uses 50.000 first patterns
+    const unsigned long NUMFPATTERNS = 10000; // uses now only 10.000 first patterns
     
     std::multimap< unsigned long, std::set<unsigned long> > fpatterns_all;
 
@@ -183,9 +183,6 @@ int main(int argc, char *argv[])
       fpatterns_all.rbegin();
     
     for(unsigned long i=0;i<NUMFPATTERNS && index!=fpatterns_all.rend();index++){
-
-      std::cout << "support: " << index->first << " size: " << index->second.size() << std::endl;
-      
       if(index->second.size() <= 1) continue;
 
       fpatterns.insert(*index);
@@ -194,6 +191,9 @@ int main(int argc, char *argv[])
 
     fpatterns_all.clear();
 
+    printf("Frequent patterns generated.\n");
+    fflush(stdout);
+
     const bool overfit = true; // enable overfit to find a global optimum point (hopefully)
     
     HugeLinear solver(overfit);
@@ -201,6 +201,7 @@ int main(int argc, char *argv[])
     BinaryFileFPDataSource source(intmp, fpatterns, out);
 
     printf("Starting optimization solver..\n");
+    fflush(stdout);
     
     if(solver.startOptimize(&source) == false){
       printf("Error in HugeLinear::startOptimize(). Cannot start optimiztion/FAILED.\n");
