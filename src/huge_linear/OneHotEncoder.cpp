@@ -293,7 +293,7 @@ namespace whiteice
 
     // populates rest of the vector with frequent pattern variables
     
-    unsigned long i = in.size();
+    const unsigned long SIZE = in.size();
 
 #pragma omp parallel for schedule(auto)
     for(unsigned long j=0;j<fpatterns.size();j++){
@@ -308,8 +308,7 @@ namespace whiteice
 	}
       }
 
-      if(value) x[i] = 1.0f;
-      i++;
+      if(value) x[SIZE+j] = 1.0f;
     }
     
     return true;
