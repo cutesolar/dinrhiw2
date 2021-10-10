@@ -203,6 +203,8 @@ namespace whiteice
 
     const FPTree fptree(data, min_support);
 
+    data.clear(); // frees memory immediately when possible
+
     std::set<Pattern> patterns = fptree_growth( fptree );
 
     printf("Number of patterns: %d\n", (int)patterns.size());
