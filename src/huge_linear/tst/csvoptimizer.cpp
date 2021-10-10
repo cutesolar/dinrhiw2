@@ -179,10 +179,10 @@ int main(int argc, char *argv[])
 
     std::multimap< unsigned long, std::set<unsigned long> > fpatterns;
     
-    std::multimap< unsigned long, std::set<unsigned long> >::iterator index =
-      fpatterns_all.begin();
+    std::multimap< unsigned long, std::set<unsigned long> >::reverse_iterator index =
+      fpatterns_all.rbegin();
     
-    for(unsigned long i=0;i<NUMFPATTERNS && index!=fpatterns_all.end();index++){
+    for(unsigned long i=0;i<NUMFPATTERNS && index!=fpatterns_all.rend();index++){
 
       std::cout << "support: " << index->first << " size: " << index->second.size() << std::endl;
       
