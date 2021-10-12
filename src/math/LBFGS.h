@@ -72,6 +72,10 @@ namespace whiteice
 	void setGradientOnly(bool gradientOnly=true){
 	  this->onlygradient = gradientOnly;
 	}
+
+	void setUseWolfeConditions(bool useWolfe = true){
+	  this->use_wolfe = useWolfe; // SLOW but should guarantee convergence to grad == zero point.
+	}
 	
       private:
       
@@ -94,6 +98,7 @@ namespace whiteice
       
         bool overfit;
 	bool onlygradient; // only follow gradient (no 2nd order aprox)
+	bool use_wolfe; // do we use wolfe conditions in line search?
 	
         volatile bool sleep_mode, thread_running, solution_converged;
       

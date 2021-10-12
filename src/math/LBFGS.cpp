@@ -34,6 +34,7 @@ namespace whiteice
       optimizer_thread = nullptr;
       this->overfit = overfit;
       this->onlygradient = false;
+      this->use_wolfe = false;
     }
     
  
@@ -229,41 +230,64 @@ namespace whiteice
 	t = x + alpha*d;
 	box_values(t); // limit values	  
 	tvalue = U(t);
-	
-	if(tvalue < localbest){
-	  //if(wolfe_conditions(x, alpha, d))
-	  {
-	    best_alpha = alpha;
-	    localbest = tvalue;
-	    localbestx = t;
+
+	if(use_wolfe == true){
+	  if(wolfe_conditions(x, alpha, d)){
+	    {
+	      best_alpha = alpha;
+	      localbest = tvalue;
+	      localbestx = t;
+	    }
 	  }
 	}
+	else{
+	  if(tvalue < localbest){
+	    {
+	      best_alpha = alpha;
+	      localbest = tvalue;
+	      localbestx = t;
+	    }
+	  }
+	}
+	
       }
       
       int k = 1;    	
       
-      while(found <= 0 && k <= 20){ // min 2**(-20) = 10e-6 step length
+      while(found <= 0 && k <= 30){ // min 2**(-30) = 10e-9 step length
 
 	T tvalue = T(0.0);
 	
-	if(k <= 10)
+	if(k <= 20) // was: 10..
 	{ // don't allow for large k values
 	  alpha  = scale * T(::pow(2.0f, k));
 	  
 	  t = x + alpha*d;
 	  box_values(t); // limit values
 	  tvalue = U(t);
-	  
-	  if(tvalue < localbest){
-	    //if(wolfe_conditions(x, alpha, d))
-	    {
-	      best_alpha = alpha;
-	      localbest = tvalue;
-	      localbestx = t;
-	      found++;
-	      break;
+
+
+	  if(use_wolfe == true){
+	    if(wolfe_conditions(x, alpha, d)){
+	      {
+		best_alpha = alpha;
+		localbest = tvalue;
+		localbestx = t;
+		found++; continue;
+	      }
 	    }
 	  }
+	  else{
+	    if(tvalue < localbest){
+	      {
+		best_alpha = alpha;
+		localbest = tvalue;
+		localbestx = t;
+		found++; continue;
+	      }
+	    }
+	  }
+	  
 	}
 	
 	alpha  = scale * T(::pow(2.0f, -k));
@@ -272,19 +296,29 @@ namespace whiteice
 	box_values(t); // limit values
 	tvalue = U(t);
 	
-	if(tvalue < localbest){
-	  //if(wolfe_conditions(x, alpha, d))
-	  {
-	    best_alpha = alpha;
-	    localbest = tvalue;
-	    localbestx = t;
-	    found++;
-	    break;
+	if(use_wolfe == true){
+	  if(wolfe_conditions(x, alpha, d)){
+	    {
+	      best_alpha = alpha;
+	      localbest = tvalue;
+	      localbestx = t;
+	      found++; continue;
+	    }
 	  }
 	}
-
-#if 1
-	// HACK:
+	else{
+	  if(tvalue < localbest){
+	    {
+	      best_alpha = alpha;
+	      localbest = tvalue;
+	      localbestx = t;
+	      found++; continue;
+	    }
+	  }
+	}
+	
+#if 0
+	// HACK: (DISABLED)
 	// heuristics: allows going to worse solution with 20% prob
 	// (small step length values to gradient direction)
 	if((rng.rand() % 5) == 0 && tvalue < T(10.0)){
@@ -310,10 +344,10 @@ namespace whiteice
     template <typename T>
     bool LBFGS<T>::box_values(vertex<T>& x) const
     {
-      // don't allow values larger than 10^3
+      // don't allow values larger than 10^4
       for(unsigned int i=0;i<x.size();i++)
-	if(x[i] > T(1e3)) x[i] = T(1e3);
-	else if(x[i] < T(-1e3)) x[i] = T(-1e3);
+	if(x[i] > T(1e4)) x[i] = T(1e4);
+	else if(x[i] < T(-1e4)) x[i] = T(-1e4);
 
       return true;
     }
@@ -357,8 +391,9 @@ namespace whiteice
       std::list<T> ratios;
       unsigned int reset = 0;
       const unsigned int RESET = 5;
-      
-      const unsigned int M = 15; // history size is large (15) should try value 5 and change to if results do not become worse.
+
+      // history size is large (15) should try value 5 and change to it if results do not become worse.
+      const unsigned int M = 5;  // M = MEMORY SIZE (was: 15, 10)
       
       std::list< vertex<T> > yk;
       std::list< vertex<T> > sk;
@@ -470,6 +505,8 @@ namespace whiteice
 	  
 	  // cancellation point
 	  if(thread_running == false) break;
+
+	  // scale = 1.0
 	  
 	  // linear search finds xn = x + alpha*d
 	  // so that U(xn) is minimized
