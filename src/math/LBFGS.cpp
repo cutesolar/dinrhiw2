@@ -393,7 +393,7 @@ namespace whiteice
       const unsigned int RESET = 5;
 
       // history size is large (15) should try value 5 and change to it if results do not become worse.
-      const unsigned int M = 15;  // M = MEMORY SIZE (was: 15, 10)
+      const unsigned int M = 10;  // M = MEMORY SIZE (10 could be a good compromise)
       
       std::list< vertex<T> > yk;
       std::list< vertex<T> > sk;
