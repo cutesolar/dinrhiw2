@@ -28,6 +28,9 @@ TARGET1=testsuite1
 TARGET2_OBJECTS=tst/csvoptimizer.o
 TARGET2=csvoptimizer
 
+TARGET3_OBJECTS=tst/enrichdata.o
+TARGET3=enrichdata
+
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
 
@@ -37,13 +40,16 @@ LIBS= @EXTRA_LIBPATHS@ -lgmp -lz -lpthread @EXTRA_LIBS@
 
 ##################################################
 
-all: test1 test2
+all: test1 test2 test3
 
 test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
 
 test2: $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET2) $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test3: $(TARGET3_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET3) $(TARGET3_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
 
 clean:
 	$(RM) $(OBJECTS)

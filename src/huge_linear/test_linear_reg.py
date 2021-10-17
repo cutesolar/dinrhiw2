@@ -26,7 +26,7 @@ N = X.shape[0]
 ############################################################################
 # linear model error is:
 
-print("Fitting linear model to data..");
+print("Fitting linear model to data (python/numpy function)..");
 
 regmodel = LinearRegression()
 reg = regmodel.fit(X, y)
@@ -39,6 +39,40 @@ rms = math.sqrt(mse)
 print("MNE error of linear model: " + str(mne))
 print("MSE error of linear model: " + str(mse))
 print("RMS error of linear model: " + str(rms))
+
+# calculates linear regression model directly
+
+print("Calculates linear model directly..")
+
+Cxx = np.cov(X, rowvar=False)
+
+# Cyx = (X * y).mean() - X.mean() * y.mean():
+
+Ryx = np.matmul(np.transpose(y), X)
+Ryx = Ryx / N
+my = np.mean(y, axis=0)
+mx = np.mean(X, axis=0)
+mymx = np.outer(my,mx)
+Cyx = Ryx - mymx
+
+invCxx = np.linalg.pinv(Cxx)
+
+A = np.matmul(Cyx, invCxx)
+b = my - np.dot(A,mx)
+
+yyy = np.transpose(np.matmul(A, np.transpose(X)))
+
+for i in range(yyy.shape[0]):
+    yyy[i,:] = yyy[i,:] + b
+
+
+mne = np.sum(np.absolute(np.subtract(y,yyy)))/len(yyy) # mean norm error
+mse = np.sum(np.subtract(y,yyy)**2)/len(yyy)
+rms = math.sqrt(mse)
+
+print("MNE error of linear model (2): " + str(mne))
+print("MSE error of linear model (2): " + str(mse))
+print("RMS error of linear model (2): " + str(rms))
 
 #############################################################################
 # Neural network error is:
