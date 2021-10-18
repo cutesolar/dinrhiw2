@@ -13,6 +13,10 @@
  * Google DeepMind, London, UK.
  * Conference paper at ICLR 2016
  *
+ * NOTE 2021: Added L2 regularization 0.02*0.5*||w||^2 term 
+ *            to optimization of Q and policy so that 
+ *            neural network weights cannot explode.
+ *
  */
 
 #ifndef whiteice_RIFL_abstract2_h

@@ -505,10 +505,12 @@ namespace whiteice
 
       first_time = true;
 
+      // KEEP THE EXISTING REGULARIZER IF IT HAS BEEN ENABLED
+      
       // regularizer = T(0.0001); // 1/10.000 (keep weights from becoming large)
       // regularizer = T(1.0); // this works for "standard" cases
       
-      regularizer = T(0.0f);    // regularizer is DISABLED
+      // regularizer = T(0.0f);    // regularizer is DISABLED
 
       start_lock.unlock();
     }
@@ -1095,7 +1097,7 @@ namespace whiteice
 	    error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
 
 	    {
-	      if(real(error) > real(local_thread_best_error)){
+	      if(real(error) >= real(local_thread_best_error)){
 		// no improvement for this iteration
 		std::lock_guard<std::mutex> lock(noimprove_lock);
 		

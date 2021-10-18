@@ -53,14 +53,12 @@ namespace whiteice
 	arch.push_back(50);
 	arch.push_back(50);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
 	arch.push_back(1);
 	
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::rectifier);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0));
 	  
@@ -84,8 +82,6 @@ namespace whiteice
 	arch.push_back(50);
 	arch.push_back(50);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
 	arch.push_back(numActions);
 
 	// policy outputs action is (should be) +[-1,+1]^D vector
@@ -94,8 +90,8 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0));
 	  
@@ -307,10 +303,11 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 1000; // 40, was 1
-    const unsigned int P_OPTIMIZE_ITERATIONS = 1; // 10, was 1
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1
+    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1
 
-    const T tau = T(1e-2); // lagged Q and policy network [keeps tau%=1% of the new weights]
+    // tau = 1.0 => no lagged neural networks
+    const T tau = T(1.00); // lagged Q and policy network [keeps tau%=1% of the new weights
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
@@ -478,22 +475,28 @@ namespace whiteice
 		      << ", STATE = " << state
 		      << ", ACTION = " << action
 		      << "\t NORM DECREASES. RANDOM: "
-		      << random << std::endl;
+		      << random
+		      << " MODELS: " << hasModel[0] << " " << hasModel[1]
+		      << std::endl;
 	  }
 	  else{
 	    std::cout << "Q(STATE,POLICY_ACTION) = " << u
 		      << ", STATE = " << state
 		      << ", ACTION = " << action
 		      << "\t NORM INCREASES. RANDOM: "
-		      << random << std::endl;
+		      << random
+		      << " MODELS: " << hasModel[0] << " " << hasModel[1]
+		      << std::endl;
 	  }
 	}
 	else{
 	  std::cout << "Q(STATE,POLICY_ACTION) = " << u
-		      << ", STATE = " << state
-		      << ", ACTION = " << action
-		      << ", RANDOM: "
-		      << random << std::endl;
+		    << ", STATE = " << state
+		    << ", ACTION = " << action
+		    << ", RANDOM: "
+		    << random
+		    << " MODELS: " << hasModel[0] << " " << hasModel[1]
+		    << std::endl;
 	}
       }
       
@@ -628,7 +631,7 @@ namespace whiteice
 	    dataset_thread = new CreateRIFL2dataset<T>(*this,
 						       database,
 						       database_mutex,
-						       epoch[0],
+						       epoch[1],
 						       data);
 	    dataset_thread->start(NUMSAMPLES);
 	    
@@ -653,7 +656,7 @@ namespace whiteice
 	    
 	    std::lock_guard<std::mutex> lock(Q_mutex);
 	    
-	    if(Q.exportSamples(nn, weights, 1) == false){
+	    if(lagged_Q.exportSamples(nn, weights, 1) == false){
 	      assert(0);
 	    }
 	    
@@ -665,11 +668,11 @@ namespace whiteice
 	  }
 	  
 	  const bool dropout = false;
-	  const bool useInitialNN = true; // start from scratch everytime
+	  const bool useInitialNN = true; // WAS: start from scratch everytime
 	  
 	  eta.start(0.0, Q_OPTIMIZE_ITERATIONS); // 150 iters
 
-	  grad.setRegularizer(0.0); // DISABLE (was: enable) regularizer
+	  grad.setRegularizer(T(0.0)); // DISABLE REGULARIZER FOR Q-NETWORK
 	  
 	  // grad.startOptimize(data, nn, 2, 150);
 	  
@@ -808,7 +811,7 @@ namespace whiteice
 	  
 	  
 	  // const unsigned int BATCHSIZE = database.size(); // was 1000
-	  const unsigned int BATCHSIZE = 128; // was 128
+	  const unsigned int BATCHSIZE = 1000; // was 128
 
 	  if(dataset2_thread == nullptr){
 	    data2.clear();
@@ -841,7 +844,7 @@ namespace whiteice
 	      std::lock_guard<std::mutex> lock(Q_mutex);
 	      std::vector< math::vertex<T> > weights;
 	      
-	      if(Q.exportSamples(q_nn, weights, 1) == false){
+	      if(lagged_Q.exportSamples(q_nn, weights, 1) == false){
 		assert(0);
 	      }
 	      
@@ -857,7 +860,7 @@ namespace whiteice
 	      
 	      std::lock_guard<std::mutex> lock(policy_mutex);
 	      
-	      if(policy.exportSamples(nn, weights, 1) == false){
+	      if(lagged_policy.exportSamples(nn, weights, 1) == false){
 		assert(0);
 	      }
 	      
@@ -869,7 +872,7 @@ namespace whiteice
 	    }
 
 	    const bool dropout = false;
-	    const bool useInitialNN = true; // start from scratch everytime
+	    const bool useInitialNN = true; // WAS: start from scratch everytimexs
 	    
 	    eta2.start(0.0, P_OPTIMIZE_ITERATIONS); // 150 iters per sample
 	    

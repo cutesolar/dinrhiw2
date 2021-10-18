@@ -29,7 +29,6 @@ int main(int argc, char** argv)
   srand(time(0));
 
   
-
 #ifndef WINOS
 #ifndef USE_SDL
   // enable floating point exceptions (for debugging)
@@ -39,7 +38,6 @@ int main(int argc, char** argv)
   }
 #endif
 #endif
-  
   
   if(argc <= 1){
     whiteice::AdditionProblem< whiteice::math::blas_real<double> > system;

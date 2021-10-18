@@ -161,7 +161,7 @@ namespace whiteice
 
       // counter per thread to test if there have been no improvements
       std::map<std::thread::id, unsigned int> noimprovements;
-      const unsigned int MAX_NOIMPROVEMENT_ITERS = 50;
+      const unsigned int MAX_NOIMPROVEMENT_ITERS = 5;
 
       whiteice::RNG<T> rng; // we use random numbers
       bool use_minibatch; // use minibatch to estimate gradient
