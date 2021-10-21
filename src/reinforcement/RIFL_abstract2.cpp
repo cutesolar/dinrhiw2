@@ -25,7 +25,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.80); // how much weight future values Q() have: was 0.95
+      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
@@ -51,8 +51,8 @@ namespace whiteice
 	
 	arch.push_back(numStates + numActions);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
 	arch.push_back(1);
 	
 	{
@@ -61,8 +61,15 @@ namespace whiteice
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0));
+	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
+
+	  whiteice::math::vertex<T> weights;
+	  nn.exportdata(weights);
+	  weights.zero();
+	  nn.importdata(weights);
+	  
 	  lagged_Q.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
@@ -80,8 +87,8 @@ namespace whiteice
 	arch.clear();
 	arch.push_back(numStates);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
 	arch.push_back(numActions);
 
 	// policy outputs action is (should be) +[-1,+1]^D vector
@@ -94,8 +101,15 @@ namespace whiteice
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0));
+	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
+
+	  whiteice::math::vertex<T> weights;
+	  nn.exportdata(weights);
+	  weights.zero();
+	  nn.importdata(weights);
+	  
 	  lagged_policy.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
@@ -103,6 +117,8 @@ namespace whiteice
 
 	  policy_preprocess.createCluster("input-state", numStates);
 	  policy_preprocess.createCluster("output-state", numActions);
+
+	  std::cout << "POLICY SIZE: " << nn.exportdatasize() << std::endl;
 	}
       }
       
@@ -303,11 +319,11 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1
-    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1 (dont work), 5, 10
+    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1 (dont work), 5, 10
 
-    // tau = 1.0 => no lagged neural networks
-    const T tau = T(1.00); // lagged Q and policy network [keeps tau%=1% of the new weights
+    // tau = 1.0 => no lagged neural networks [don't work]
+    const T tau = T(0.05); // lagged Q and policy network [keeps tau%=1% of the new weights
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
@@ -338,22 +354,24 @@ namespace whiteice
     int old_grad2_iterations = -1;
 
     const unsigned int DATASIZE = 1000000; // was: 100.000 / 1M history of samples
-    const unsigned int SAMPLESIZE = 2000;
+    const unsigned int SAMPLESIZE = 1000;
     
-    const bool debug = true; // debugging messages
-
     bool firstTime = true;
     whiteice::math::vertex<T> state;
 
     whiteice::nnetwork<T> nn;
-    
+
+    unsigned long counter = 0; // N:th iteration
     
     whiteice::logging.info("RIFL_abstract2: starting optimization loop");
 
     whiteice::logging.info("RIFL_abstract2: initial Q diagnostics");
     Q.diagnosticsInfo();
 
+    
     while(thread_is_running > 0){
+
+      counter++;
 
       // 1. gets current state
       {
@@ -406,45 +424,25 @@ namespace whiteice
 	// FIXME add better random normally distributed noise (exploration)
 	{
 	  if(rng.uniform() > epsilon){ // 1-epsilon % are chosen randomly
-#if 1
+	    
 	    rng.normal(u); // Normal E[n]=0 StDev[n]=1
-#endif
-#if 0
-	    rng.uniform(u); // Normal E[n]=0 StDev[n]=1
-
-	    for(unsigned int i=0;i<u.size();i++){
-	      u[i] = T(2.0)*u[i] - T(1.0);
-	    }
-#endif
 
 	    random = true;
 	  }
-	  else{ // just adds random noise to action
+	  else{ // just adds random noise to action [mini-exploration]
 	    auto noise = u;
 	    rng.normal(noise); // Normal EX[n]=0 StDev[n]=1
-	    u += T(0.1)*noise;
+	    u += T(0.10)*noise;
 	  }
-
-#if 0
-	  for(unsigned int i=0;i<u.size();i++){
-	    if(u[i] < T(-1.0)) u[i] = T(-1.0); // [keep things between [-1,1]
-	    else if(u[i] > T(1.0)) u[i] = T(1.0);
-	  }
-#endif
+	  
 	}
 
 	// if there's no model then make random selection (normally distributed)
 	if(hasModel[0] == 0 || hasModel[1] == 0){
-	  rng.uniform(u);
+	  rng.normal(u);
 	  random = true;
-
-	  for(unsigned int i=0;i<u.size();i++){
-	    u[i] = T(2.0)*u[i] - T(1.0);
-	    if(u[i] < T(-1.0)) u[i] = T(-1.0); // [keep things between [-1,+1]
-	    else if(u[i] > T(1.0)) u[i] = T(1.0);
-	  }
 	}
-
+	
 	action = u;
       }
 
@@ -468,29 +466,35 @@ namespace whiteice
 	  // ONLY WORKS FOR AdditionProblem! (size(action) == size(state))
 	  
 	  auto norm1 = state.norm();
-	  auto norm2 = (action + state).norm();
+	  auto result = action + state;
+	  auto norm2 = result.norm();
 	  
 	  if(norm2 < norm1){
-	    std::cout << "Q(STATE,POLICY_ACTION) = " << u
+	    std::cout << counter << " "
+		      << "Q(STATE,POLICY_ACTION) = " << u
 		      << ", STATE = " << state
 		      << ", ACTION = " << action
-		      << "\t NORM DECREASES. RANDOM: "
+		      << "\t NORM DECREASES: " << norm1 << ">" << norm2
+		      << " RANDOM: "
 		      << random
 		      << " MODELS: " << hasModel[0] << " " << hasModel[1]
 		      << std::endl;
 	  }
 	  else{
-	    std::cout << "Q(STATE,POLICY_ACTION) = " << u
+	    std::cout << counter << " "
+		      << "Q(STATE,POLICY_ACTION) = " << u
 		      << ", STATE = " << state
 		      << ", ACTION = " << action
-		      << "\t NORM INCREASES. RANDOM: "
+		      << "\t NORM INCREASES. " << norm1 << "<" << norm2
+		      << " RANDOM: "
 		      << random
 		      << " MODELS: " << hasModel[0] << " " << hasModel[1]
 		      << std::endl;
 	  }
 	}
 	else{
-	  std::cout << "Q(STATE,POLICY_ACTION) = " << u
+	  std::cout << counter << " " 
+		    << "Q(STATE,POLICY_ACTION) = " << u
 		    << ", STATE = " << state
 		    << ", ACTION = " << action
 		    << ", RANDOM: "
@@ -550,8 +554,8 @@ namespace whiteice
 	
 	// skip if other optimization step (policy network)
 	// is behind us
-	//if(epoch[0] > epoch[1])
-	//  goto q_optimization_done;
+	if(epoch[0] > epoch[1])
+	  goto q_optimization_done;
 	
 	
 	T error;
@@ -620,7 +624,7 @@ namespace whiteice
 
 	  
 	  // const unsigned int NUMSAMPLES = database.size(); // was 1000
-	  const unsigned int NUMSAMPLES = 2000; // was 1000, 128
+	  // const unsigned int NUMSAMPLES = 2000; // was 1000, 128
 	  
 	  
 	  if(dataset_thread == nullptr){
@@ -633,7 +637,7 @@ namespace whiteice
 						       database_mutex,
 						       epoch[1],
 						       data);
-	    dataset_thread->start(NUMSAMPLES);
+	    dataset_thread->start(SAMPLESIZE);
 	    
 	    whiteice::logging.info("RIFL_abstract2: new dataset_thread started (Q)");
 	    
@@ -656,7 +660,7 @@ namespace whiteice
 	    
 	    std::lock_guard<std::mutex> lock(Q_mutex);
 	    
-	    if(lagged_Q.exportSamples(nn, weights, 1) == false){
+	    if(Q.exportSamples(nn, weights, 1) == false){ // was: lagged_Q
 	      assert(0);
 	    }
 	    
@@ -673,6 +677,7 @@ namespace whiteice
 	  eta.start(0.0, Q_OPTIMIZE_ITERATIONS); // 150 iters
 
 	  grad.setRegularizer(T(0.0)); // DISABLE REGULARIZER FOR Q-NETWORK
+	  grad.setNormalizeError(false); // calculate real error values
 	  
 	  // grad.startOptimize(data, nn, 2, 150);
 	  
@@ -811,7 +816,7 @@ namespace whiteice
 	  
 	  
 	  // const unsigned int BATCHSIZE = database.size(); // was 1000
-	  const unsigned int BATCHSIZE = 1000; // was 128
+	  // const unsigned int BATCHSIZE = 1000; // was 128
 
 	  if(dataset2_thread == nullptr){
 	    data2.clear();
@@ -821,7 +826,7 @@ namespace whiteice
 							 database,
 							 database_mutex,
 							 data2);
-	    dataset2_thread->start(BATCHSIZE);
+	    dataset2_thread->start(SAMPLESIZE);
 
 	    whiteice::logging.info("RIFL_abstract2: new dataset2_thread started (policy)");
 
@@ -838,13 +843,13 @@ namespace whiteice
 	  
 	  // fetch NN parameters from model
 	  {
-	    whiteice::nnetwork<T> q_nn;	    
+	    whiteice::nnetwork<T> q_nn, nn;
 
 	    {
 	      std::lock_guard<std::mutex> lock(Q_mutex);
 	      std::vector< math::vertex<T> > weights;
 	      
-	      if(lagged_Q.exportSamples(q_nn, weights, 1) == false){
+	      if(Q.exportSamples(q_nn, weights, 1) == false){ // was: lagged_Q
 		assert(0);
 	      }
 	      
@@ -860,7 +865,7 @@ namespace whiteice
 	      
 	      std::lock_guard<std::mutex> lock(policy_mutex);
 	      
-	      if(lagged_policy.exportSamples(nn, weights, 1) == false){
+	      if(policy.exportSamples(nn, weights, 1) == false){ // was: lagged_policy
 		assert(0);
 	      }
 	      

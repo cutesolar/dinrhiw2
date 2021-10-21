@@ -116,7 +116,7 @@ namespace whiteice
     nnnets.resize(weights.size());
 
     for(unsigned int i=0;i<nnnets.size();i++){
-      nnnets[i] = new nnetwork<T>(nn);
+      nnnets[i] = new nnetwork<T>(nn); // FIXME handle alloc that FAILs..
       
       if(nnnets[i]->importdata(weights[i]) == false){
 	for(unsigned int j=0;j<=i;j++){

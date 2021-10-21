@@ -40,6 +40,7 @@ namespace whiteice
 
       dropout = false;
       overfit = false;
+      dont_normalize_error = false; // don't normalize values when calculating error.
       mne = false; // use minimum squared error as the default error term
 
       running = false;
@@ -72,6 +73,7 @@ namespace whiteice
       regularizer = grad.regularizer;
       overfit = grad.overfit;
       mne = grad.mne;
+      dont_normalize_error = grad.dont_normalize_error; // don't normalize values when calculating error
       
       running = grad.running;
 
@@ -135,6 +137,22 @@ namespace whiteice
     bool NNGradDescent<T>::getOverfit() const
     {
       return overfit;
+    }
+
+    
+    // sets non-normalization of error values when normalize_error = false
+    template <typename T>
+    void NNGradDescent<T>::setNormalizeError(bool normalize_error)
+    {
+      if(normalize_error) dont_normalize_error = false;
+      else dont_normalize_error = true;
+    }
+
+    template <typename T>
+    bool NNGradDescent<T>::getNormalizeError()
+    {
+      if(dont_normalize_error) return false;
+      else return true;
     }
 
     template <typename T>
@@ -498,6 +516,7 @@ namespace whiteice
 
       dropout = false;
       overfit = false;
+      dont_normalize_error = false;
       mne = false; // use minimum squared error as the default error term
 
       running = false;
@@ -544,7 +563,7 @@ namespace whiteice
 	for(unsigned int i=0;i<dtest.size(0);i++){
 	  const unsigned int index = i; // rng.rand() % dtest.size(0);
 	  
-	  const auto& yvalue = dtest.access(1, index);
+	  auto yvalue = dtest.access(1, index);
 
 	  if(dropout){
 	    nnet.setDropOut(net_dropout);
@@ -552,6 +571,11 @@ namespace whiteice
 	  }
 	  else{
 	    nnet.calculate(dtest.access(0, index), out);
+	  }
+
+	  if(dont_normalize_error){
+	    dtest.invpreprocess(1, yvalue);
+	    dtest.invpreprocess(1, out);
 	  }
 	  
 	  err = out - yvalue;

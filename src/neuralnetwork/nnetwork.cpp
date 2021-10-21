@@ -15,6 +15,8 @@
 #include "dinrhiw_blas.h"
 #include "Log.h"
 
+
+
 namespace whiteice
 {
   

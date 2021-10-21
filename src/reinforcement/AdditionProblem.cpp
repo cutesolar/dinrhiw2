@@ -81,11 +81,13 @@ namespace whiteice
     {
       iteration++;
 
-      if(iteration > 15){
+      if(iteration > 10){
 	iteration = 0;
 	reset();
 	newstate = state;
 	reinforcement = T(5.0)-newstate.norm();
+	// reinforcement = T(5.0)-newstate[0];
+	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
 	endFlag = true;
@@ -97,6 +99,8 @@ namespace whiteice
       else{
 	newstate = state + action;
 	reinforcement = T(5.0)-newstate.norm();
+	// reinforcement = T(5.0)-newstate[0];
+	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
 	endFlag = false;

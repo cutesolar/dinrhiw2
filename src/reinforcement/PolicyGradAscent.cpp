@@ -186,6 +186,8 @@ namespace whiteice
       auto newpolicy = new nnetwork<T>(policy);						 
       this->policy = newpolicy;
       if(initiallyUseNN == false) this->policy->randomize();
+
+      regularizer = T(0.01)*T(5453.0)/T(this->policy->exportdatasize()); // was: 1/10.000, was 0.02
       
       whiteice::logging.info("PolicyGradAscent: input Q weights diagnostics");
       this->Q->diagnosticsInfo();
