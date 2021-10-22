@@ -105,6 +105,8 @@ namespace whiteice
 	  delete optimizer_thread[i];
 	  optimizer_thread[i] = nullptr;
 	}
+
+	optimizer_thread.clear();
       }
 
       if(nn) delete nn;
@@ -219,12 +221,29 @@ namespace whiteice
 
       start_lock.lock();
 
+      if(running == true){
+	start_lock.unlock();
+	return false;
+      }
+
       {
+	running = false;
+	
 	std::lock_guard<std::mutex> lock(thread_is_running_mutex);
 	if(thread_is_running > 0){
 	  start_lock.unlock();
 	  return false;
 	}
+	
+	for(unsigned int i=0;i<optimizer_thread.size();i++){
+	  if(optimizer_thread[i]){
+	    optimizer_thread[i]->join();
+	    delete optimizer_thread[i];
+	    optimizer_thread[i] = nullptr;
+	  }
+	}
+
+	optimizer_thread.clear();
       }
       
       
@@ -267,7 +286,7 @@ namespace whiteice
       }
       
       this->dropout = dropout;
-
+      
       optimizer_thread.resize(NTHREADS);
 
       {
@@ -500,6 +519,8 @@ namespace whiteice
 	  delete optimizer_thread[i];
 	  optimizer_thread[i] = nullptr;
 	}
+
+	optimizer_thread.clear();
       }
       
       if(nn) delete nn;
