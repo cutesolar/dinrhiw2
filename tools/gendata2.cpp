@@ -18,7 +18,7 @@ int qcompare(const void* a, const void* b){
   else return 1.0f;
 }
 
-// generates examples used on machine learning
+// generates examples used for machine learning
 void generate(std::vector<float>& x)
 {
   assert(x.size() != 0);

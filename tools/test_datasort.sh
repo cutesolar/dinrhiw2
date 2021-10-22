@@ -15,9 +15,9 @@ $DSTOOL -create:5:output gendata2-test.ds
 $DSTOOL -list gendata2-test.ds
 $DSTOOL -import:0 gendata2-test.ds sort_train_input.csv
 $DSTOOL -import:1 gendata2-test.ds sort_train_output.csv
-$DSTOOL -padd:0:meanvar gendata-test.ds
+$DSTOOL -padd:0:meanvar gendata2-test.ds
 # $DSTOOL -padd:0:pca wine-test.ds
-$DSTOOL -padd:1:meanvar gendata-test.ds
+$DSTOOL -padd:1:meanvar gendata2-test.ds
 
 $DSTOOL -list gendata2-test.ds
 
