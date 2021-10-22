@@ -471,6 +471,7 @@ namespace whiteice
 	solution_lock.lock();
 	
 	nn = *(this->nn);
+	nn.importdata(bestx);
 	
 	solution_lock.unlock();
       }
@@ -746,7 +747,7 @@ namespace whiteice
 	// keep looking for solution forever
 	
 	// starting location for neural network
-	std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*this->nn));
+	std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*(this->nn)));
 
 	{
 	  char buffer[256];
@@ -767,6 +768,8 @@ namespace whiteice
 	  // (keep input weights) [the first try is always given imported weights]
 
 	  if(first_time == false){
+
+	    printf("NNGradDescent: resets new neural network (nn::randomize() called)\n");
 	    
 	    nn->randomize();
 
