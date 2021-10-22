@@ -35,8 +35,12 @@ namespace whiteice
     running = false;
     completed = false;
 
-    policy_preprocess = rifl.policy_preprocess;
-    lagged_policy = rifl.lagged_policy;
+    {
+      std::lock_guard<std::mutex> lock(rifl.policy_mutex);
+      
+      policy_preprocess = rifl.policy_preprocess;
+      lagged_policy = rifl.lagged_policy;
+    }
 
     
   }
@@ -205,7 +209,8 @@ namespace whiteice
 	  
 	  // add exploration noise..
 	  auto noise = u;
-	  rng.normal(noise); // Normal EX[n]=0 StDev[n]=1
+	  // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
+	  rng.normal(noise);
 	  u += T(0.10)*noise;
 	  
 	  assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action

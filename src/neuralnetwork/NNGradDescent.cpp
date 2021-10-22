@@ -769,10 +769,10 @@ namespace whiteice
 
 	  if(first_time == false){
 
-	    printf("NNGradDescent: resets new neural network (nn::randomize() called)\n");
-	    
 	    nn->randomize();
 
+	    whiteice::logging.info("NNGradDescent: resets neural network (nn::randomize() called)");
+	    
 #if 0
 	    // disable deep pretraining and normalize weights to unity as they
 	    // don't implement complex numbers..

@@ -201,6 +201,16 @@ namespace whiteice
     best_q_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
     
     this->dropout = dropout;
+
+    for(unsigned int i=0;i<optimizer_thread.size();i++){
+      if(optimizer_thread[i]){
+	optimizer_thread[i]->join();
+	delete optimizer_thread[i];
+	optimizer_thread[i] = nullptr;
+      }
+    }
+    
+    optimizer_thread.clear();
     
     optimizer_thread.resize(NTHREADS);
     
@@ -324,6 +334,17 @@ namespace whiteice
       while(thread_is_running > 0)
 	thread_is_running_cond.wait(lock);
     }
+
+    
+    for(unsigned int i=0;i<optimizer_thread.size();i++){
+      if(optimizer_thread[i]){
+	optimizer_thread[i]->join();
+	delete optimizer_thread[i];
+	optimizer_thread[i] = nullptr;
+      }
+    }
+    
+    optimizer_thread.clear();
     
     start_lock.unlock();
     
@@ -348,6 +369,17 @@ namespace whiteice
       }
     }
 
+    for(unsigned int i=0;i<optimizer_thread.size();i++){
+      if(optimizer_thread[i]){
+	optimizer_thread[i]->join();
+	delete optimizer_thread[i];
+	optimizer_thread[i] = nullptr;
+      }
+    }
+
+    optimizer_thread.clear();
+    
+    
     if(policy) delete policy;
     if(Q) delete Q;
     if(Q_preprocess) delete Q_preprocess;
@@ -355,7 +387,7 @@ namespace whiteice
     policy = nullptr;
     Q = nullptr;
     Q_preprocess = nullptr;
-    
+
     first_time = true;
     iterations = 0;
     NTHREADS = 0;
@@ -382,17 +414,18 @@ namespace whiteice
 #pragma omp parallel
     {
       T vsum = T(0.0f);
+
+      math::vertex<T> in(policy.input_size() + policy.output_size());
+      in.zero();
+
+      whiteice::math::vertex<T> action;
+      whiteice::math::vertex<T> q;
       
       // calculates mean q-value from the testing dataset
 #pragma omp for nowait schedule(auto)	    	    
       for(unsigned int i=0;i<dtest.size(0);i++){
 	auto state = dtest.access(0, i);
 	
-	math::vertex<T> in(policy.input_size() + policy.output_size());
-	in.zero();
-	
-	whiteice::math::vertex<T> action;
-
 	policy.calculate(state, action);
 
 	dtest.invpreprocess(0, state);
@@ -400,9 +433,7 @@ namespace whiteice
 
 	assert(in.write_subvertex(state, 0) == true);
 	assert(in.write_subvertex(action, state.size()) == true);
-
-	whiteice::math::vertex<T> q;
-
+	
 	Q_preprocess.preprocess(0, in);
 	
 	Q.calculate(in, q);

@@ -25,7 +25,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.00); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
@@ -51,7 +51,7 @@ namespace whiteice
 	
 	arch.push_back(numStates + numActions);
 	arch.push_back(50);
-	//arch.push_back(50);
+	arch.push_back(50);
 	//arch.push_back(50);
 	arch.push_back(1);
 	
@@ -87,7 +87,7 @@ namespace whiteice
 	arch.clear();
 	arch.push_back(numStates);
 	arch.push_back(50);
-	//arch.push_back(50);
+	arch.push_back(50);
 	//arch.push_back(50);
 	arch.push_back(numActions);
 
@@ -323,7 +323,7 @@ namespace whiteice
     const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1 (dont work), 5, 10
 
     // tau = 1.0 => no lagged neural networks [don't work]
-    const T tau = T(0.05); // lagged Q and policy network [keeps tau%=1% of the new weights
+    const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
@@ -353,8 +353,9 @@ namespace whiteice
     int old_grad_iterations = -1;
     int old_grad2_iterations = -1;
 
-    const unsigned int DATASIZE = 1000000; // was: 100.000 / 1M history of samples
-    const unsigned int SAMPLESIZE = 1000;
+    const unsigned long DATASIZE = 1000000; // was: 100.000 / 1M history of samples
+    const unsigned long SAMPLESIZE = 1000;
+    unsigned long database_counter = 0;
     
     bool firstTime = true;
     whiteice::math::vertex<T> state;
@@ -536,14 +537,20 @@ namespace whiteice
 	// (also used by CreateRIFL2dataset class/thread)
 	std::lock_guard<std::mutex> lock(database_mutex);
 
+	if(database_counter >= DATASIZE)
+	  database_counter = database_counter % database.size();
+
 	if(database.size() >= DATASIZE){
-	  const unsigned int index = rng.rand() % database.size();
-	  database[index] = data;
+	  // const unsigned int index = rng.rand() % database.size();
+	  // database[index] = data;
+
+	  database[database_counter] = data;
 	}
 	else{
 	  database.push_back(data);
 	}
-	
+
+	database_counter++;
       }
 
       
@@ -676,7 +683,7 @@ namespace whiteice
 	  
 	  eta.start(0.0, Q_OPTIMIZE_ITERATIONS); // 150 iters
 
-	  grad.setRegularizer(T(0.0)); // DISABLE REGULARIZER FOR Q-NETWORK
+	  grad.setRegularizer(T(0.01)); // DISABLE REGULARIZER FOR Q-NETWORK
 	  grad.setNormalizeError(false); // calculate real error values
 	  
 	  // grad.startOptimize(data, nn, 2, 150);
@@ -691,7 +698,7 @@ namespace whiteice
 
 	  old_grad_iterations = -1;
 
-	  delete dataset_thread;
+	  if(dataset_thread) delete dataset_thread;
 	  dataset_thread = nullptr;
 	  
 	}
@@ -809,9 +816,7 @@ namespace whiteice
 	  
 	  // skip if other optimization step is behind us
 	  // we only start calculating policy after Q() has been optimized..
-	  //	  if(epoch[1] > epoch[0] || epoch[0] == 0) 
-	  //	    goto policy_optimization_done;
-	  if(epoch[0] == 0) 
+	  if(epoch[1] > epoch[0] || epoch[0] == 0) 
 	    goto policy_optimization_done;
 	  
 	  
@@ -890,10 +895,10 @@ namespace whiteice
 	    else{
 	      whiteice::logging.info("RIFL_abstract2: grad2 policy-optimizer started");
 	    }
-
+	    
 	    old_grad2_iterations = -1;
-
-	    delete dataset2_thread;
+	    
+	    if(dataset2_thread) delete dataset2_thread;
 	    dataset2_thread = nullptr;
 	  }
 	  
