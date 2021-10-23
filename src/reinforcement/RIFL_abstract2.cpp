@@ -25,7 +25,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.00); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
