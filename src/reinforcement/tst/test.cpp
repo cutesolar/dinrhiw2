@@ -18,7 +18,7 @@
 
 int main(int argc, char** argv)
 {
-  printf("REINFORCEMENT LEARNING TESTCASES 1\n");
+  printf("REINFORCEMENT LEARNING TESTCASES 1 (DISCRETE ACTIONS)\n");
   fflush(stdout);
 
   srand(time(0));
