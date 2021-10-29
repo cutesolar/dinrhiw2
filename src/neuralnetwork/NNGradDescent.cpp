@@ -1059,12 +1059,11 @@ namespace whiteice
 
 	    w0 = weights;
 
-	    sumgrad.normalize();
+	    // sumgrad.normalize();
 	    
 	    // adds regularizer to gradient (1/2*||w||^2)
-	    if(abs(regularizer) > real(T(0.0f))){
-	      sumgrad += regularizer*w0;
-	    }
+	    
+	    sumgrad += regularizer*w0;
 	    
 
 	    // restarts gradient descent from lrate = 0.50
