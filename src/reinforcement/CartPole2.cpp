@@ -40,7 +40,7 @@ namespace whiteice
       resetLastStep = false;
       
       // simulatiom timestep
-      dt = T(0.010); // 10ms
+      dt = T(0.020); // 20ms
       
       iteration = 0;
     }
@@ -174,8 +174,8 @@ namespace whiteice
       
       
       if(renderer != NULL){
-	auto theta = this->theta;
-	auto x     = state[2];
+	auto theta = this->theta;	
+	auto x     = state[4]; // WAS: auto x     = state[2];
 	
 	SDL_Event event;
 	while(SDL_PollEvent(&event)){
@@ -286,15 +286,20 @@ namespace whiteice
     // converts action to control in newtons
     double Fstep = 0.0;
 
+    endFlag = false;
+
 #if 1
     assert(action.size() > 0);
     
     {
-      Fstep = 20.0*action[0].c[0];
+      Fstep = 100.0*action[0].c[0]; // action values are [0,0.2] from model.
+      
+      // should cause action values to be larger [0,1] to give meaningful results
+      // Fstep = 4.0*action[0].c[0]; 
 
       // keeps Fsteps within "SANE" values which is needed for numerical stability
-      if(Fstep >= 20.0) Fstep = 20.0;
-      else if(Fstep <= -20.0) Fstep = -20.0;
+      if(Fstep >= 100.0) Fstep = 100.0;
+      else if(Fstep <= -100.0) Fstep = -100.0;
 
       // to test if Fstep has effect on results
       // Fstep = (T(100.0)*normalizeTheta(theta)/T(M_PI)).c[0]; // [-1,1]
@@ -333,7 +338,7 @@ namespace whiteice
 
 	while(F_processed == false){
 	  auto now = std::chrono::system_clock::now();
-	  F_processed_cond.wait_until(lock, now + 10*100ms);
+	  F_processed_cond.wait_until(lock, now + 100ms);
 	  if(running == false)
 	    return false;
 	}
@@ -370,18 +375,29 @@ namespace whiteice
 	  if(a1 > +0.5) a1 = a1-1.0;
 	  if(a1 < -0.5) a1 = a1+1.0;
 
-	  // a1 *= T(360.0);
-	  a1 *= T(2.0*M_PI);
+	  a1 *= T(360.0);
+	  // a1 *= T(2.0*M_PI);
 
-	  std::cout << "theta = " << T(360.0)*theta/T(2.0*M_PI)
+	  std::cout << "x = " << x
+		    << " theta = " << T(360.0)*theta/T(2.0*M_PI)
 		    << " theta_dot = " << T(360.0)*theta_dot/T(2.0*M_PI) << std::endl;
 
-#if 0
-	  if(a1 > T(+12.0) || a1 < T(-12.0)) reinforcement = 0.0;
-	  else reinforcement = T(1.00);
+#if 1
+	  //if(a1 > T(+12.0) || a1 < T(-12.0)) reinforcement = 0.0;
+	  //else reinforcement = T(3.00);
+
+	  reinforcement = T(1.0)*((T(180.0) - abs(a1))/T(180.0));
+	  reinforcement = pow(reinforcement, T(10.0));
+	  
+	  if(x > T(+400.0f) || x < T(-400.0f))
+	    reinforcement = T(0.0f);
+
+	  reinforcement = reinforcement - pow(abs(T(Fstep))/T(100.0f), T(2.0f));
+
+	  if(abs(a1) > T(90.0f)) reinforcement = reinforcement - T(0.5f);
 #endif
 	  
-	  reinforcement = T(-1.0)*(T(0.1)*pow(a1, T(2.0)) /*+ T(5.0)*pow(T(Fstep), T(2.0))*/);
+	  // reinforcement = T(-1.0)*(T(0.1)*pow(a1, T(2.0)) /*+ T(5.0)*pow(T(Fstep), T(2.0))*/);
 
 	  // if(abs(a1) < abs(a0)) reinforcement++;
 
@@ -432,7 +448,7 @@ namespace whiteice
 
 	while(F_processed == true){
 	  auto now = std::chrono::system_clock::now();
-	  F_processed_cond.wait_until(lock, now + 10*100ms);
+	  F_processed_cond.wait_until(lock, now + 100ms);
 	  if(running == false) return;
 	}
 
@@ -511,7 +527,7 @@ namespace whiteice
 	F_processed_cond.notify_all();
       }
 
-      if(t >= 20.0){
+      if(t >= 20.0 || abs(x) > T(1000.0f)){
 	iteration++;
 	t = 0.0;
 
@@ -533,7 +549,7 @@ namespace whiteice
 	
 	reset(); // reset parameters of cart-pole
       }
-#if 1
+#if 0
       else if(degrees > 90 || degrees < -90){
 	reset(); // reset parameters of cart-pole if we get worse than horizontal
       }

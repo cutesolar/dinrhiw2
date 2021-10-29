@@ -49,6 +49,10 @@ namespace whiteice
       void setOverfit(bool overfit = true);
       bool getOverfit() const;
 
+      // sets non-normalization of error values when normalize_error = false
+      void setNormalizeError(bool normalize_error = true);
+      bool getNormalizeError();
+
       // if true uses Minimum Norm Error ||y-f(x)|| instead of the default
       // MSE (Minimum Squared Error) ||y-f(x)||^2 as a error measure
       void setMNE(bool usemne = true);
@@ -130,7 +134,8 @@ namespace whiteice
       whiteice::nnetwork<T>* nn; // network architecture and settings
       
       bool heuristics;
-      bool dropout; // use dropout heuristics when training
+      bool dropout; // use dropout heuristics when training	
+      bool dont_normalize_error; // don't normalize values when calculating error.
       T regularizer;
 
       // whether to use minimum norm error ||y-f(x)|| instead of

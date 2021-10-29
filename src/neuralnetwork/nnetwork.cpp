@@ -15,6 +15,8 @@
 #include "dinrhiw_blas.h"
 #include "Log.h"
 
+
+
 namespace whiteice
 {
   
@@ -641,23 +643,19 @@ namespace whiteice
 	if(frozen[l]) continue; // skip frozen layers
 	
 	for(unsigned int i=0;i<W[l].size();i++){
-	  for(unsigned int j=0;j<W[l][i].size();j++){
-	    // RNG is real valued, a and b are complex
-	    // this means value is complex valued [-1,+1]+[-1,+1]i
-	    const auto value =
-	      EXTRA_SCALING*((T(ar)*rng.uniform() - T(br)) + (T(ai)*rng.uniform() - T(bi)));
-	    
-	    whiteice::math::convert(W[l][i][j], value);
-	  }
+	  // RNG is real valued, a and b are complex
+	  // this means value is complex valued [-1,+1]+[-1,+1]i
+	  const auto value =
+	    EXTRA_SCALING*((T(ar)*rng.uniform() - T(br)) + (T(ai)*rng.uniform() - T(bi)));
+	  
+	  whiteice::math::convert(W[l][i], value);
 	}
 
 	for(unsigned int i=0;i<b[l].size();i++){
-	  for(unsigned int j=0;j<W[l][i].size();j++){
-	    const auto value =
-	      EXTRA_SCALING*((T(ar)*rng.uniform() - T(br)) + (T(ai)*rng.uniform() - T(bi)));
-	    
-	    whiteice::math::convert(b[l][i], value);
-	  }
+	  const auto value =
+	    EXTRA_SCALING*((T(ar)*rng.uniform() - T(br)) + (T(ai)*rng.uniform() - T(bi)));
+	  
+	  whiteice::math::convert(b[l][i], value);
 	}
 	
       }      
@@ -678,15 +676,13 @@ namespace whiteice
 	T var = math::sqrt(T(6.0f) / (arch[l] + arch[l+1]));
 
 	var *= EXTRA_SCALING;
-	
-	for(unsigned int i=0;i<W[l].size();i++){
-	  for(unsigned int j=0;j<W[l][i].size();j++){
-	    // RNG is real valued, a and b are complex
-	    // this means value is complex valued var*([-1,+1]+[-1,+1]i)
-	    const auto value = ((rng.uniform()*ar - br) + (rng.uniform()*ai - bi))*var;
 
-	    whiteice::math::convert(W[l][i][j], value);
-	  }
+	for(unsigned int i=0;i<W[l].size();i++){
+	  // RNG is real valued, a and b are complex
+	  // this means value is complex valued var*([-1,+1]+[-1,+1]i)
+	  const auto value = ((rng.uniform()*ar - br) + (rng.uniform()*ai - bi))*var;
+	  
+	  whiteice::math::convert(W[l][i], value);
 	}
 
 	// NOTE: bias is now set to small [-1,+1] value but not zero
@@ -694,7 +690,7 @@ namespace whiteice
 
 	for(unsigned int i=0;i<b[l].size();i++){
 	  const auto value =
-	    EXTRA_SCALING*((rng.uniform()*ar - br) + (rng.uniform()*ai - bi))*var*bias_scaling;
+	    ((rng.uniform()*ar - br) + (rng.uniform()*ai - bi))*var*bias_scaling;
 	  
 	  whiteice::math::convert(b[l][i], value);
 	}
@@ -711,41 +707,39 @@ namespace whiteice
 
 	// this initialization is as described in the paper of Xavier Glorot
 	// "Understanding the difficulty of training deep neural networks"
-	
-	for(unsigned int i=0;i<W[l].size();i++){
-	  for(unsigned int j=0;j<W[l][i].size();j++){
-	    if(typeid(T) == typeid(math::blas_real<float>) ||
-	       typeid(T) == typeid(math::blas_real<double>) ||
-	       typeid(T) == typeid(math::superresolution< math::blas_real<float>,
-				   math::modular<unsigned int> >) ||
-	       typeid(T) == typeid(math::superresolution< math::blas_real<double>,
-				   math::modular<unsigned int> >))
-	    {
-	      
-	      T var  = math::sqrt(T(1.0f) / arch[l]);
-	
-	      var *= EXTRA_SCALING;
-	      
-	      // RNG is is complex normal value if needed
-	      const auto value = rng.normal()*var;
-	    
-	      whiteice::math::convert(W[l][i][j], value);
-	    }
-	    else{ // complex valued numbers:
-	      
-	      T var  = math::sqrt(T(1.0f) / arch[l]);
-	      T ivar = math::sqrt(T(-1.0f) / arch[l]);
 
-	      var *= EXTRA_SCALING;
-	      ivar *= EXTRA_SCALING;
-	      
-	      // RNG is is complex normal value if needed
-	      const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
-	      
-	      const auto value = (rng.normal()*var + rng.normal()*ivar)*scaling;
+	for(unsigned int i=0;i<W[l].size();i++){
+	  if(typeid(T) == typeid(math::blas_real<float>) ||
+	     typeid(T) == typeid(math::blas_real<double>) ||
+	     typeid(T) == typeid(math::superresolution< math::blas_real<float>,
+				 math::modular<unsigned int> >) ||
+	     typeid(T) == typeid(math::superresolution< math::blas_real<double>,
+				 math::modular<unsigned int> >))
+	  {
 	    
-	      whiteice::math::convert(W[l][i][j], value);
-	    }
+	    T var  = math::sqrt(T(1.0f) / arch[l]);
+	    
+	    var *= EXTRA_SCALING;
+	    
+	    // RNG is is complex normal value if needed
+	    const auto value = rng.normal()*var;
+	    
+	    whiteice::math::convert(W[l][i], value);
+	  }
+	  else{ // complex valued numbers:
+	    
+	    T var  = math::sqrt(T(1.0f) / arch[l]);
+	    T ivar = math::sqrt(T(-1.0f) / arch[l]);
+	    
+	    var *= EXTRA_SCALING;
+	    ivar *= EXTRA_SCALING;
+	    
+	    // RNG is is complex normal value if needed
+	    const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
+	    
+	    const auto value = (rng.normal()*var + rng.normal()*ivar)*scaling;
+	    
+	    whiteice::math::convert(W[l][i], value);
 	  }
 	}
 

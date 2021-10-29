@@ -113,7 +113,7 @@ namespace whiteice
   };
 }
   
-#include "GeneticAlgorithm2.cpp"
+//#include "GeneticAlgorithm2.cpp"
 
 #endif
 

@@ -47,6 +47,8 @@ namespace whiteice
     random.normal(state);
     state /= state.norm();
 
+    state = T(0.5)*state;
+
     iteration = 0;
     
     // reset in this time step
@@ -81,13 +83,22 @@ namespace whiteice
     {
       iteration++;
 
+      T small_value = T(0.0001);
+
       if(iteration > 15){
-	iteration = 0;
-	reset();
-	newstate = state;
+	newstate = state + action;
+	// reinforcement = T(1.0)/(small_value+newstate.norm());
 	reinforcement = T(5.0)-newstate.norm();
+	// reinforcement = T(5.0)-newstate[0];
+	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
+	if(reinforcement > T(5.0)) reinforcement = T(5.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
+
+	reset();
+	iteration = 0;
+	newstate = state;
+	
 	endFlag = true;
 
 	state = newstate;
@@ -96,8 +107,12 @@ namespace whiteice
       }
       else{
 	newstate = state + action;
+	// reinforcement = T(1.0)/(small_value+newstate.norm());
 	reinforcement = T(5.0)-newstate.norm();
+	// reinforcement = T(5.0)-newstate[0];
+	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
+	if(reinforcement > T(5.0)) reinforcement = T(5.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
 	endFlag = false;
 

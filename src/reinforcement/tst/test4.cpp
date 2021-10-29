@@ -42,7 +42,7 @@ int main(int argc, char** argv)
   if(argc <= 1){
     whiteice::AdditionProblem< whiteice::math::blas_real<double> > system;
 
-    system.setEpsilon(0.40); // 60% of control choices are random
+    system.setEpsilon(0.70); // 30% of control choices are random
     system.setLearningMode(true);
     //system.setVerbose(true);
     

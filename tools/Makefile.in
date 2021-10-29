@@ -51,11 +51,15 @@ GENDATA2_OBJECTS  = gendata2.o
 GENDATA2_TARGET   = gendata2
 GENDATA2_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
 
+GENDATA3_OBJECTS  = gendata3_norm.o
+GENDATA3_TARGET   = gendata3
+GENDATA3_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+
 ##################################################
 
-all: aescipher nntools datatool gendata gendata2
+all: aescipher nntools datatool gendata gendata2 gendata3
 
-clean: aescipher_clean dataplot_clean mmap_clean nntools_clean datatool_clean gendata_clean gendata2_clean
+clean: aescipher_clean dataplot_clean mmap_clean nntools_clean datatool_clean gendata_clean gendata2_clean gendata3_clean
 	$(RM) -f *~
 
 install: all
@@ -119,6 +123,13 @@ gendata2: $(GENDATA2_OBJECTS)
 gendata2_clean:
 	$(RM) -f $(GENDATA2_TARGET)
 	$(RM) -f $(GENDATA2_OBJECTS)
+
+gendata3: $(GENDATA3_OBJECTS)
+	$(CXX) -o $(GENDATA3_TARGET) $(CXXFLAGS) $(GENDATA3_OBJECTS) $(GENDATA3_LIBS)
+
+gendata3_clean:
+	$(RM) -f $(GENDATA3_TARGET)
+	$(RM) -f $(GENDATA3_OBJECTS)
 
 depend:
 	$(CXX) $(CXXFLAGS) -MM $(SOURCES) > Makefile.depend

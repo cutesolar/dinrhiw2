@@ -34,6 +34,15 @@ namespace whiteice
     worker_thread = nullptr;
     running = false;
     completed = false;
+
+    {
+      std::lock_guard<std::mutex> lock(rifl.policy_mutex);
+      
+      policy_preprocess = rifl.policy_preprocess;
+      lagged_policy = rifl.lagged_policy;
+    }
+
+    
   }
   
   
@@ -185,23 +194,26 @@ namespace whiteice
 	whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
 	whiteice::math::matrix<T> e;
 	
-	tmp.write_subvertex(datum.newstate, 0);
+	assert(tmp.write_subvertex(datum.newstate, 0) == true);
 	
 	{
 	  whiteice::math::vertex<T> u; // new action..
-	  whiteice::math::matrix<T> e;
 	  
 	  auto input = datum.newstate;
 	  
-	  rifl.policy_preprocess.preprocess(0, input);
+	  policy_preprocess.preprocess(0, input);
 	  
-	  rifl.lagged_policy.calculate(input, u, e, 1, 0);
+	  lagged_policy.calculate(input, u, e, 1, 0);
 	  
-	  rifl.policy_preprocess.invpreprocess(1, u); // does nothing..
+	  policy_preprocess.invpreprocess(1, u); // does nothing..
 	  
-	  // add exploration noise?
+	  // add exploration noise..
+	  auto noise = u;
+	  // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
+	  rifl.rng.normal(noise);
+	  u += T(0.05)*noise;
 	  
-	  tmp.write_subvertex(u, rifl.numStates); // writes policy's action
+	  assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
 	}
 	
 	rifl.Q_preprocess.preprocess(0, tmp);
@@ -237,7 +249,7 @@ namespace whiteice
       return; // exit point
 
     // add preprocessing to dataset
-#if 0
+#if 1
     {
       data.preprocess
 	(0, whiteice::dataset<T>::dnMeanVarianceNormalization);

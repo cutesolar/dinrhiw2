@@ -1,1 +1,196 @@
-
+test.o: tst/test.cpp HugeLinear.h ../math/vertex.h ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/matrix.h ../math/RNG.h \
+ ../math/RNG.cpp ../math/RNG.h CSVToBinaryFile.h HugeLinear.h \
+ OneHotEncoder.h CSVToBinaryFile.h
+csvoptimizer.o: tst/csvoptimizer.cpp CSVToBinaryFile.h ../math/vertex.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp HugeLinear.h ../math/matrix.h \
+ ../math/RNG.h ../math/RNG.cpp ../math/RNG.h OneHotEncoder.h \
+ CSVToBinaryFile.h HugeLinear.h LBFGS_hugelinear.h ../math/LBFGS.h
+HugeLinear.o: HugeLinear.cpp HugeLinear.h ../math/vertex.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/matrix.h ../math/RNG.h \
+ ../math/RNG.cpp ../math/RNG.h
+CSVToBinaryFile.o: CSVToBinaryFile.cpp CSVToBinaryFile.h ../math/vertex.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp HugeLinear.h ../math/matrix.h \
+ ../math/RNG.h ../math/RNG.cpp ../math/RNG.h
+OneHotEncoder.o: OneHotEncoder.cpp OneHotEncoder.h CSVToBinaryFile.h \
+ ../math/vertex.h ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp HugeLinear.h ../math/matrix.h \
+ ../math/RNG.h ../math/RNG.cpp ../math/RNG.h FP-growth/include/fptree.hpp
+LBFGS_hugelinear.o: LBFGS_hugelinear.cpp HugeLinear.h ../math/vertex.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h \
+ ../math/matrix.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../Log.h ../math/linear_algebra.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/matrix.h ../math/RNG.h \
+ ../math/RNG.cpp ../math/RNG.h LBFGS_hugelinear.h ../math/LBFGS.h
+fastpca.o: ../math/fastpca.cpp ../math/fastpca.h ../math/matrix.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h ../Log.h \
+ ../compressable.h ../MemoryCompressor.h ../compressable.h \
+ ../math/linear_algebra.h ../math/correlation.h ../dynamic_bitset.h \
+ ../math/integer.h ../math/matrix_rotations.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/norms.h
+vertex.o: ../math/vertex.cpp ../math/vertex.h ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/matrix.h \
+ ../compressable.h ../MemoryCompressor.h ../compressable.h ../Log.h \
+ ../math/linear_algebra.h ../math/correlation.h ../dynamic_bitset.h \
+ ../math/integer.h ../math/matrix_rotations.h ../math/norms.h \
+ ../math/outerproduct.h ../math/quaternion.h ../math/gvertex.cpp \
+ ../math/gcd.h ../math/gcd.cpp
+matrix.o: ../math/matrix.cpp ../math/matrix.h ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h ../Log.h \
+ ../compressable.h ../MemoryCompressor.h ../compressable.h \
+ ../math/linear_algebra.h ../math/correlation.h ../dynamic_bitset.h \
+ ../math/integer.h ../math/matrix_rotations.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/norms.h ../math/gcd.h \
+ ../math/gcd.cpp ../math/eig.h
+dataset.o: ../dataset.cpp ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/dinrhiw_blas.h \
+ ../math/gvertex.h ../math/gmatrix.h ../math/gmatrix.cpp \
+ ../neuralnetwork/function.h ../math/real.h ../global.h ../../config.h \
+ ../math/vertex.h ../Log.h ../compressable.h ../MemoryCompressor.h \
+ ../compressable.h ../math/linear_algebra.h ../math/matrix.h \
+ ../math/correlation.h ../dynamic_bitset.h ../math/integer.h \
+ ../math/matrix_rotations.h ../math/norms.h ../math/outerproduct.h \
+ ../math/quaternion.h ../math/gvertex.cpp ../math/vertex.h ../math/eig.h \
+ ../dataset.h ../math/ica.h ../math/blade_math.h ../math/norms.h ../Log.h
+modular.o: ../math/modular.cpp ../math/modular.h ../math/number.h \
+ ../math/ownexception.h ../math/integer.h ../math/blade_math.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/superresolution.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h ../Log.h \
+ ../compressable.h ../MemoryCompressor.h ../compressable.h \
+ ../math/linear_algebra.h ../math/matrix.h ../math/correlation.h \
+ ../dynamic_bitset.h ../math/integer.h ../math/matrix_rotations.h \
+ ../math/norms.h ../math/outerproduct.h ../math/quaternion.h \
+ ../math/gvertex.cpp
+superresolution.o: ../math/superresolution.cpp ../math/superresolution.h \
+ ../math/number.h ../math/ownexception.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/gvertex.h ../math/gmatrix.h \
+ ../math/gmatrix.cpp ../neuralnetwork/function.h ../math/real.h \
+ ../global.h ../../config.h ../math/vertex.h ../Log.h ../compressable.h \
+ ../MemoryCompressor.h ../compressable.h ../math/linear_algebra.h \
+ ../math/matrix.h ../math/correlation.h ../dynamic_bitset.h \
+ ../math/integer.h ../math/matrix_rotations.h ../math/norms.h \
+ ../math/outerproduct.h ../math/quaternion.h ../math/gvertex.cpp
+quaternion.o: ../math/quaternion.cpp ../math/quaternion.h \
+ ../math/dinrhiw_blas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/cblas.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ /usr/include/x86_64-linux-gnu/openblas-pthread/openblas_config.h \
+ ../math/blas_primitives.h ../math/ownexception.h \
+ ../math/superresolution.h ../math/number.h ../math/modular.h \
+ ../math/integer.h ../math/blade_math.h ../math/gvertex.h \
+ ../math/gmatrix.h ../math/gmatrix.cpp ../neuralnetwork/function.h \
+ ../math/real.h ../global.h ../../config.h ../math/vertex.h ../Log.h \
+ ../compressable.h ../MemoryCompressor.h ../compressable.h \
+ ../math/linear_algebra.h ../math/matrix.h ../math/correlation.h \
+ ../dynamic_bitset.h ../math/integer.h ../math/matrix_rotations.h \
+ ../math/norms.h ../math/outerproduct.h ../math/gvertex.cpp
+fptree.o: FP-growth/src/fptree.cpp FP-growth/include/fptree.hpp

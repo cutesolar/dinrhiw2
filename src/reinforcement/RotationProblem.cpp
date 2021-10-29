@@ -123,7 +123,7 @@ namespace whiteice
       
       while(rotation_processed == false){
 	auto now = std::chrono::system_clock::now();
-	rotation_processed_cond.wait_until(lock, now + 10*100ms);
+	rotation_processed_cond.wait_until(lock, now + 100ms);
 	if(running == false)
 	  return false;
       }

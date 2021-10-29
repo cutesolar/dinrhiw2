@@ -40,6 +40,7 @@ namespace whiteice
 
       dropout = false;
       overfit = false;
+      dont_normalize_error = false; // don't normalize values when calculating error.
       mne = false; // use minimum squared error as the default error term
 
       running = false;
@@ -72,6 +73,7 @@ namespace whiteice
       regularizer = grad.regularizer;
       overfit = grad.overfit;
       mne = grad.mne;
+      dont_normalize_error = grad.dont_normalize_error; // don't normalize values when calculating error
       
       running = grad.running;
 
@@ -103,6 +105,8 @@ namespace whiteice
 	  delete optimizer_thread[i];
 	  optimizer_thread[i] = nullptr;
 	}
+
+	optimizer_thread.clear();
       }
 
       if(nn) delete nn;
@@ -135,6 +139,22 @@ namespace whiteice
     bool NNGradDescent<T>::getOverfit() const
     {
       return overfit;
+    }
+
+    
+    // sets non-normalization of error values when normalize_error = false
+    template <typename T>
+    void NNGradDescent<T>::setNormalizeError(bool normalize_error)
+    {
+      if(normalize_error) dont_normalize_error = false;
+      else dont_normalize_error = true;
+    }
+
+    template <typename T>
+    bool NNGradDescent<T>::getNormalizeError()
+    {
+      if(dont_normalize_error) return false;
+      else return true;
     }
 
     template <typename T>
@@ -201,12 +221,29 @@ namespace whiteice
 
       start_lock.lock();
 
+      if(running == true){
+	start_lock.unlock();
+	return false;
+      }
+
       {
+	running = false;
+	
 	std::lock_guard<std::mutex> lock(thread_is_running_mutex);
 	if(thread_is_running > 0){
 	  start_lock.unlock();
 	  return false;
 	}
+	
+	for(unsigned int i=0;i<optimizer_thread.size();i++){
+	  if(optimizer_thread[i]){
+	    optimizer_thread[i]->join();
+	    delete optimizer_thread[i];
+	    optimizer_thread[i] = nullptr;
+	  }
+	}
+
+	optimizer_thread.clear();
       }
       
       
@@ -249,7 +286,7 @@ namespace whiteice
       }
       
       this->dropout = dropout;
-
+      
       optimizer_thread.resize(NTHREADS);
 
       {
@@ -434,6 +471,7 @@ namespace whiteice
 	solution_lock.lock();
 	
 	nn = *(this->nn);
+	nn.importdata(bestx);
 	
 	solution_lock.unlock();
       }
@@ -482,6 +520,8 @@ namespace whiteice
 	  delete optimizer_thread[i];
 	  optimizer_thread[i] = nullptr;
 	}
+
+	optimizer_thread.clear();
       }
       
       if(nn) delete nn;
@@ -498,6 +538,7 @@ namespace whiteice
 
       dropout = false;
       overfit = false;
+      dont_normalize_error = false;
       mne = false; // use minimum squared error as the default error term
 
       running = false;
@@ -544,7 +585,7 @@ namespace whiteice
 	for(unsigned int i=0;i<dtest.size(0);i++){
 	  const unsigned int index = i; // rng.rand() % dtest.size(0);
 	  
-	  const auto& yvalue = dtest.access(1, index);
+	  auto yvalue = dtest.access(1, index);
 
 	  if(dropout){
 	    nnet.setDropOut(net_dropout);
@@ -552,6 +593,11 @@ namespace whiteice
 	  }
 	  else{
 	    nnet.calculate(dtest.access(0, index), out);
+	  }
+
+	  if(dont_normalize_error){
+	    dtest.invpreprocess(1, yvalue);
+	    dtest.invpreprocess(1, out);
 	  }
 	  
 	  err = out - yvalue;
@@ -701,7 +747,7 @@ namespace whiteice
 	// keep looking for solution forever
 	
 	// starting location for neural network
-	std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*this->nn));
+	std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*(this->nn)));
 
 	{
 	  char buffer[256];
@@ -722,9 +768,11 @@ namespace whiteice
 	  // (keep input weights) [the first try is always given imported weights]
 
 	  if(first_time == false){
-	    
+
 	    nn->randomize();
 
+	    whiteice::logging.info("NNGradDescent: resets neural network (nn::randomize() called)");
+	    
 #if 0
 	    // disable deep pretraining and normalize weights to unity as they
 	    // don't implement complex numbers..
@@ -1011,12 +1059,11 @@ namespace whiteice
 
 	    w0 = weights;
 
-	    sumgrad.normalize();
+	    // sumgrad.normalize();
 	    
 	    // adds regularizer to gradient (1/2*||w||^2)
-	    if(abs(regularizer) > real(T(0.0f))){
-	      sumgrad += regularizer*w0;
-	    }
+	    
+	    sumgrad += regularizer*w0;
 	    
 
 	    // restarts gradient descent from lrate = 0.50

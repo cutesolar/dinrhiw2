@@ -116,8 +116,8 @@ namespace whiteice
     T epsilon;
     T gamma;
     
-    RNG<T> rng;
-
+    class whiteice::RNG<T> rng;
+    
     volatile int thread_is_running;
     std::thread* rifl_thread;
     std::mutex thread_mutex;

@@ -1,6 +1,6 @@
 
-#ifndef GeneticAlgorithm_cpp
-#define GeneticAlgorithm_cpp
+//#ifndef GeneticAlgorithm_cpp
+//#define GeneticAlgorithm_cpp
 
 #include <iostream>
 #include <exception>
@@ -288,6 +288,6 @@ namespace whiteice
   
 };
   
-#endif
+//#endif
   
 

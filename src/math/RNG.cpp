@@ -388,6 +388,24 @@ void RNG<T>::cpuid(unsigned int leaf, unsigned int subleaf, unsigned int regs[4]
 }
 
 
+  // template and constant class
+
+  // class RNG< math::blas_real<float> > rng(true);
+
+  template class RNG< float >;
+  template class RNG< double >;
+  
+  template class RNG< math::blas_real<float> >;
+  template class RNG< math::blas_real<double> >;
+  template class RNG< math::blas_complex<float> >;
+  template class RNG< math::blas_complex<double> >;
+
+  template class RNG<whiteice::math::superresolution<whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> > >;
+  template class RNG<whiteice::math::superresolution<whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> > >;
+  template class RNG<whiteice::math::superresolution<whiteice::math::blas_complex<float>, whiteice::math::modular<unsigned int> > >;
+  template class RNG<whiteice::math::superresolution<whiteice::math::blas_complex<double>, whiteice::math::modular<unsigned int> > >;
+  
+
 } /* namespace whiteice */
 
 #endif
