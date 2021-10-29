@@ -39,13 +39,35 @@ int main(int argc, char** argv)
   whiteice::logging.setOutputFile("cartpole2.log");
 #endif
 
+  bool useFlag = false;
+  bool loadFlag = false;
+
+  for(int i=1;i<argc;i++){
+    if(strcmp(argv[i], "--use") == 0) useFlag = true;
+    else if(strcmp(argv[i], "--load") == 0) loadFlag = true;
+    else{
+      printf("ERROR: Unknown command-line option.\n");
+      return -1;
+    }
+  }
   
-  if(argc <= 1){
+  
+  if(useFlag == false){
     whiteice::CartPole2< whiteice::math::blas_real<double> > system;
 
     system.setEpsilon(0.50); // 50% of control choices are random
     system.setLearningMode(true);
     system.setVerbose(true);
+
+    if(loadFlag){
+      printf("Loading existing model from disk..\n");
+      if(system.load("rifl.dat") == false){
+	printf("ERROR: Loading model from disk FAILED.");
+	return -1;
+      }
+
+      system.setHasModel(1);
+    }
     
     system.start();
 
@@ -75,7 +97,7 @@ int main(int argc, char** argv)
     system.stop();
     
   }
-  else if(strcmp(argv[1], "use") == 0){
+  else{
 
     whiteice::CartPole2< whiteice::math::blas_real<double> > system;
 

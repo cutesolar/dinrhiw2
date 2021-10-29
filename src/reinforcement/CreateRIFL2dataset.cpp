@@ -210,8 +210,8 @@ namespace whiteice
 	  // add exploration noise..
 	  auto noise = u;
 	  // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
-	  rng.normal(noise);
-	  u += T(0.10)*noise;
+	  rifl.rng.normal(noise);
+	  u += T(0.05)*noise;
 	  
 	  assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
 	}

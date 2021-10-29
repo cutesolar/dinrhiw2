@@ -25,7 +25,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
@@ -48,11 +48,18 @@ namespace whiteice
       
       {
 	std::lock_guard<std::mutex> lock(Q_mutex);
-	
+
+	// NOW: 10-layer small width neural network
 	arch.push_back(numStates + numActions);
+	arch.push_back(50); // was: 50, 2 layers
 	arch.push_back(50);
 	arch.push_back(50);
-	//arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
 	arch.push_back(1);
 	
 	{
@@ -60,7 +67,7 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
-	  nn.randomize(2, T(1.0));
+	  nn.randomize(2, T(1.0)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
@@ -83,12 +90,20 @@ namespace whiteice
       
       {
 	std::lock_guard<std::mutex> lock(policy_mutex);
-	
+
+	// NOW: 10-layer small width neural network
 	arch.clear();
 	arch.push_back(numStates);
+	arch.push_back(50); // was: 50, 2 layers
 	arch.push_back(50);
 	arch.push_back(50);
-	//arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	// arch.push_back(256); 
 	arch.push_back(numActions);
 
 	// policy outputs action is (should be) +[-1,+1]^D vector
@@ -100,7 +115,7 @@ namespace whiteice
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
-	  nn.randomize(2, T(1.0));
+	  nn.randomize(2, T(10.0)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
@@ -319,8 +334,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1 (dont work), 5, 10
-    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1 (dont work), 5, 10
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1 (dont work), 5, 10, WAS: 5
 
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
@@ -354,7 +369,8 @@ namespace whiteice
     int old_grad2_iterations = -1;
 
     const unsigned long DATASIZE = 1000000; // was: 100.000 / 1M history of samples
-    const unsigned long SAMPLESIZE = 1000;
+    const unsigned long MINIMUM_DATASIZE = 5000; // number of samples required to start learning
+    const unsigned long SAMPLESIZE = 500; // number of samples used in learning
     unsigned long database_counter = 0;
     
     bool firstTime = true;
@@ -426,14 +442,19 @@ namespace whiteice
 	{
 	  if(rng.uniform() > epsilon){ // 1-epsilon % are chosen randomly
 	    
-	    rng.normal(u); // Normal E[n]=0 StDev[n]=1
+	    // rng.normal(u); // Normal E[n]=0 StDev[n]=1
+
+	    rng.uniform(u); // [0,1]
+
+	    for(unsigned int i=0;i<u.size();i++)
+	      u[i] = T(2.0f)*u[i] - T(1.0f); // [-1,+1]
 
 	    random = true;
 	  }
 	  else{ // just adds random noise to action [mini-exploration]
 	    auto noise = u;
 	    rng.normal(noise); // Normal EX[n]=0 StDev[n]=1
-	    u += T(0.10)*noise;
+	    u += T(0.05)*noise;
 	  }
 	  
 	}
@@ -512,6 +533,7 @@ namespace whiteice
       {
 	
 	if(performAction(action, newstate, reinforcement, endFlag) == false){
+	  std::cout << "ERROR: RIFL_abstract::performAction() FAILED." << std::endl;
 	  continue;
 	}
 	
@@ -556,7 +578,7 @@ namespace whiteice
       
       // 5. update/optimize Q(state, action) network
       // activates batch learning if it is not running
-      if(database.size() >= SAMPLESIZE)
+      if(database.size() >= MINIMUM_DATASIZE)
       {
 	
 	// skip if other optimization step (policy network)
@@ -741,7 +763,7 @@ namespace whiteice
       // 6. update/optimize policy(state) network
       // activates batch learning if it is not running
       
-      if(database.size() >= SAMPLESIZE)
+      if(database.size() >= MINIMUM_DATASIZE)
       {
 	
 	// skip if other optimization step is behind us
