@@ -19,7 +19,7 @@ EXTRA_OBJECTS = math/vertex.o math/matrix.o math/ownexception.o \
 	math/quaternion.o \
 	math/integer.o math/correlation.o math/matrix_rotations.o \
 	math/eig.o math/blade_math.o math/real.o math/ica.o math/norms.o \
-	math/superresolution.o math/modular.o
+	math/superresolution.o math/modular.o math/RNG.o
 
 TEST_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test.o
 # universal_hash.o
@@ -32,7 +32,7 @@ SOURCES = point.cpp static_array.cpp dynamic_array.cpp \
 	conffile.cpp linear_ETA.cpp \
 	VisualizationInterface.cpp \
 	MemoryCompressor.cpp timed_boolean.cpp \
-	math/quaternion.cpp \
+	math/quaternion.cpp math/RNG.cpp \
 	math/vertex.cpp math/matrix.cpp math/ownexception.cpp \
 	math/norms.cpp math/superresolution.cpp math/modular.cpp \
 	tst/test.cpp tst/conv_test.cpp \
@@ -40,7 +40,7 @@ SOURCES = point.cpp static_array.cpp dynamic_array.cpp \
 	dynamic_bitset.cpp list_source.cpp \
 	Log.cpp \
 	function_access_control.cpp tst/modtest.cpp \
-	dinrhiw.cpp tst/test.cpp
+	dinrhiw.cpp tst/test.cpp \
 
 CONV_OBJECTS = $(OBJECTS) tst/conv_test.o $(EXTRA_OBJECTS)
 CONV_TARGET = convtest

@@ -18,7 +18,7 @@ EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../Log.o ../math/norms.o ../neuralnetwork/stackedRBM_pretraining.o \
 	../neuralnetwork/DBN.o ../neuralnetwork/GBRBM.o ../neuralnetwork/BBRBM.o \
 	../math/outerproduct.o ../math/LBFGS.o ../neuralnetwork/LBFGS_GBRBM.o \
-	../neuralnetwork/LBFGS_BBRBM.o 
+	../neuralnetwork/LBFGS_BBRBM.o ../math/RNG.o
 
 TEST1_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test.o
 
@@ -48,7 +48,8 @@ SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp
 	../math/linear_equations.cpp ../math/norms.cpp ../math/eig.cpp \
 	../neuralnetwork/stackedRBM_pretraining.cpp ../neuralnetwork/DBN.cpp \
 	../neuralnetwork/GBRBM.cpp ../neuralnetwork/BBRBM.cpp ../math/outerproduct.cpp \
-	../math/LBFGS.cpp ../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp
+	../math/LBFGS.cpp ../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
+	../math/RNG.cpp
 
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@

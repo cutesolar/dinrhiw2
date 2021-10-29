@@ -20,7 +20,8 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	stackedRBM_pretraining.cpp rLBFGS_nnetwork.cpp Mixture.cpp EnsembleMeans.cpp \
 	globaloptimum.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
-	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp
+	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
+	../math/RNG.cpp
 
 OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensional_gaussian.o \
 	stretched_function.o optimized_function.o \

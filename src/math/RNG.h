@@ -31,7 +31,7 @@ namespace whiteice {
   public:
     
     // uses regular rand() if rdrand is not supported or usehw = false
-    RNG(const bool usehw = false);
+    RNG(const bool usehw = true);
     
     virtual ~RNG(){
       if(distrib) delete distrib;
@@ -94,10 +94,24 @@ namespace whiteice {
   };
 
   
+  // extern class RNG< math::blas_real<float> > rng;
+
+  extern template class RNG< float >;
+  extern template class RNG< double >;
+  
+  extern template class RNG< math::blas_real<float> >;
+  extern template class RNG< math::blas_real<double> >;
+  extern template class RNG< math::blas_complex<float> >;
+  extern template class RNG< math::blas_complex<double> >;
+
+  extern template class RNG<whiteice::math::superresolution<whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> > >;
+  extern template class RNG<whiteice::math::superresolution<whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> > >;
+  extern template class RNG<whiteice::math::superresolution<whiteice::math::blas_complex<float>, whiteice::math::modular<unsigned int> > >;
+  extern template class RNG<whiteice::math::superresolution<whiteice::math::blas_complex<double>, whiteice::math::modular<unsigned int> > >;
+
+  
 } /* namespace whiteice */
 
-
-#include "RNG.cpp"
 
 
 #endif /* MATH_RNG_H_ */
