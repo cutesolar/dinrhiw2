@@ -4,7 +4,9 @@
 CC = @CC@
 CXX= @CXX@
 
-OBJECTS = RIFL_abstract.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o CreateRIFLdataset.o CreateRIFL2dataset.o CreatePolicyDataset.o RotationProblem.o AdditionProblem.o
+OBJECTS = RIFL_abstract.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o \
+	CreateRIFLdataset.o CreateRIFL2dataset.o CreatePolicyDataset.o RotationProblem.o \
+	AdditionProblem.o MinihackRIFL2.o
 
 EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
@@ -33,7 +35,7 @@ TEST4A_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test4a.o
 
 SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp \
 	CreateRIFLdataset.cpp CreateRIFL2dataset.cpp CreatePolicyDataset.cpp \
-	RotationProblem.cpp AdditionProblem.cpp \
+	RotationProblem.cpp AdditionProblem.cpp MinihackRIFL2.cpp \
 	CartPole2.cpp tst/test.cpp tst/test2.cpp tst/test3.cpp tst/test4a.cpp \
 	../dataset.cpp \
 	../dynamic_bitset.cpp \
@@ -62,9 +64,9 @@ TARGET3=testsuite3
 TARGET4=testsuite4
 TARGET4A=testsuite4a
 
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE)
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) `python3-config --cflags`
 
-LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@
+LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@ `python3-config --ldflags` -lpython3.9
 
 # `pkg-config sdl2 --libs`
 
