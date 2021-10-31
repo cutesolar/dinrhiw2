@@ -87,6 +87,9 @@ namespace whiteice
     void setHasModel(unsigned int hasModel) ;
     unsigned int getHasModel() ;
 
+    unsigned int getNumActions() const { return numActions; }
+    unsigned int getNumStates() const { return numStates; }
+
     // saves learnt Reinforcement Learning Model to file
     bool save(const std::string& filename) const;
     

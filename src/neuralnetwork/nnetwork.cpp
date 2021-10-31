@@ -2604,7 +2604,13 @@ namespace whiteice
   bool nnetwork<T>::gradient_value(const math::vertex<T>& input,
 				   math::matrix<T>& grad) const
   {
+    printf("nnetwork::gradient_value() called (%d %d)\n", input.size(), input_size());
+    fflush(stdout);
+    
     if(input.size() != input_size()) return false;
+
+    printf("nnetwork::gradient_value() called\n");
+    fflush(stdout);
     
     const unsigned int L = getLayers();
     
@@ -2716,6 +2722,9 @@ namespace whiteice
     grad = hgrad*grad;
     //printf("FINAL MATMUL.. DONE\n");
     // hgrad.identity();
+
+    printf("size(grad) = %d %d\n", grad.ysize(), grad.xsize());
+    fflush(stdout);
     
     return true;
   }
@@ -2730,9 +2739,11 @@ namespace whiteice
 				   math::matrix<T>& grad,
 				   const std::vector< std::vector<bool> >& dropout) const
   {
+    printf("nnetwork::gradient_value(dropout) called (%d %d)\n", input.size(), input_size());
+    fflush(stdout);
+    
     if(input.size() != input_size()) return false;
-    if(dropout.size() != getLayers())
-      return this->gradient_value(input, grad);
+    if(dropout.size() != getLayers()) return false;
     
     const unsigned int L = getLayers();
     

@@ -30,7 +30,7 @@ int main(int argc, char** argv)
   whiteice::logging.setOutputFile("debug.log");
 
 #ifndef WINOS
-#ifndef USE_SDL
+#if 0
   // enable floating point exceptions (for debugging)
   {
     // FE_UNDERFLOW | FE_OVERFLOW | FE_INEXACT

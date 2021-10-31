@@ -111,6 +111,14 @@ namespace whiteice
 
     const unsigned long SIZE = (unsigned long)PyList_Size(result);
 
+    if(SIZE != this->getNumStates()){
+      printf("ERROR: getState(): returned state has wrong length.\n");
+      errors++;
+      Py_DECREF(result);
+      pystate = PyEval_SaveThread();
+      return false;
+    }
+
     if(SIZE > 0){
 
       if(state.resize(SIZE) == false){
@@ -171,8 +179,8 @@ namespace whiteice
     
     // [state, reward, done] = minihack_performAction(action) (action is integer 0..7)
 
-    if(action.size() <= 0){
-      printf("ERROR: performAction(), action.size()<=0\n");
+    if(action.size() != this->getNumActions()){
+      printf("ERROR: performAction(): action.size() has no proper size.\n");
       errors++;
       return false;
     }
@@ -304,6 +312,17 @@ namespace whiteice
     }    
 
     const unsigned long SIZE = (unsigned long)PyList_Size(stateObj);
+
+    if(SIZE != this->getNumStates()){
+      printf("ERROR: performAction(): state object doesn't have proper length.\n");
+      errors++;
+      
+      Py_DECREF(result);
+      
+      pystate = PyEval_SaveThread();
+      
+      return false;
+    }
 
     //printf("List object seen (SIZE: %d).\n", (int)SIZE); fflush(stdout);
 

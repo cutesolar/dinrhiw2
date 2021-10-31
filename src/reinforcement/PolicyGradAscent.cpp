@@ -182,9 +182,12 @@ namespace whiteice
       this->Q = newQ;
       this->Q_preprocess = newpreprocess;
 
+
+      auto newpolicy = new nnetwork<T>(policy);
+      
       if(this->policy) delete this->policy;
-      auto newpolicy = new nnetwork<T>(policy);						 
       this->policy = newpolicy;
+      
       if(initiallyUseNN == false) this->policy->randomize();
 
       // regularizer = T(0.01)*T(5453.0)/T(this->policy->exportdatasize()); // was: 1/10.000, was 0.02
@@ -747,7 +750,10 @@ namespace whiteice
 		Q->calculate(in, Qvalue);
 		
 		whiteice::math::matrix<T> full_gradQ;
-		Q->gradient_value(in, full_gradQ);
+		assert(Q->gradient_value(in, full_gradQ) == true);
+
+		printf("Q:size(full_gradQ) = (%d,%d)\n", full_gradQ.ysize(), full_gradQ.xsize());
+		fflush(stdout);
 
 #if 0
 		if(debug)
@@ -771,10 +777,10 @@ namespace whiteice
 
 		whiteice::math::matrix<T> Qpreprocess_grad;
 		
-		Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
-						state.size(), 0,
-						action.size(),
-						Qpreprocess_grad_full.ysize());
+		assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
+						       state.size(), 0,
+						       action.size(),
+						       Qpreprocess_grad_full.ysize()) == true);
 
 		
 		//std::cout << "Qpostprocess_grad = " << Qpostprocess_grad << std::endl;
@@ -809,6 +815,12 @@ namespace whiteice
 		}
 #endif
 		
+		printf("size(Qpostprocess_grad) = (%d,%d)\n",
+		       Qpostprocess_grad.ysize(), Qpostprocess_grad.xsize());
+		printf("size(full_gradQ) = (%d,%d)\n", full_gradQ.ysize(), full_gradQ.xsize());
+		printf("size(Qpreprocess_grad) = (%d,%d)\n",
+		       Qpreprocess_grad.ysize(), Qpreprocess_grad.xsize());
+
 		gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
 
 #if 0
@@ -825,25 +837,29 @@ namespace whiteice
 	      
 	      {
 		whiteice::math::matrix<T> g;
+
+		{
+		  printf("size(gradQ) = (%d,%d)\n", gradQ.ysize(), gradQ.xsize());
+		  printf("size(gradP) = (%d,%d)\n", gradP.ysize(), gradP.xsize());
+
+		  std::vector<unsigned int> arch;
+		  
+		  Q->getArchitecture(arch);
+
+		  printf("arch=");
+		  for(unsigned int i=0;i<arch.size();i++)
+		    printf("%d ", arch[i]);
+		  printf("\n");
+
+		  fflush(stdout);
+		}
 		
 		g = gradQ * gradP;
-
 		
-		T error_sign = T(1.0);
-#if 0
-		// max Q(x) = max -0.5*|Q(x) - LARGE| to prevent divergence
-		// Grad(Q)  = -sign(Q(x)-LARGE)*Grad(Q), LARGE=10
-		// T error_term = -(Qvalue[0] - T(10.0));
-		if(Qvalue[0] > T(10.0))
-		  error_sign = T(-1.0); // was -1.0
-		else
-		  error_sign = T(+1.0); // was +1.0
-#endif
-		  
 		assert(g.xsize() == policy->exportdatasize());
 		
 		for(unsigned int j=0;j<policy->exportdatasize();j++)
-		  grad[j] = error_sign*g(0, j);
+		  grad[j] = g(0, j);
 	      }
 
 	    

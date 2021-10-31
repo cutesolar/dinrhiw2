@@ -183,6 +183,7 @@ namespace whiteice
 
       policy_arch[0] = numStates;
       policy_arch[policy_arch.size()-1] = numActions;
+      
     }
 
     
@@ -196,17 +197,15 @@ namespace whiteice
       {
 	std::lock_guard<std::mutex> lock(Q_mutex);
 
-	// NOW: 10-layer small width neural network
-
 	arch = Q_arch;
-	
+
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
-	  nn.setResidual(true);
+	  nn.setResidual(false);
 	  
 	  Q.importNetwork(nn);
 
@@ -229,7 +228,6 @@ namespace whiteice
       {
 	std::lock_guard<std::mutex> lock(policy_mutex);
 
-	// NOW: 10-layer small width neural network
 	arch.clear();
 
 	arch = policy_arch;
@@ -244,7 +242,7 @@ namespace whiteice
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
-	  nn.setResidual(true);
+	  nn.setResidual(false);
 	  
 	  policy.importNetwork(nn);
 
@@ -642,6 +640,7 @@ namespace whiteice
 	  }
 	}
 	else{
+#if 0
 	  std::cout << counter << " " 
 		    << "Q(STATE,POLICY_ACTION) = " << u
 		    << ", STATE = " << state
@@ -650,6 +649,7 @@ namespace whiteice
 		    << random
 		    << " MODELS: " << hasModel[0] << " " << hasModel[1]
 		    << std::endl;
+#endif
 	}
       }
       
@@ -998,6 +998,7 @@ namespace whiteice
 	  // fetch NN parameters from model
 	  {
 	    whiteice::nnetwork<T> q_nn, nn;
+	    whiteice::dataset<T> Q_preprocess_copy;
 
 	    {
 	      std::lock_guard<std::mutex> lock(Q_mutex);
@@ -1012,6 +1013,8 @@ namespace whiteice
 	      if(q_nn.importdata(weights[0]) == false){
 		assert(0);
 	      }
+
+	      Q_preprocess_copy = Q_preprocess;
 	    }
 
 	    {
@@ -1031,11 +1034,11 @@ namespace whiteice
 	    }
 
 	    const bool dropout = false;
-	    const bool useInitialNN = true; // WAS: start from scratch everytimexs
+	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
 	    eta2.start(0.0, P_OPTIMIZE_ITERATIONS); // 150 iters per sample
 	    
-	    if(grad2.startOptimize(&data2, q_nn, Q_preprocess, nn, 1, P_OPTIMIZE_ITERATIONS,
+	    if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
 				   dropout, useInitialNN) == false)
 	    {
 	      whiteice::logging.error("RIFL_abstract2: starting grad2 policy-optimizer FAILED");
