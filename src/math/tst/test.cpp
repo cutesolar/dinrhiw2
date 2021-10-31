@@ -186,8 +186,8 @@ void rng_test()
 	s *= v.size()/((double)(v.size() - 1)); // sample variance..
 
 
-	std::cout << "uniform distributin mean: " << m << std::endl;
-	std::cout << "uniform distribution var: " << s << std::endl;
+	std::cout << "uniform distributin mean (should be 0.50000): " << m << std::endl;
+	std::cout << "uniform distribution var (should be 0.08333): " << s << std::endl;
 
 	t0=std::chrono::high_resolution_clock::now();
 	rng.normal(v);
