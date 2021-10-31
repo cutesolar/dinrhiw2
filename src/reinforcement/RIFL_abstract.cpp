@@ -340,11 +340,17 @@ namespace whiteice
 	  p[i] /= psum;
 	}
 
+	psum = T(0.0f);
+	for(unsigned int i=0;i<p.size();i++){
+	  p[i] += psum;
+	  psum += p[i];
+	}
+
 	T r = rng.uniform();
 	
 	unsigned int index = 0;
 
-	while(p[index] < r){
+	while(r <= p[index]){
 	  index++;
 	  if(index >= numActions){
 	    index = numActions-1;

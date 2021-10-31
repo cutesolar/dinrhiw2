@@ -130,7 +130,7 @@ namespace whiteice
       
       unsigned long index = 0;
 
-      while(p[index] < r){
+      while(r <= p[index]){
 	index++;
 	if(index >= p.size()){
 	  index = p.size()-1;
