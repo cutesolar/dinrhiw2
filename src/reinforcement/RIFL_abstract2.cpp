@@ -33,6 +33,9 @@ namespace whiteice
       hasModel.resize(2);
       hasModel[0] = 0; // Q-network
       hasModel[1] = 0; // policy-network
+
+      assert(numActions > 0);
+      assert(numStates > 0);
       
       this->numActions = numActions;
       this->numStates  = numStates;
@@ -132,8 +135,6 @@ namespace whiteice
 
 	  policy_preprocess.createCluster("input-state", numStates);
 	  policy_preprocess.createCluster("output-state", numActions);
-
-	  std::cout << "POLICY SIZE: " << nn.exportdatasize() << std::endl;
 	}
       }
       
@@ -143,6 +144,132 @@ namespace whiteice
     thread_is_running = 0;
     rifl_thread = nullptr;
   }
+
+  
+  template <typename T>
+  RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions,
+				    unsigned int numStates,
+				    std::vector<unsigned int> Q_arch,
+				    std::vector<unsigned int> policy_arch)
+  {
+    // initializes parameters
+    {
+      // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
+      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      epsilon = T(0.80);
+
+      learningMode = true;
+
+      hasModel.resize(2);
+      hasModel[0] = 0; // Q-network
+      hasModel[1] = 0; // policy-network
+
+      assert(numActions > 0);
+      assert(numStates > 0);
+      
+      this->numActions = numActions;
+      this->numStates  = numStates;
+
+      if(Q_arch.size() < 2){
+	Q_arch.resize(2);
+      }
+
+      Q_arch[0] = numStates + numActions;
+      Q_arch[Q_arch.size()-1] = 1;
+
+      if(policy_arch.size() < 2){
+	policy_arch.resize(2);
+      }
+
+      policy_arch[0] = numStates;
+      policy_arch[policy_arch.size()-1] = numActions;
+    }
+
+    
+    // initializes neural network architecture and weights randomly
+    // neural network is deep 6-layer residual neural network (NOW: 3 layers only)
+    {
+      std::vector<unsigned int> arch;
+
+      // const unsigned int RELWIDTH = 20; // of the network (20..100)
+      
+      {
+	std::lock_guard<std::mutex> lock(Q_mutex);
+
+	// NOW: 10-layer small width neural network
+
+	arch = Q_arch;
+	
+	{
+	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
+	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  
+	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.setResidual(true);
+	  
+	  Q.importNetwork(nn);
+
+	  whiteice::math::vertex<T> weights;
+	  nn.exportdata(weights);
+	  weights.zero();
+	  nn.importdata(weights);
+	  
+	  lagged_Q.importNetwork(nn);
+
+	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
+	  Q.diagnosticsInfo();
+
+	  Q_preprocess.createCluster("input-state", numStates + numActions);
+	  Q_preprocess.createCluster("output-state", 1); // q-value
+	}
+      }
+      
+      
+      {
+	std::lock_guard<std::mutex> lock(policy_mutex);
+
+	// NOW: 10-layer small width neural network
+	arch.clear();
+
+	arch = policy_arch;
+
+	// policy outputs action is (should be) +[-1,+1]^D vector
+	{
+	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
+	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
+	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
+	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  
+	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.setResidual(true);
+	  
+	  policy.importNetwork(nn);
+
+	  whiteice::math::vertex<T> weights;
+	  nn.exportdata(weights);
+	  weights.zero();
+	  nn.importdata(weights);
+	  
+	  lagged_policy.importNetwork(nn);
+
+	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
+	  policy.diagnosticsInfo();
+
+	  policy_preprocess.createCluster("input-state", numStates);
+	  policy_preprocess.createCluster("output-state", numActions);
+	}
+      }
+      
+    }
+    
+    
+    thread_is_running = 0;
+    rifl_thread = nullptr;
+  }
+  
 
   template <typename T>
   RIFL_abstract2<T>::~RIFL_abstract2() 

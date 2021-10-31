@@ -6,7 +6,8 @@ namespace whiteice
 {
   // observation space size is 107 (9x9 char environment plus player stats)  and action is one-hot-encoded value
   template <typename T>
-  MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) : RIFL_abstract2<T>(8, 107)
+  MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) :
+    RIFL_abstract2<T>(8, 107, {50,50,50}, {50,50,50})
   {
     Py_Initialize();
     PyEval_InitThreads();

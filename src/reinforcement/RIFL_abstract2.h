@@ -49,6 +49,11 @@ namespace whiteice
     
     // parameters are dimensions of vectors dimActions and dimStates: R^d
     RIFL_abstract2(unsigned int numActions, unsigned int numStates);
+    
+    RIFL_abstract2(unsigned int numActions, unsigned int numStates,
+		   std::vector<unsigned int> Q_arch,
+		   std::vector<unsigned int> policy_arch);
+
     ~RIFL_abstract2() ;
 
     // starts Reinforcement Learning thread
