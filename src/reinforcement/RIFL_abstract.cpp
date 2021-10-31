@@ -331,9 +331,10 @@ namespace whiteice
 	  auto value = U[i];
 	  if(value < T(-6.0)) value = T(-6.0);
 	  else if(value > T(+6.0)) value = T(+6.0);
-	
-	  psum += exp(value/temperature);
-	  p.push_back(psum);
+
+	  auto q = exp(value/temperature);
+	  psum += q;
+	  p.push_back(q);
 	}
 
 	for(unsigned int i=0;i<U.size();i++){
@@ -342,15 +343,16 @@ namespace whiteice
 
 	psum = T(0.0f);
 	for(unsigned int i=0;i<p.size();i++){
+	  auto more = p[i];
 	  p[i] += psum;
-	  psum += p[i];
+	  psum += more;
 	}
 
 	T r = rng.uniform();
 	
 	unsigned int index = 0;
 
-	while(r <= p[index]){
+	while(r > p[index]){
 	  index++;
 	  if(index >= numActions){
 	    index = numActions-1;

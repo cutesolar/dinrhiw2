@@ -29,6 +29,8 @@ namespace whiteice
       MinihackRIFL2(const std::string& pythonScript);
       ~MinihackRIFL2();
 
+      bool isRunning() const;
+
     protected:
 
       virtual bool getState(whiteice::math::vertex<T>& state);
@@ -44,6 +46,11 @@ namespace whiteice
 
       PyObject *main_module = NULL, *global_dict = NULL;
       PyObject *getStateFunc = NULL, *performActionFunc = NULL;
+
+      PyThreadState* pystate;
+
+      // number of errors seen.. (>0 isRunning() == false)
+      unsigned int errors = 0;
 
       whiteice::RNG<T> rng;      
     };

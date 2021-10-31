@@ -18,6 +18,8 @@ def combine(x):
 
     return rv
 
+    
+
 # number of states 107 state space (9x9 char surroundings+player stats)
 # we use now ints as state passed values
 #
@@ -33,10 +35,23 @@ surroundings = flatten(obs["chars_crop"])
 stats = obs["blstats"].tolist()
 state = combine([surroundings, stats])
 
+done = False
+
 
 # virtual bool getState(whiteice::math::vertex<T>& state) = 0;
 
 def minihack_getState():
+    global env, done, state
+    
+    if(done == True):
+        obs = env.reset()
+        
+        surroundings = flatten(obs["chars_crop"])
+        stats = obs["blstats"].tolist()
+        state = combine([surroundings, stats])
+        
+        done = False
+    
     return state
 
 
@@ -46,13 +61,16 @@ def minihack_getState():
 #                            bool& endFlag) = 0;
 
 def minihack_performAction(action):
-    
-    obs, reward, done, info = env.step(action)
+    global env, done, state
 
+    obs, reward, done, info = env.step(action)
+    
     surroundings = flatten(obs["chars_crop"])
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
-
+    
     return [state, reward, done]
 
 
+
+test_state = minihack_getState()
