@@ -674,13 +674,13 @@ namespace whiteice
 
       // 4. updates database (of actions and responses)
       {
-	struct rifl2_datapoint<T> data;
+	struct rifl2_datapoint<T> datum;
 
-	data.state = state;
-	data.action = action;
-	data.newstate = newstate;
-	data.reinforcement = reinforcement;
-	data.lastStep = endFlag;
+	datum.state = state;
+	datum.action = action;
+	datum.newstate = newstate;
+	datum.reinforcement = reinforcement;
+	datum.lastStep = endFlag;
 
 	// for synchronizing access to database datastructure
 	// (also used by CreateRIFL2dataset class/thread)
@@ -690,13 +690,24 @@ namespace whiteice
 	  database_counter = database_counter % database.size();
 
 	if(database.size() >= DATASIZE){
-	  // const unsigned int index = rng.rand() % database.size();
-	  // database[index] = data;
 
-	  database[database_counter] = data;
+	  while(true){
+	    const unsigned int index = rng.rand() % database.size();
+
+	    if(database[index].reinforcement == T(0.0f)){ // always replace zero reinforcement-cases
+	      database[index] = datum;
+	      break;
+	    }
+	    else if((rng.rand() % 5) == 0){ // 20% probability to replace non-zero entry
+	      database[index] = datum;
+	      break;
+	    }
+	  }
+
+	  // database[database_counter] = datum;
 	}
 	else{
-	  database.push_back(data);
+	  database.push_back(datum);
 	}
 
 	database_counter++;

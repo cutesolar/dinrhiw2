@@ -69,6 +69,8 @@ def minihack_performAction(action):
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
 
+    print("reward = " + str(reward))
+
     env.render()
     
     return [state, reward, done]
