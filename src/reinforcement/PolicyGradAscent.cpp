@@ -732,7 +732,7 @@ namespace whiteice
 	      }
 #endif
 	      
-	      Q_preprocess->preprocess(0, in);
+	      this->Q_preprocess->preprocess(0, in);
 
 #if 0
 	      if(debug)
@@ -747,13 +747,11 @@ namespace whiteice
 	      whiteice::math::matrix<T> gradQ;
 	      whiteice::math::vertex<T> Qvalue;
 	      {
-		Q->calculate(in, Qvalue);
+		this->Q->calculate(in, Qvalue);
 		
 		whiteice::math::matrix<T> full_gradQ;
-		assert(Q->gradient_value(in, full_gradQ) == true);
+		assert(this->Q->gradient_value(in, full_gradQ) == true);
 
-		printf("Q:size(full_gradQ) = (%d,%d)\n", full_gradQ.ysize(), full_gradQ.xsize());
-		fflush(stdout);
 
 #if 0
 		if(debug)
@@ -772,8 +770,8 @@ namespace whiteice
 		whiteice::math::matrix<T> Qpostprocess_grad;
 		whiteice::math::matrix<T> Qpreprocess_grad_full;
 		
-		assert(Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
-		assert(Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
+		assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
+		assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
 
 		whiteice::math::matrix<T> Qpreprocess_grad;
 		
@@ -815,12 +813,6 @@ namespace whiteice
 		}
 #endif
 		
-		printf("size(Qpostprocess_grad) = (%d,%d)\n",
-		       Qpostprocess_grad.ysize(), Qpostprocess_grad.xsize());
-		printf("size(full_gradQ) = (%d,%d)\n", full_gradQ.ysize(), full_gradQ.xsize());
-		printf("size(Qpreprocess_grad) = (%d,%d)\n",
-		       Qpreprocess_grad.ysize(), Qpreprocess_grad.xsize());
-
 		gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
 
 #if 0
@@ -838,22 +830,6 @@ namespace whiteice
 	      {
 		whiteice::math::matrix<T> g;
 
-		{
-		  printf("size(gradQ) = (%d,%d)\n", gradQ.ysize(), gradQ.xsize());
-		  printf("size(gradP) = (%d,%d)\n", gradP.ysize(), gradP.xsize());
-
-		  std::vector<unsigned int> arch;
-		  
-		  Q->getArchitecture(arch);
-
-		  printf("arch=");
-		  for(unsigned int i=0;i<arch.size();i++)
-		    printf("%d ", arch[i]);
-		  printf("\n");
-
-		  fflush(stdout);
-		}
-		
 		g = gradQ * gradP;
 		
 		assert(g.xsize() == policy->exportdatasize());

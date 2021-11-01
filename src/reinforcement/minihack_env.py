@@ -68,6 +68,8 @@ def minihack_performAction(action):
     surroundings = flatten(obs["chars_crop"])
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
+
+    env.render()
     
     return [state, reward, done]
 

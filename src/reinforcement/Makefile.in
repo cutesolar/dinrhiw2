@@ -6,7 +6,7 @@ CXX= @CXX@
 
 OBJECTS = RIFL_abstract.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o \
 	CreateRIFLdataset.o CreateRIFL2dataset.o CreatePolicyDataset.o RotationProblem.o \
-	AdditionProblem.o MinihackRIFL2.o
+	AdditionProblem.o
 
 EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
@@ -32,7 +32,7 @@ TEST4_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test4.o
 
 TEST4A_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test4a.o
 
-TEST5_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack.o
+TEST5_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack.o MinihackRIFL2.o
 
 
 SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp \
@@ -67,9 +67,11 @@ TARGET4=testsuite4
 TARGET4A=testsuite4a
 TARGET5=minihack_test
 
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) `python3-config --cflags`
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9
 
-LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@ `python3-config --ldflags` -lpython3.9
+LIBS=@EXTRA_LIBPATHS@ -lz -lgmp -lpthread @EXTRA_LIBS@
+
+LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -lpython3.9
 
 # `pkg-config sdl2 --libs`
 
@@ -84,7 +86,7 @@ all: $(TEST1_OBJECTS) $(TEST2_OBJECTS) $(TEST3_OBJECTS) $(TEST4_OBJECTS) $(TEST4
 	$(CXX) $(CXXFLAGS) -o $(TARGET3) $(TEST3_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4) $(TEST4_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4A) $(TEST4A_OBJECTS) $(LIBS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TEST5_OBJECTS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TEST5_OBJECTS) $(LIBS) $(LIBS_PYTHON)
 
 clean:
 	$(RM) $(TEST1_OBJECTS)
