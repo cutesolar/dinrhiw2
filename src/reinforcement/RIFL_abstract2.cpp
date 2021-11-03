@@ -453,8 +453,61 @@ namespace whiteice
     
     return true;
   }
-  
 
+
+  template <typename T>
+  void RIFL_abstract2<T>::onehot_prob_select(const whiteice::math::vertex<T>& action,
+					     whiteice::math::vertex<T>& new_action,
+					     T temperature)
+  {
+    assert(action.size() > 0);
+    
+    unsigned long ACTION = 0;
+
+    T psum = T(0.0f);
+    std::vector<T> p;
+    
+    for(unsigned int i=0;i<action.size();i++){
+      auto value = action[i];
+      
+      if(value < T(-6.0f)) value = T(-6.0f);
+      else if(value > T(+6.0f)) value = T(+6.0f);
+      
+      auto q = exp(value/temperature);
+      psum += q;
+      p.push_back(q);
+    }
+    
+    for(unsigned int i=0;i<p.size();i++)
+      p[i] /= psum;
+    
+    psum = T(0.0f);
+    for(unsigned int i=0;i<p.size();i++){
+      auto more = p[i];
+      p[i] += psum;
+      psum += more;
+    }
+    
+    T r = rng.uniform();
+    
+    unsigned long index = 0;
+    
+    while(r > p[index]){
+      index++;
+      if(index >= p.size()){
+	index = p.size()-1;
+	break;
+      }
+    }
+    
+    ACTION = index;
+
+    new_action.resize(action.size());
+    new_action.zero();
+    new_action[ACTION] = T(1.0f);
+  }
+
+  
   template <typename T>
   void RIFL_abstract2<T>::loop()
   {
@@ -467,6 +520,9 @@ namespace whiteice
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
+    
+    std::vector< std::vector< rifl2_datapoint<T> > > episodes;
+    std::vector< rifl2_datapoint<T> > episode;
 
     bool endFlag = false; // did the simulation end during this time step?
     
@@ -494,9 +550,13 @@ namespace whiteice
     int old_grad2_iterations = -1;
 
     const unsigned long DATASIZE = 1000000; // was: 100.000 / 1M history of samples
+    // assumes each episode length is 100 so this is ~ equal to 1.000.000 samples
+    const unsigned long EPISODES_MAX_SIZE = 10000;
+    const unsigned long MINIMUM_EPISODE_SIZE = 50;
     const unsigned long MINIMUM_DATASIZE = 5000; // number of samples required to start learning
     const unsigned long SAMPLESIZE = 500; // number of samples used in learning
     unsigned long database_counter = 0;
+    unsigned long episodes_counter = 0;
     
     bool firstTime = true;
     whiteice::math::vertex<T> state;
@@ -595,6 +655,16 @@ namespace whiteice
 	action = u;
       }
 
+      
+      if(oneHotEncodedAction){
+	whiteice::math::vertex<T> new_action;
+
+	// maps probabilistic vector values to a single value
+	onehot_prob_select(action, new_action);
+	
+	action = new_action;
+      }
+
       // prints Q value of chosen action
       {
 	whiteice::math::vertex<T> u;
@@ -689,6 +759,26 @@ namespace whiteice
 	// (also used by CreateRIFL2dataset class/thread)
 	std::lock_guard<std::mutex> lock(database_mutex);
 
+	episode.push_back(datum);
+
+	if(datum.lastStep){
+
+	  T total_reward = T(0.0f);
+
+	  for(const auto& e : episode)
+	    total_reward += e.reinforcement;
+
+	  printf("Episode %d reward: %f\n", (int)episodes_counter, total_reward.c[0]);
+
+	  episodes.push_back(episode);
+	  episode.clear();
+
+	  episodes_counter++;
+
+	  while(episodes.size() > EPISODES_MAX_SIZE)
+	    episodes.erase(episodes.begin());
+	}
+
 	if(database_counter >= DATASIZE)
 	  database_counter = database_counter % database.size();
 
@@ -727,7 +817,7 @@ namespace whiteice
       
       // 5. update/optimize Q(state, action) network
       // activates batch learning if it is not running
-      if(database.size() >= MINIMUM_DATASIZE)
+      if(database.size() >= MINIMUM_DATASIZE && episodes.size() > MINIMUM_EPISODE_SIZE)
       {
 	
 	// skip if other optimization step (policy network)
@@ -812,10 +902,12 @@ namespace whiteice
 
 	    dataset_thread = new CreateRIFL2dataset<T>(*this,
 						       database,
+						       episodes,
 						       database_mutex,
 						       epoch[1],
 						       data);
-	    dataset_thread->start(SAMPLESIZE);
+	    
+	    dataset_thread->start(SAMPLESIZE, useEpisodes);
 	    
 	    whiteice::logging.info("RIFL_abstract2: new dataset_thread started (Q)");
 	    
@@ -912,7 +1004,7 @@ namespace whiteice
       // 6. update/optimize policy(state) network
       // activates batch learning if it is not running
       
-      if(database.size() >= MINIMUM_DATASIZE)
+      if(database.size() >= MINIMUM_DATASIZE && episodes.size() > MINIMUM_EPISODE_SIZE)
       {
 	
 	// skip if other optimization step is behind us

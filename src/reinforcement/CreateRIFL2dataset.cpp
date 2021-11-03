@@ -21,12 +21,14 @@ namespace whiteice
   template <typename T>
   CreateRIFL2dataset<T>::CreateRIFL2dataset(RIFL_abstract2<T> const & rifl_, 
 					    std::vector< rifl2_datapoint<T> > const & database_,
+					    std::vector< std::vector< rifl2_datapoint<T> > > const & episodes_,
 					    std::mutex & database_mutex_,
 					    unsigned int const& epoch_, 
 					    whiteice::dataset<T>& data_) : 
   
     rifl(rifl_), 
     database(database_),
+    episodes(episodes_),
     database_mutex(database_mutex_),
     epoch(epoch_),
     data(data_)
@@ -62,7 +64,7 @@ namespace whiteice
   
   // starts thread that creates NUMDATAPOINTS samples to dataset
   template <typename T>
-  bool CreateRIFL2dataset<T>::start(const unsigned int NUMDATAPOINTS)
+  bool CreateRIFL2dataset<T>::start(const unsigned int NUMDATAPOINTS, const bool smartEpisodes)
   {
     if(NUMDATAPOINTS == 0) return false;
 
@@ -76,7 +78,8 @@ namespace whiteice
       data.clear();
       data.createCluster("input-state", rifl.numStates + rifl.numActions);
       data.createCluster("output-action", 1);
-      
+
+      this->smartEpisodes = smartEpisodes;
       completed = false;
       
       running = true;
@@ -163,84 +166,192 @@ namespace whiteice
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
 
-#pragma omp parallel for schedule(auto)
-    for(unsigned int i=0;i<NUMDATA;i++){
+    if(smartEpisodes){
 
-      if(running == false) // we don't do anything anymore..
-	continue; // exits OpenMP loop
+      unsigned int counter = 0;
 
-      database_mutex.lock();
-      
-      const unsigned int index = rifl.rng.rand() % database.size();
-
-      const auto datum = database[index];
-
-      database_mutex.unlock();
-      
-      whiteice::math::vertex<T> in(rifl.numStates + rifl.numActions);
-      in.zero();
-      in.write_subvertex(datum.state, 0);
-      in.write_subvertex(datum.action, rifl.numStates);
-      
-      whiteice::math::vertex<T> out(1);
-      out.zero();
-      
-      // calculates updated utility value
-      whiteice::math::vertex<T> y(1);
-
-      T maxvalue = T(-INFINITY);
-      
-      {
-	whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
-	whiteice::math::matrix<T> e;
+      while(counter < NUMDATA){
 	
-	assert(tmp.write_subvertex(datum.newstate, 0) == true);
+	if(running == false) // we don't do anything anymore..
+	  break; // exits loop
+
+	database_mutex.lock();
+
+	const unsigned int  index = rifl.rng.rand() % episodes.size();
+	const auto episode = episodes[index];
+
+	database_mutex.unlock();
+
+	T prev_R = T(0.0f);
+	
+#pragma omp parallel for schedule(auto)
+	for(unsigned i=0;i<episode.size();i++){
+	  
+	  if(running == false) // we don't do anything anymore..
+	    continue; // exits OpenMP loop
+
+	  const rifl2_datapoint<T>& datum = episode[episode.size()-1-i];
+
+	  whiteice::math::vertex<T> in(rifl.numStates + rifl.numActions);
+	  in.zero();
+	  in.write_subvertex(datum.state, 0);
+	  in.write_subvertex(datum.action, rifl.numStates);
+	  
+	  whiteice::math::vertex<T> out(1);
+	  out.zero();
+	  
+	  // calculates updated utility value
+	  whiteice::math::vertex<T> y(1);
+	  
+	  T maxvalue = T(-INFINITY);
+	  
+	  {
+	    whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
+	    whiteice::math::matrix<T> e;
+	    
+	    assert(tmp.write_subvertex(datum.newstate, 0) == true);
+	    
+	    {
+	      whiteice::math::vertex<T> u; // new action..
+	      
+	      auto input = datum.newstate;
+	      
+	      policy_preprocess.preprocess(0, input);
+	      
+	      lagged_policy.calculate(input, u, e, 1, 0);
+	      
+	      policy_preprocess.invpreprocess(1, u); // does nothing..
+	      
+	      // add exploration noise..
+	      auto noise = u;
+	      // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
+	      rifl.rng.normal(noise);
+	      u += T(0.05)*noise;
+	      
+	      assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
+	    }
+	    
+	    rifl.Q_preprocess.preprocess(0, tmp);
+	    
+	    rifl.lagged_Q.calculate(tmp, y, e, 1, 0);
+	    
+	    rifl.Q_preprocess.invpreprocess(1, y);
+	    
+	    if(maxvalue < abs(y[0]))
+	      maxvalue = abs(y[0]);
+	    
+	    if(epoch > 0 && datum.lastStep == false){
+	      const T R = rifl.gamma * prev_R + datum.reinforcement;
+	      
+	      out[0] = R + rifl.gamma*y[0];
+
+	      prev_R = R;
+	    }
+	    else{ // the first iteration of reinforcement learning do not use Q or if this is last step
+	      out[0] = datum.reinforcement;
+
+	      prev_R = out[0];
+	    }
+	    
+	  }
+	  
+#pragma omp critical
+	  {
+	    data.add(0, in);
+	    data.add(1, out);
+
+	    counter++;
+	    
+	    maxvalues.push_back(maxvalue);
+	  }
+	  
+	} // for-loop
+
+	
+      } // while loop (counter)
+      
+    }
+    else{
+      
+#pragma omp parallel for schedule(auto)
+      for(unsigned int i=0;i<NUMDATA;i++){
+	
+	if(running == false) // we don't do anything anymore..
+	  continue; // exits OpenMP loop
+	
+	database_mutex.lock();
+	
+	const unsigned int index = rifl.rng.rand() % database.size();
+	
+	const auto datum = database[index];
+	
+	database_mutex.unlock();
+	
+	whiteice::math::vertex<T> in(rifl.numStates + rifl.numActions);
+	in.zero();
+	in.write_subvertex(datum.state, 0);
+	in.write_subvertex(datum.action, rifl.numStates);
+	
+	whiteice::math::vertex<T> out(1);
+	out.zero();
+	
+	// calculates updated utility value
+	whiteice::math::vertex<T> y(1);
+	
+	T maxvalue = T(-INFINITY);
 	
 	{
-	  whiteice::math::vertex<T> u; // new action..
+	  whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
+	  whiteice::math::matrix<T> e;
 	  
-	  auto input = datum.newstate;
+	  assert(tmp.write_subvertex(datum.newstate, 0) == true);
 	  
-	  policy_preprocess.preprocess(0, input);
+	  {
+	    whiteice::math::vertex<T> u; // new action..
+	    
+	    auto input = datum.newstate;
+	    
+	    policy_preprocess.preprocess(0, input);
+	    
+	    lagged_policy.calculate(input, u, e, 1, 0);
+	    
+	    policy_preprocess.invpreprocess(1, u); // does nothing..
+	    
+	    // add exploration noise..
+	    auto noise = u;
+	    // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
+	    rifl.rng.normal(noise);
+	    u += T(0.05)*noise;
+	    
+	    assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
+	  }
 	  
-	  lagged_policy.calculate(input, u, e, 1, 0);
+	  rifl.Q_preprocess.preprocess(0, tmp);
 	  
-	  policy_preprocess.invpreprocess(1, u); // does nothing..
+	  rifl.lagged_Q.calculate(tmp, y, e, 1, 0);
 	  
-	  // add exploration noise..
-	  auto noise = u;
-	  // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
-	  rifl.rng.normal(noise);
-	  u += T(0.05)*noise;
+	  rifl.Q_preprocess.invpreprocess(1, y);
 	  
-	  assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
+	  if(maxvalue < abs(y[0]))
+	    maxvalue = abs(y[0]);
+	  
+	  if(epoch > 0 && datum.lastStep == false){
+	    out[0] = datum.reinforcement + rifl.gamma*y[0];
+	  }
+	  else{ // the first iteration of reinforcement learning do not use Q or if this is last step
+	    out[0] = datum.reinforcement;
+	  }
+	  
 	}
 	
-	rifl.Q_preprocess.preprocess(0, tmp);
-	
-	rifl.lagged_Q.calculate(tmp, y, e, 1, 0);
-	
-	rifl.Q_preprocess.invpreprocess(1, y);
-
-	if(maxvalue < abs(y[0]))
-	  maxvalue = abs(y[0]);
-	
-	if(epoch > 0 && datum.lastStep == false){
-	  out[0] = datum.reinforcement + rifl.gamma*y[0];
-	}
-	else{ // the first iteration of reinforcement learning do not use Q or if this is last step
-	  out[0] = datum.reinforcement;
-	}
-
-	
-      }
-
 #pragma omp critical
-      {
-	data.add(0, in);
-	data.add(1, out);
-
-	maxvalues.push_back(maxvalue);
+	{
+	  data.add(0, in);
+	  data.add(1, out);
+	  
+	  maxvalues.push_back(maxvalue);
+	}
+	
       }
       
     }

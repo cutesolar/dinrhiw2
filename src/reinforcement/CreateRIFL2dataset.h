@@ -19,19 +19,20 @@ namespace whiteice
     class CreateRIFL2dataset
     {
     public:
-
+      
     // calculates reinforcement learning training dataset from database
     // using database_lock
     CreateRIFL2dataset(RIFL_abstract2<T> const & rifl, 
 		       std::vector< rifl2_datapoint<T> > const & database,
+		       std::vector< std::vector< rifl2_datapoint<T> > > const & episodes,
 		       std::mutex & database_mutex,
 		       unsigned int const& epoch, 
 		       whiteice::dataset<T>& data);
-
+      
     virtual ~CreateRIFL2dataset();
 
     // starts thread that creates NUMDATAPOINTS samples to dataset
-    bool start(const unsigned int NUMDATAPOINTS);
+    bool start(const unsigned int NUMDATAPOINTS, const bool smartEpisodes = false);
 
     // returns true when computation is completed
     bool isCompleted() const;
@@ -54,18 +55,21 @@ namespace whiteice
     
     RIFL_abstract2<T> const & rifl;
 
-    std::vector< rifl2_datapoint<T> > const & database;    
+    std::vector< rifl2_datapoint<T> > const & database;
+    std::vector< std::vector< rifl2_datapoint<T> > > const & episodes;
     std::mutex & database_mutex;
+
+    bool smartEpisodes = false;
 
     unsigned int const& epoch;
 
     unsigned int NUMDATA; // number of datapoints to create
     whiteice::dataset<T>& data;
-    bool completed;
+    bool completed = false;;
 
-    std::thread* worker_thread;
+    std::thread* worker_thread = NULL;
     std::mutex   thread_mutex;
-    bool running;
+    bool running = false;
 
     // worker thread loop
     void loop();

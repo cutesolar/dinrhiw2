@@ -46,8 +46,8 @@ namespace whiteice
 
       PyObject *main_module = NULL, *global_dict = NULL;
       PyObject *getStateFunc = NULL, *performActionFunc = NULL;
-
-      PyThreadState* pystate;
+      
+      //PyThreadState* pystate = NULL;
 
       // number of errors seen.. (>0 isRunning() == false)
       unsigned int errors = 0;
