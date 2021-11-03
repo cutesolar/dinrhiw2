@@ -1,16 +1,57 @@
+/*
+ * NOTE: It is important that we don't call Py_DECREF()
+ * for "borrowed references" (with objects from certain python calls).
+ *
+ * If we do the code will crash in bizarre ways.
+ *
+ */
 
 #include "MinihackRIFL2.h"
 
 
 namespace whiteice
 {
+#if 0
+  // acquire and release the GIL
+  struct gil_lock
+  {
+    gil_lock()
+    {
+      PyEval_AcquireLock();
+    }
+    
+    ~gil_lock()
+    {
+      PyEval_ReleaseLock();
+    }
+  };
+#endif
+  
   // observation space size is 107 (9x9 char environment plus player stats)  and action is one-hot-encoded value
   template <typename T>
   MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) :
     RIFL_abstract2<T>(8, 107, {50,50,50}, {50,50,50})
   {
-    Py_Initialize();
-    PyEval_InitThreads();
+    // we inteprete action values as one hot encoded probabilistic values
+    this->setOneHotAction(true); 
+    
+    
+    if(!Py_IsInitialized()){
+      Py_Initialize();
+      //PyEval_InitThreads();
+    }
+
+    errors = 0;
+
+    //PyThreadState* prestate = PyThreadState_Get();
+    //pystate = PyThreadState_New(prestate->interp);
+    //
+    //if(pystate == NULL){
+    //  errors++;
+    //  assert(0); // FIXME do proper error handling
+    //}    
+
+    // PyEval_RestoreThread(pystate);
 
     {
       int argc = 1;
@@ -26,7 +67,7 @@ namespace whiteice
 
       free(ptr);
     }
-    
+
     // PyRun_SimpleString("x = 0"); // dummy (needed?)
 
     pythonFile = fopen(pythonScript.c_str(), "r");
@@ -37,6 +78,7 @@ namespace whiteice
     }
 
     filename = pythonScript;
+
     PyRun_SimpleFile(pythonFile, filename.c_str());
 
     main_module = PyImport_AddModule("__main__");
@@ -55,27 +97,38 @@ namespace whiteice
       assert(0); // FIXME proper error handling
     }
 
-    pystate = PyEval_SaveThread();
+    //pystate = PyEval_SaveThread();
+    //PyEval_RestoreThread(prestate);
   }
+  
 
   template <typename T>
   MinihackRIFL2<T>::~MinihackRIFL2()
   {
-    PyEval_RestoreThread(pystate);
+    //PyThreadState* prestate = PyThreadState_Get();
+    //PyEval_RestoreThread(pystate);
     
     Py_DECREF(getStateFunc);
     Py_DECREF(performActionFunc);
     //Py_DECREF(global_dict);
     //Py_DECREF(main_module);
 
+    //PyEval_RestoreThread(prestate);
+    //
+    //if(pystate){
+    //  PyThreadState_Clear(pystate);
+    //  PyThreadState_Delete(pystate);
+    //}
+    //
+    //pystate = NULL;
+
+    // don't finalize python state
     Py_Finalize();
     
     if(pythonFile) fclose(pythonFile);
-
-    pystate = NULL;
   }
 
-
+  
   template <typename T>
   bool MinihackRIFL2<T>::isRunning() const
   {
@@ -88,7 +141,8 @@ namespace whiteice
   {
     if(errors > 0) return false;
 
-    PyEval_RestoreThread(pystate);
+    //PyThreadState* prestate = PyThreadState_Get();
+    //PyEval_RestoreThread(pystate);
     
     PyObject *result = NULL;
     
@@ -97,7 +151,8 @@ namespace whiteice
     if(result == NULL){
       printf("ERROR: getState(): PyObject_CallFunction() returned NULL.\n");
       errors++;
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -105,7 +160,8 @@ namespace whiteice
       printf("ERROR: getState(): PyObject_CallFunction() returned non-list.\n");
       errors++;
       Py_DECREF(result);
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -115,7 +171,8 @@ namespace whiteice
       printf("ERROR: getState(): returned state has wrong length.\n");
       errors++;
       Py_DECREF(result);
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -125,7 +182,8 @@ namespace whiteice
 	printf("ERROR: getState(): state.resize() FAILED.\n");
 	errors++;
 	Py_DECREF(result);
-	pystate = PyEval_SaveThread();
+	//pystate = PyEval_SaveThread();
+	//PyEval_RestoreThread(prestate);
 	return false;
       }
 
@@ -137,7 +195,8 @@ namespace whiteice
 	  errors++;
 	  Py_DECREF(result);
 	  
-	  pystate = PyEval_SaveThread();
+	  //pystate = PyEval_SaveThread();
+	  //PyEval_RestoreThread(prestate);
 	  
 	  return false;	  
 	}
@@ -148,7 +207,8 @@ namespace whiteice
 	  //Py_DECREF(item);
 	  Py_DECREF(result);
 	  
-	  pystate = PyEval_SaveThread();
+	  //pystate = PyEval_SaveThread();
+	  //PyEval_RestoreThread(prestate);
 	  
 	  return false;
 	}
@@ -161,7 +221,8 @@ namespace whiteice
 
     Py_DECREF(result);
 
-    pystate = PyEval_SaveThread();
+    //pystate = PyEval_SaveThread();
+    //PyEval_RestoreThread(prestate);
 
     return true;
   }
@@ -231,7 +292,8 @@ namespace whiteice
 
     //printf("ACTION %d selected.\n", (int)ACTION); fflush(stdout);
 
-    PyEval_RestoreThread(pystate);
+    //PyThreadState* prestate = PyThreadState_Get();
+    //PyEval_RestoreThread(pystate);
     
     PyObject *result = NULL;
 
@@ -244,7 +306,8 @@ namespace whiteice
     if(result == NULL){
       printf("ERROR: performAction(): PyObject_CallFunction() returned NULL.\n");
       errors++;
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -260,7 +323,8 @@ namespace whiteice
       printf("ERROR: performAction(): PyObject_CallFunction() don't return list.\n");
       errors++;
       Py_DECREF(result);
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -268,7 +332,8 @@ namespace whiteice
       printf("ERROR: performAction(): PyObject_CallFunction() return value length is not 3.\n");
       errors++;
       Py_DECREF(result);
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       return false;
     }
 
@@ -288,7 +353,8 @@ namespace whiteice
       
       Py_DECREF(result);
       
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       
       return false;
     }
@@ -306,7 +372,8 @@ namespace whiteice
       
       Py_DECREF(result);
 
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       
       return false;
     }    
@@ -319,7 +386,8 @@ namespace whiteice
       
       Py_DECREF(result);
       
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       
       return false;
     }
@@ -338,7 +406,8 @@ namespace whiteice
 	
 	Py_DECREF(result);
 
-	pystate = PyEval_SaveThread();
+	//pystate = PyEval_SaveThread();
+	//PyEval_RestoreThread(prestate);
 	
 	return false;
       }
@@ -356,7 +425,8 @@ namespace whiteice
 	  
 	  Py_DECREF(result);
 
-	  pystate = PyEval_SaveThread();
+	  //pystate = PyEval_SaveThread();
+	  //PyEval_RestoreThread(prestate);
 
 	  return false;
 	}
@@ -373,7 +443,8 @@ namespace whiteice
 	  
 	  Py_DECREF(result);
 
-	  pystate = PyEval_SaveThread();
+	  //pystate = PyEval_SaveThread();
+	  //PyEval_RestoreThread(prestate);
 
 	  return false;
 	}
@@ -400,7 +471,8 @@ namespace whiteice
     
       Py_DECREF(result);
 
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       
       return false;
     }
@@ -421,7 +493,8 @@ namespace whiteice
     
       Py_DECREF(result);
 
-      pystate = PyEval_SaveThread();
+      //pystate = PyEval_SaveThread();
+      //PyEval_RestoreThread(prestate);
       
       return false;
     }
@@ -439,7 +512,8 @@ namespace whiteice
     
     Py_DECREF(result);
 
-    pystate = PyEval_SaveThread();
+    //pystate = PyEval_SaveThread();
+    //PyEval_RestoreThread(prestate);
 
     return true;
   }

@@ -90,6 +90,9 @@ namespace whiteice
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
+    void setOneHotAction(bool isOneHotAction){ oneHotEncodedAction = isOneHotAction; }
+    bool getOneHotAction() const{ return oneHotEncodedAction; }
+
     // saves learnt Reinforcement Learning Model to file
     bool save(const std::string& filename) const;
     
@@ -108,6 +111,10 @@ namespace whiteice
 			       T& reinforcement,
 			       bool& endFlag) = 0;
 
+    void onehot_prob_select(const whiteice::math::vertex<T>& action,
+			    whiteice::math::vertex<T>& new_action,
+			    T temperature = T(1.0f));
+
     // reinforcement Q model: Q(state, action) ~ discounted future cost
     whiteice::bayesian_nnetwork<T> Q, lagged_Q;
     whiteice::dataset<T> Q_preprocess;
@@ -123,6 +130,7 @@ namespace whiteice
     
     T epsilon;
     T gamma;
+    bool oneHotEncodedAction = false;
     
     class whiteice::RNG<T> rng;
     
