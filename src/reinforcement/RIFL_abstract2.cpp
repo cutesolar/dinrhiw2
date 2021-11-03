@@ -692,25 +692,33 @@ namespace whiteice
 	if(database_counter >= DATASIZE)
 	  database_counter = database_counter % database.size();
 
-	if(database.size() >= DATASIZE){
+	if(datum.reinforcement.c[0]){
 
-	  while(true){
-	    const unsigned int index = rng.rand() % database.size();
-
-	    if(database[index].reinforcement == T(0.0f)){ // always replace zero reinforcement-cases
-	      database[index] = datum;
-	      break;
+	  if(database.size() >= DATASIZE){
+	    
+	    while(true){
+	      const unsigned int index = rng.rand() % database.size();
+	      
+	      if(database[index].reinforcement == T(0.0f)){ // always replace zero reinforcement-cases
+		database[index] = datum;
+		break;
+	      }
+	      else if((rng.rand() % 5) == 0){ // 20% probability to replace non-zero entry
+		database[index] = datum;
+		break;
+	      }
 	    }
-	    else if((rng.rand() % 5) == 0){ // 20% probability to replace non-zero entry
-	      database[index] = datum;
-	      break;
-	    }
+	    
+	    // database[database_counter] = datum;
+	  }
+	  else{
+	    database.push_back(datum);
 	  }
 
-	  // database[database_counter] = datum;
-	}
-	else{
-	  database.push_back(datum);
+	  char buffer[80];
+	  snprintf(buffer, 80, "Adding new data (reward %f) to database of size %d", reinforcement.c[0], (int)database.size());
+	  whiteice::logging.info(buffer);
+		   
 	}
 
 	database_counter++;
