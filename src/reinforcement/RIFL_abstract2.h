@@ -90,8 +90,15 @@ namespace whiteice
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
+    // is policy() returned value one hot encoded probability values (log(p_i))
+    // from which proper one-hot action is sampled.
     void setOneHotAction(bool isOneHotAction){ oneHotEncodedAction = isOneHotAction; }
     bool getOneHotAction() const{ return oneHotEncodedAction; }
+
+    // do we do smart episode calculations where reinforcement learning
+    // values are re-calculated to be R[k] = gamma*R[k+1] + reinforcement[k], R[N+1]=0
+    void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
+    bool getSmartEpisodes() const{ return useEpisodes; }
 
     // saves learnt Reinforcement Learning Model to file
     bool save(const std::string& filename) const;
@@ -131,6 +138,7 @@ namespace whiteice
     T epsilon;
     T gamma;
     bool oneHotEncodedAction = false;
+    bool useEpisodes = false;
     
     class whiteice::RNG<T> rng;
     

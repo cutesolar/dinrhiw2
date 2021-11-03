@@ -24,12 +24,20 @@ def combine(x):
 # we use now ints as state passed values
 #
 # action is number from 0-7 (1-8 values)
-# 
+#
 
-env = gym.make("MiniHack-River-v0",
-               observation_keys=("chars_crop", "blstats"))
+env_name = "MiniHack-River-v0"
+env_name = "MiniHack-MazeWalk-45x19-v0"
+env_name = "MiniHack-MazeWalk-Mapped-15x15-v0"
+
+env = gym.make(env_name, observation_keys=("chars_crop", "blstats"))
+
+render = False
+
+#########################################################
 
 obs = env.reset()
+moves = 0
 
 surroundings = flatten(obs["chars_crop"])
 stats = obs["blstats"].tolist()
@@ -61,7 +69,7 @@ def minihack_getState():
 #                            bool& endFlag) = 0;
 
 def minihack_performAction(action):
-    global env, done, state
+    global env, done, state,moves
 
     obs, reward, done, info = env.step(action)
     
@@ -69,9 +77,11 @@ def minihack_performAction(action):
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
 
-    print("reward = " + str(reward))
-
-    env.render()
+    if(render):
+        print("moves: " + str(moves) + " reward = " + str(reward))
+        env.render()
+    
+    moves = moves + 1
     
     return [state, reward, done]
 

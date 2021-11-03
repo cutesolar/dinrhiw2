@@ -33,7 +33,8 @@ namespace whiteice
     RIFL_abstract2<T>(8, 107, {50,50,50}, {50,50,50})
   {
     // we inteprete action values as one hot encoded probabilistic values
-    this->setOneHotAction(true); 
+    this->setOneHotAction(true);
+    this->setSmartEpisodes(true); // gives more weight to reinforcement values when calculating Q
     
     
     if(!Py_IsInitialized()){
