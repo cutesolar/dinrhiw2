@@ -1434,36 +1434,6 @@ int main(int argc, char** argv)
 	}
       }
 
-#if 0
-      // calculates error covariance matrix using current 
-      // (random or loaded neural network configuration)
-      math::matrix< whiteice::math::blas_real<double> > covariance;
-      {
-	covariance.resize(data.dimension(1), data.dimension(1));
-	covariance.zero();
-	
-	math::vertex< whiteice::math::blas_real<double> > mean;
-	mean.resize(data.dimension(1));
-	mean.zero();
-	
-	for(unsigned int i=0;i<data.size(0);i++){
-	  math::vertex< whiteice::math::blas_real<double> > out1;
-	  math::matrix< whiteice::math::blas_real<double> > cov;
-	  
-	  bnn->calculate(data.access(0, i), out1, cov);
-	  auto err = data.access(1, i) - out1;
-	  
-	  mean += err;
-	  covariance += err.outerproduct();
-	}
-
-	mean /= whiteice::math::blas_real<double>(data.size(0));
-	covariance /= whiteice::math::blas_real<double>(data.size(0));
-	covariance -= mean.outerproduct();
-      }
-      
-      std::cout << "covariance = " << covariance << std::endl;
-#endif
       
       // whiteice::HMC_convergence_check< whiteice::math::blas_real<double> > hmc(*nn, data, adaptive);
       unsigned int ptlayers =
@@ -1879,12 +1849,11 @@ int main(int argc, char** argv)
 	for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
 	  math::vertex< whiteice::math::blas_real<double> > out1;
 	  math::vertex< whiteice::math::blas_real<double> > rdim;
-	  math::matrix< whiteice::math::blas_real<double> > cov;
 
 	  rdim.resize(bnn->inputSize() - data.dimension(0));
 	  rdim.zero();
 
-	  bnn->calculate(data.access(0, i), out1, cov, SIMULATION_DEPTH, 0);
+	  bnn->calculate(data.access(0, i), out1, SIMULATION_DEPTH, 0);
 	  err = data.access(1,i) - out1;
 	  
 	  for(unsigned int i=0;i<err.size();i++)
@@ -1959,7 +1928,6 @@ int main(int argc, char** argv)
 	  for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
 	    math::vertex< whiteice::math::blas_real<double> > out;
 	    math::vertex< whiteice::math::blas_real<double> > var;
-	    math::matrix< whiteice::math::blas_real<double> > cov;
 
 	    eta.update((double)i);
 
@@ -1970,7 +1938,7 @@ int main(int argc, char** argv)
 	    printf("%d/%d (%.1f%%) [ETA %.1f minutes]", i+1, data.size(0), percent, etamin);
 	    fflush(stdout);
 	    
-	    bnn->calculate(data.access(0, i),  out, cov, SIMULATION_DEPTH, 0);
+	    bnn->calculate(data.access(0, i),  out, SIMULATION_DEPTH, 0);
 	    
 	    // we do NOT preprocess the output but inject it directly into dataset
 	    data.add(1, out, true);
@@ -2000,7 +1968,7 @@ int main(int argc, char** argv)
 
 	    var.resize(cov.xsize());	    
 	    for(unsigned int j=0;j<cov.xsize();j++)
-	      var[j] = math::sqrt(cov(j,j)); // st.dev.
+	      var[j] = math::sqrt(abs(cov(j,j))); // st.dev.
 	    
 	    data.add(2, var, true);
 	  }

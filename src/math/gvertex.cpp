@@ -470,7 +470,7 @@ namespace whiteice
     
     
     template <typename T, typename S>
-    T& gvertex<T,S>::operator[](const unsigned int& index)
+    T& gvertex<T,S>::operator[](const unsigned int index)
       
     {
       if(index >= c.size())
@@ -481,7 +481,7 @@ namespace whiteice
     
     
     template <typename T, typename S>
-    const T& gvertex<T,S>::operator[](const unsigned int& index) const
+    const T& gvertex<T,S>::operator[](const unsigned int index) const
       
     {
       if(index >= c.size())

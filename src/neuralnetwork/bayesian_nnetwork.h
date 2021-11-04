@@ -60,12 +60,20 @@ namespace whiteice
      */
     bool downsample(unsigned int N);
 
+#if 1
     // calculates E[f(input,w)] = E[y|x] and Var[f(x,w)] = Var[y|x] for given input
     bool calculate(const math::vertex<T>& input,
 		   math::vertex<T>& mean,
 		   math::matrix<T>& covariance,
 		   unsigned int SIMULATION_DEPTH /* = 1 */, // for recurrent use of nnetworks..
 		   int latestN /*= 0 */) const;
+#endif
+
+    // don't calculate large covariance matrix (faster)
+    bool calculate(const math::vertex<T>& input,
+		   math::vertex<T>& mean,
+		   unsigned int SIMULATION_DEPTH,
+		   int latestN) const;
 
     unsigned int outputSize() const ;
     unsigned int inputSize() const ;

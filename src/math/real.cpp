@@ -542,13 +542,13 @@ namespace whiteice
       return (*this);
     }
     
-    double& realnumber::operator[](const unsigned long& index)
-      {
+    double& realnumber::operator[](const unsigned long index)
+    {
       
       throw illegal_operation("whiteice::math::realnumber: no subelements");
     }
     
-    const double& realnumber::operator[](const unsigned long& index) const
+    const double& realnumber::operator[](const unsigned long index) const
       {
       throw illegal_operation("whitece::math::realnumber: no subelements");
     }

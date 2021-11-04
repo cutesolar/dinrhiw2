@@ -103,8 +103,8 @@ namespace whiteice
       gmatrix<T,S> outerproduct(const gvertex<T,S>& v0,
 			       const gvertex<T,S>& v1) const ;
       
-      T& operator[](const unsigned int& index) ;
-      const T& operator[](const unsigned int& index) const ;
+      T& operator[](const unsigned int index) ;
+      const T& operator[](const unsigned int index) const ;
       
       iterator begin() ; // iterators
       iterator end() ;

@@ -121,7 +121,7 @@ namespace whiteice
       
       // doesn't behave as expected. returns index:th
       // value from matrix (left->right, top->bottom order)
-      T& operator[](const unsigned int& index) 
+      T& operator[](const unsigned int index) 
       {
 #ifdef _GLIBCXX_DEBUG
 	if(index >= numRows*numCols){
@@ -133,7 +133,7 @@ namespace whiteice
 	return data[index]; // no range check
       }
       
-      const T& operator[](const unsigned int& index) const 
+      const T& operator[](const unsigned int index) const 
       {
 #ifdef _GLIBCXX_DEBUG
 	if(index >= numRows*numCols){

@@ -187,7 +187,7 @@ namespace whiteice
       // NOTE: If you are using cuBLAS acceleration you have to
       // call gpu_sync() call after modifying vertex values through direct RAM access
       
-      inline T& operator[](const unsigned int& index) 
+      inline T& operator[](const unsigned int index) 
       {
 #ifdef _GLIBCXX_DEBUG	
 	if(index >= dataSize){
@@ -199,7 +199,7 @@ namespace whiteice
 	return data[index]; // no range check
       }
       
-      inline const T& operator[](const unsigned int& index) const 
+      inline const T& operator[](const unsigned int index) const 
       {	
 #ifdef _GLIBCXX_DEBUG	
 	if(index >= dataSize){

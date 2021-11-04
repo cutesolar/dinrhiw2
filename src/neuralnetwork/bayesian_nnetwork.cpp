@@ -350,7 +350,7 @@ namespace whiteice
     return true;
   }
   
-  
+#if 1
   // calculates E[f(input,w)] and Var[f(x,w)] for given input
   template <typename T>
   bool bayesian_nnetwork<T>::calculate(const math::vertex<T>& input,
@@ -442,6 +442,90 @@ namespace whiteice
     // should divide by N-1 but we ignore this in order to have a result for N=1
     covariance -= mean.outerproduct(); 
 
+    return true;
+  }
+#endif
+
+  // calculates E[f(input,w)] and Var[f(x,w)] for given input
+  template <typename T>
+  bool bayesian_nnetwork<T>::calculate(const math::vertex<T>& input,
+				       math::vertex<T>& mean,
+				       unsigned int SIMULATION_DEPTH, // for recurrent use of nnetworks..
+				       int latestN) const
+  {
+    if(nnets.size() <= 0) return false;
+    if(latestN > (signed)nnets.size()) return false;
+    if(latestN <= 0) latestN = nnets.size();
+
+    const int RDIM = nnets[0]->input_size() - input.size();
+    
+    if(SIMULATION_DEPTH > 1){
+      if(((int)nnets[0]->output_size()) - RDIM <= 0 || RDIM <= 0)
+	return false;
+    }
+    else{
+      if(input.size() != nnets[0]->input_size())
+	return false;
+    }
+
+    const unsigned int DIM = nnets[0]->output_size() - RDIM;
+    mean.resize(DIM);
+    
+    mean.zero();
+    
+#pragma omp parallel shared(mean)
+    {
+      math::vertex<T> m;
+      
+      m.resize(DIM);
+      m.zero();
+      
+      T ninv  = T(1.0f/latestN);
+
+#pragma omp for nowait schedule(auto)
+      for(unsigned int i=(nnets.size() - latestN);i<nnets.size();i++){
+	math::vertex<T> in(nnets[0]->input_size());
+	math::vertex<T> out(DIM), out_nn(nnets[0]->output_size());
+	math::vertex<T> rdim(RDIM);
+
+	in.zero();
+	out.zero();
+	out_nn.zero();
+	rdim.zero();
+
+	in.write_subvertex(input, 0); // writes input section
+	
+	for(unsigned int d=0;d<SIMULATION_DEPTH;d++){
+	  if(SIMULATION_DEPTH > 1){
+	    in.write_subvertex(rdim, input.size());
+	  }
+	  
+	  nnets[i]->calculate(in, out_nn); // recurrent calculations if needed
+	  if(SIMULATION_DEPTH > 1){
+	    out_nn.subvertex(rdim, DIM, rdim.size());
+	  }
+	}
+	
+	if(SIMULATION_DEPTH > 1){
+	  out_nn.subvertex(out, 0, DIM);
+	}
+	else{
+	  out = out_nn;
+	}
+	
+	m += out;
+      }
+
+      m *= ninv;
+      
+#pragma omp critical
+      {
+	mean += m;
+      }
+      
+    }
+
+    
     return true;
   }
 

@@ -72,10 +72,10 @@ namespace whiteice
 
       gvertex<T,S> operator*(const gvertex<T,S>&) const ;      
       
-      gvertex<T,S>& operator[](const unsigned int& index)
+      gvertex<T,S>& operator[](const unsigned int index)
         ;
       
-      const gvertex<T,S>& operator[](const unsigned int& index)
+      const gvertex<T,S>& operator[](const unsigned int index)
         const ;
       
       T& operator()(unsigned int y, unsigned int x) ;

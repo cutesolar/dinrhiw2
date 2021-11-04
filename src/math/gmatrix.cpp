@@ -419,7 +419,7 @@ namespace whiteice
 
   
     template <typename T, typename S>
-    gvertex<T,S>& gmatrix<T,S>::operator[](const unsigned int& index)
+    gvertex<T,S>& gmatrix<T,S>::operator[](const unsigned int index)
       
     {
       return data[index];
@@ -427,7 +427,7 @@ namespace whiteice
     
     
     template <typename T, typename S>
-    const gvertex<T,S>& gmatrix<T,S>::operator[](const unsigned int& index) const
+    const gvertex<T,S>& gmatrix<T,S>::operator[](const unsigned int index) const
       
     {
       return data[index];

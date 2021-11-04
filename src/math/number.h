@@ -57,10 +57,10 @@ namespace whiteice
 
       virtual D& abs()  = 0;
 
-      virtual E& operator[](const U& index)
+      virtual E& operator[](const U index)
 	 = 0;
 
-      virtual const E& operator[](const U& index) const
+      virtual const E& operator[](const U index) const
 	 = 0;
       
       // returns true if >,<,>=,<= are fully defined

@@ -601,12 +601,11 @@ namespace whiteice
 	std::lock_guard<std::mutex> lock(policy_mutex);
 
 	whiteice::math::vertex<T> u;
-	whiteice::math::matrix<T> e;
 
 	auto input = state;
 	policy_preprocess.preprocess(0, input);
 
-	if(policy.calculate(input, u, e, 1, 0) == true){
+	if(policy.calculate(input, u, 1, 0) == true){
 	  if(u.size() != numActions){
 	    u.resize(numActions);
 	    for(unsigned int i=0;i<numActions;i++){
@@ -670,7 +669,6 @@ namespace whiteice
       // prints Q value of chosen action
       {
 	whiteice::math::vertex<T> u;
-	whiteice::math::matrix<T> e;
 	whiteice::math::vertex<T> in(numStates + numActions);
 	in.zero();
 
@@ -679,7 +677,7 @@ namespace whiteice
 	
 	Q_preprocess.preprocess(0, in);
 	
-	Q.calculate(in, u, e, 1, 0);
+	Q.calculate(in, u, 1, 0);
 	
 	Q_preprocess.invpreprocess(1, u); // does nothing..
 

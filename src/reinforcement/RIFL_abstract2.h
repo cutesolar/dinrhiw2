@@ -90,8 +90,8 @@ namespace whiteice
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
-    // is policy() returned value one hot encoded probability values (log(p_i))
-    // from which proper one-hot action is sampled.
+    // tells policy() returns value one hot encoded unscaled probability values (log(p_i))
+    // from which proper one-hot action vector is sampled.
     void setOneHotAction(bool isOneHotAction){ oneHotEncodedAction = isOneHotAction; }
     bool getOneHotAction() const{ return oneHotEncodedAction; }
 

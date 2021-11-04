@@ -12,6 +12,7 @@
 
 #include "Log.h"
 
+// FIXME?? lagged_Q should be copied to process as it may change while we compute.. (not??)
 
 namespace whiteice
 {
@@ -177,7 +178,7 @@ namespace whiteice
 
 	database_mutex.lock();
 
-	const unsigned int  index = rifl.rng.rand() % episodes.size();
+	const unsigned int  index = rng.rand() % episodes.size();
 	const auto episode = episodes[index];
 
 	database_mutex.unlock();
@@ -207,7 +208,6 @@ namespace whiteice
 	  
 	  {
 	    whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
-	    whiteice::math::matrix<T> e;
 	    
 	    assert(tmp.write_subvertex(datum.newstate, 0) == true);
 	    
@@ -218,14 +218,14 @@ namespace whiteice
 	      
 	      policy_preprocess.preprocess(0, input);
 	      
-	      lagged_policy.calculate(input, u, e, 1, 0);
+	      lagged_policy.calculate(input, u, 1, 0);
 	      
 	      policy_preprocess.invpreprocess(1, u); // does nothing..
 	      
 	      // add exploration noise..
 	      auto noise = u;
 	      // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
-	      rifl.rng.normal(noise);
+	      rng.normal(noise);
 	      u += T(0.05)*noise;
 	      
 	      assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
@@ -233,7 +233,7 @@ namespace whiteice
 	    
 	    rifl.Q_preprocess.preprocess(0, tmp);
 	    
-	    rifl.lagged_Q.calculate(tmp, y, e, 1, 0);
+	    rifl.lagged_Q.calculate(tmp, y, 1, 0);
 	    
 	    rifl.Q_preprocess.invpreprocess(1, y);
 	    
@@ -281,7 +281,7 @@ namespace whiteice
 	
 	database_mutex.lock();
 	
-	const unsigned int index = rifl.rng.rand() % database.size();
+	const unsigned int index = rng.rand() % database.size();
 	
 	const auto datum = database[index];
 	
@@ -302,7 +302,6 @@ namespace whiteice
 	
 	{
 	  whiteice::math::vertex<T> tmp(rifl.numStates + rifl.numActions);
-	  whiteice::math::matrix<T> e;
 	  
 	  assert(tmp.write_subvertex(datum.newstate, 0) == true);
 	  
@@ -313,14 +312,14 @@ namespace whiteice
 	    
 	    policy_preprocess.preprocess(0, input);
 	    
-	    lagged_policy.calculate(input, u, e, 1, 0);
+	    lagged_policy.calculate(input, u, 1, 0);
 	    
 	    policy_preprocess.invpreprocess(1, u); // does nothing..
 	    
 	    // add exploration noise..
 	    auto noise = u;
 	    // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
-	    rifl.rng.normal(noise);
+	    rng.normal(noise);
 	    u += T(0.05)*noise;
 	    
 	    assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
@@ -328,7 +327,7 @@ namespace whiteice
 	  
 	  rifl.Q_preprocess.preprocess(0, tmp);
 	  
-	  rifl.lagged_Q.calculate(tmp, y, e, 1, 0);
+	  rifl.lagged_Q.calculate(tmp, y, 1, 0);
 	  
 	  rifl.Q_preprocess.invpreprocess(1, y);
 	  
