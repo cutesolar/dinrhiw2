@@ -18,6 +18,23 @@ def combine(x):
 
     return rv
 
+def convert_chars(ls):
+    for i in range(len(ls)):
+        if(ls[i] == 32): # stone
+            ls[i] = 10
+        elif(ls[i] == 46): # open floor
+            ls[i] = 0
+        elif(ls[i] == 64): # @ character
+            ls[i] = 1
+        elif(ls[i] == '<'):
+            ls[i] = 5
+        elif(ls[i] == '>'):
+            ls[i] = 6
+        else:
+            ls[i] = 5
+            
+    return ls
+
     
 
 # number of states 107 state space (9x9 char surroundings+player stats)
@@ -39,7 +56,7 @@ render = False
 obs = env.reset()
 moves = 0
 
-surroundings = flatten(obs["chars_crop"])
+surroundings = convert_chars(flatten(obs["chars_crop"]))
 stats = obs["blstats"].tolist()
 state = combine([surroundings, stats])
 
@@ -54,7 +71,7 @@ def minihack_getState():
     if(done == True):
         obs = env.reset()
         
-        surroundings = flatten(obs["chars_crop"])
+        surroundings = convert_chars(flatten(obs["chars_crop"]))
         stats = obs["blstats"].tolist()
         state = combine([surroundings, stats])
         
@@ -73,7 +90,7 @@ def minihack_performAction(action):
 
     obs, reward, done, info = env.step(action)
     
-    surroundings = flatten(obs["chars_crop"])
+    surroundings = convert_chars(flatten(obs["chars_crop"]))
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
 

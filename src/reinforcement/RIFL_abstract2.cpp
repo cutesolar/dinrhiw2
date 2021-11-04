@@ -524,6 +524,8 @@ namespace whiteice
     std::vector< std::vector< rifl2_datapoint<T> > > episodes;
     std::vector< rifl2_datapoint<T> > episode;
 
+    FILE* episodesFile = fopen("episodes-result.txt", "w");    
+
     bool endFlag = false; // did the simulation end during this time step?
     
     whiteice::dataset<T> data;
@@ -768,15 +770,23 @@ namespace whiteice
 	  for(const auto& e : episode)
 	    total_reward += e.reinforcement;
 
-	  printf("Episode %d reward: %f\n", (int)episodes_counter, total_reward.c[0]);
+	  printf("Episode %d reward: %f [%d %d models]\n",
+		 (int)episodes_counter, total_reward.c[0],
+		 hasModel[0], hasModel[1]);
 
-	  episodes.push_back(episode);
+	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
+	  fflush(episodesFile);
+
+	  if(episodes.size() >= EPISODES_MAX_SIZE){
+	    const unsigned long index = (episodes_counter % EPISODES_MAX_SIZE);
+	    episodes[index] = episode;
+	  }
+	  else{
+	    episodes.push_back(episode);
+	  }
+
 	  episode.clear();
-
 	  episodes_counter++;
-
-	  while(episodes.size() > EPISODES_MAX_SIZE)
-	    episodes.erase(episodes.begin());
 	}
 
 	if(database_counter >= DATASIZE)
@@ -1213,6 +1223,8 @@ namespace whiteice
       delete dataset2_thread;
       dataset2_thread = nullptr;
     }
+
+    if(episodesFile) fclose(episodesFile);
     
   }
 
