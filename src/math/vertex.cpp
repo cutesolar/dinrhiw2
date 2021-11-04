@@ -2039,7 +2039,7 @@ namespace whiteice
 	throw illegal_operation("vertex '='-operator: compressed vertex/matrix data.");
       }
 
-      if(M.numRows != 1 || M.numCols != 1){
+      if(M.numRows != 1 && M.numCols != 1){
 	whiteice::logging.error("vertex::operator=(): wrong dimension matrix M data.");
 	assert(0);
 	throw illegal_operation("vertex '='-operator: wrong dimension matrix M data.");
