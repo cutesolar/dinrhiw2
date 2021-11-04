@@ -1439,7 +1439,140 @@ namespace whiteice
       
       return *this;
     }
-    
+
+
+    template <typename T>
+    matrix<T>& matrix<T>::operator=(const vertex<T>& v)
+    {
+      
+      if(v.compressor != NULL || this->compressor != NULL){
+	assert(0);
+	throw illegal_operation("matrix::operator=(): to be copied matrix/vertex is compressed");
+      }
+
+      if(this->resize_x(1) == false){
+	whiteice::logging.error("matrix::operator=(): matrix resize_x() failed.");
+	assert(0);
+	throw illegal_operation("matrix::operator=(): matrix resize_x() failed.");
+      }
+      
+      if(this->resize_y(v.dataSize) == false){
+	whiteice::logging.error("matrix::operator=(): matrix resize_y() failed.");
+	assert(0);
+	throw illegal_operation("matrix::operator=(): matrix resize_y() failed.");
+      }
+      
+#ifdef CUBLAS
+      // copies matrix using cublas*geam() calls as recommended
+      // in NVIDIA cuBLAS documentation (alpha=1, beta=0)
+      
+      if(typeid(T) == typeid(blas_real<float>)){
+	const T alpha = T(1.0f);
+	const T beta  = T(0.0f);
+
+	cublasStatus_t s = cublasSgeam(cublas_handle,
+				       CUBLAS_OP_N, CUBLAS_OP_N,
+				       numRows, numCols,
+				       (const float*)&alpha,
+				       (const float*)(v.data), numRows,
+				       (const float*)&beta,
+				       (const float*)NULL, numRows,
+				       (float*)(this->data), numRows);
+	gpu_sync();
+
+	if(s != CUBLAS_STATUS_SUCCESS){
+	  whiteice::logging.error("matrix::operator=() failed. cuBlasSgeam() failed.");
+	  throw CUDAException("CUBLAS cuBlasSgeam() failed.");
+	}
+	
+	return (*this);
+      }
+      else if(typeid(T) == typeid(blas_real<double>)){
+	const T alpha = T(1.0f);
+	const T beta  = T(0.0f);
+
+	cublasStatus_t s = cublasDgeam(cublas_handle,
+				       CUBLAS_OP_N, CUBLAS_OP_N,
+				       numRows, numCols,
+				       (const double*)&alpha,
+				       (const double*)(v.data), numRows,
+				       (const double*)&beta,
+				       (const double*)NULL, numRows,
+				       (double*)(this->data), numRows);
+	gpu_sync();
+
+	if(s != CUBLAS_STATUS_SUCCESS){
+	  whiteice::logging.error("matrix::operator=() failed. cuBlasDgeam() failed.");
+	  throw CUDAException("CUBLAS cuBlasDgeam() failed.");
+	}
+	
+	return (*this);
+	
+      }
+      else if(typeid(T) == typeid(blas_complex<float>)){
+	const T alpha = T(1.0f);
+	const T beta  = T(0.0f);
+
+	cublasStatus_t s = cublasCgeam(cublas_handle,
+				       CUBLAS_OP_N, CUBLAS_OP_N,
+				       numRows, numCols,
+				       (const cuComplex*)&alpha,
+				       (const cuComplex*)(v.data), numRows,
+				       (const cuComplex*)&beta,
+				       (const cuComplex*)NULL, numRows,
+				       (cuComplex*)(this->data), numRows);
+	gpu_sync();
+
+	if(s != CUBLAS_STATUS_SUCCESS){
+	  whiteice::logging.error("matrix::operator=() failed. cuBlasCgeam() failed.");
+	  throw CUDAException("CUBLAS cuBlasCgeam() failed.");
+	}
+
+	return (*this);
+      }
+      else if(typeid(T) == typeid(blas_complex<double>)){
+	const T alpha = T(1.0);
+	const T beta  = T(0.0);
+	
+	cublasStatus_t s = cublasZgeam(cublas_handle,
+				       CUBLAS_OP_N, CUBLAS_OP_N,
+				       numRows, numCols,
+				       (const cuDoubleComplex*)&alpha,
+				       (const cuDoubleComplex*)(v.data), numRows,
+				       (const cuDoubleComplex*)&beta,
+				       (const cuDoubleComplex*)NULL, numRows,
+				       (cuDoubleComplex*)(this->data), numRows);
+	gpu_sync();
+
+	if(s != CUBLAS_STATUS_SUCCESS){
+	  whiteice::logging.error("matrix::operator=() failed. cuBlasZgeam() failed.");
+	  throw CUDAException("CUBLAS cuBlasZgeam() failed.");
+	}
+	
+	return (*this);
+      }
+      else{
+
+	auto e = cudaMemcpy(data, v.data, (this->numCols)*(this->numRows)*sizeof(T),
+			    cudaMemcpyDeviceToDevice);
+	
+	gpu_sync();
+
+	if(e != cudaSuccess){
+	  whiteice::logging.error("matrix::operator=() failed. cudaMemcpy() failed.");
+	  throw CUDAException("CUBLS cudaMemcpy() failed.");
+	}
+	
+	return (*this);
+      }
+      
+#else
+      
+      memcpy(data, v.data, sizeof(T)*numCols*numRows);
+      
+      return (*this);
+#endif
+    }
     
     
     template <typename T>

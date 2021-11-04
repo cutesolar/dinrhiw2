@@ -43,6 +43,7 @@ namespace whiteice
     // regularizer = T(0.0); // DISABLED
   }
 
+  
   template <typename T>
   PolicyGradAscent<T>::PolicyGradAscent(const PolicyGradAscent<T>& grad)
   {
@@ -83,6 +84,7 @@ namespace whiteice
     thread_is_running = 0;
   }
 
+  
   template <typename T>
   PolicyGradAscent<T>::~PolicyGradAscent()
   {
@@ -654,6 +656,8 @@ namespace whiteice
 	    whiteice::nnetwork<T> pnet(*policy);
 	    math::vertex<T> err;
 
+	    whiteice::math::vertex<T> in(pnet.input_size() + pnet.output_size());
+
 	    char buffer[80];
 	    double temp = 0.0;
 	    
@@ -666,84 +670,22 @@ namespace whiteice
 
 	      auto state = dtrain.access(0, i); // preprocessed state vector
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, state.norm());
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(state) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif	      
-	      
 	      whiteice::math::vertex<T> action;
 	      
 	      assert(pnet.calculate(state, action) == true);
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, action.norm());
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(action) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif
-	      
 	      whiteice::math::matrix<T> gradP;
 	      
 	      pnet.jacobian(state, gradP);
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, frobenius_norm(gradP));
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(gradP) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif
-	      
 	      dtrain.invpreprocess(0, state); // original state for Q network
 	      // dtrain.invpreprocess(1, action);
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, state.norm());
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(invpreprocess(state)) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif
-	      
-	      whiteice::math::vertex<T> in(state.size() + action.size());
-	      
-	      in.write_subvertex(state, 0);
-	      in.write_subvertex(action, state.size());
+	      assert(in.write_subvertex(state, 0) == true);
+	      assert(in.write_subvertex(action, state.size()) == true);
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, in.norm());
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(in) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif
-	      
 	      this->Q_preprocess->preprocess(0, in);
 
-#if 0
-	      if(debug)
-	      {
-		whiteice::math::convert(temp, in.norm());
-		snprintf(buffer, 80, "PolicyGradientAscent: norm(preprocess(in)) = %e\n", 
-			 temp);
-		whiteice::logging.info(buffer);
-	      }
-#endif
-	      
 	      whiteice::math::matrix<T> gradQ;
 	      whiteice::math::vertex<T> Qvalue;
 	      {
@@ -752,21 +694,6 @@ namespace whiteice
 		whiteice::math::matrix<T> full_gradQ;
 		assert(this->Q->gradient_value(in, full_gradQ) == true);
 
-
-#if 0
-		if(debug)
-		{
-		  whiteice::logging.info("PolicyGradientAscent: Q-network diagnostics");
-		  Q->diagnosticsInfo(); // login
-		  
-		  whiteice::math::convert(temp, frobenius_norm(full_gradQ));
-		  snprintf(buffer, 80,
-			   "PolicyGradientAscent: norm(full_gradQ) = %e\n", 
-			   temp);
-		  whiteice::logging.info(buffer);		  
-		}
-#endif
-		
 		whiteice::math::matrix<T> Qpostprocess_grad;
 		whiteice::math::matrix<T> Qpreprocess_grad_full;
 		
@@ -781,52 +708,11 @@ namespace whiteice
 						       Qpreprocess_grad_full.ysize()) == true);
 
 		
-		//std::cout << "Qpostprocess_grad = " << Qpostprocess_grad << std::endl;
-		//std::cout << "Qpreprocess_full_grad = " << Qpreprocess_grad_full << std::endl;
-		//std::cout << "Qpreprocess_grad = " << Qpreprocess_grad << std::endl;
-		//std::cout << "full_gradQ " << full_gradQ << std::endl;
-
-
-#if 0
-		if(debug)
-		{
-		  whiteice::math::convert(temp, frobenius_norm(Qpreprocess_grad_full));
-		  snprintf(buffer, 80, "PolicyGradientAscent: norm(Qpreprocess_grad_full) = %e\n", 
-			   temp);
-		  whiteice::logging.info(buffer);
-		}
-
-		if(debug)
-		{
-		  whiteice::math::convert(temp, frobenius_norm(Qpreprocess_grad));
-		  snprintf(buffer, 80, "PolicyGradientAscent: norm(Qpreprocess_grad) = %e\n", 
-			   temp);
-		  whiteice::logging.info(buffer);
-		}
-
-		if(debug)
-		{
-		  whiteice::math::convert(temp, frobenius_norm(Qpostprocess_grad));
-		  snprintf(buffer, 80, "PolicyGradientAscent: norm(Qpostprocess_grad) = %e\n", 
-			   temp);
-		  whiteice::logging.info(buffer);
-		}
-#endif
-		
 		gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
 
-#if 0
-		if(debug)
-		{
-		  whiteice::math::convert(temp, frobenius_norm(gradQ));
-		  snprintf(buffer, 80, "PolicyGradientAscent: norm(gradQ) = %e\n", 
-			   temp);
-		  whiteice::logging.info(buffer);
-		}
-#endif
-		
 	      }
 	      
+#if 0
 	      {
 		whiteice::math::matrix<T> g;
 
@@ -837,6 +723,10 @@ namespace whiteice
 		for(unsigned int j=0;j<policy->exportdatasize();j++)
 		  grad[j] = g(0, j);
 	      }
+#else
+	      grad = gradQ * gradP;
+#endif
+	      
 
 	    
 	      sgrad += ninv*grad;

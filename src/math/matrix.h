@@ -92,6 +92,8 @@ namespace whiteice
       
       matrix<T>& operator=(const matrix<T>&) ;
       matrix<T>& operator=(matrix<T>&& t) ;
+
+      matrix<T>& operator=(const vertex<T>&) ;
       
       bool operator==(const matrix<T>&) const ;
       bool operator!=(const matrix<T>&) const ;
