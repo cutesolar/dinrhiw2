@@ -178,9 +178,21 @@ namespace whiteice
 
     ////////////////////////////////////////////////////////////
     
-    unsigned int getLayers() const ;
-    unsigned int getInputs(unsigned int l) const ; // number of inputs per neuron for this layer
-    unsigned int getNeurons(unsigned int l) const ; // number of neurons (outputs) per layer
+    inline unsigned int getLayers() const {
+      return (arch.size()-1);
+    }
+
+    // number of inputs per neuron for this layer
+    inline unsigned int getInputs(unsigned int layer) const {
+      if(layer>=(arch.size()-1)) return 0;
+      return arch[layer];
+    }
+
+    // number of neurons (outputs) per layer
+    inline unsigned int getNeurons(unsigned int layer) const {
+      if((layer+1)>=arch.size()) return 0;
+      return arch[layer+1];
+    }
 
     // gets and sets network parameters: Weight matrixes and biases
     bool getBias(math::vertex<T>& b, unsigned int layer) const ;

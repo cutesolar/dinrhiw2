@@ -220,9 +220,18 @@ namespace whiteice
       bool symmetric_pseudoinverse(const T machine_epsilon = T(0.0)) ;
       
       
-      unsigned int size() const ;  // rows*columns
-      unsigned int ysize() const ; // rows      
-      unsigned int xsize() const ; // columns
+      inline unsigned int size() const {  // rows*columns
+	return (numRows*numCols);
+      }
+      
+      inline unsigned int ysize() const { // rows
+	return numRows;
+      }
+      
+      inline unsigned int xsize() const { // columns
+	// if(numRows <= 0) return 0; [not needed???]
+	return numCols;
+      }
       
       bool resize_x(unsigned int d) ; // columns
       bool resize_y(unsigned int d) ; // rows

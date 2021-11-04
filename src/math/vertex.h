@@ -106,8 +106,11 @@ namespace whiteice
       vertex(const std::vector<T>& v);
       virtual ~vertex();
       
+      // returns vertex dimension/size
+      inline unsigned int size() const {
+	return dataSize;
+      }
       
-      unsigned int size() const ;
       unsigned int resize(unsigned int d) ;
       
       // TODO: move norm() to generic number class
