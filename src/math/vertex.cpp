@@ -2014,8 +2014,8 @@ namespace whiteice
 #endif
       
       return *this;
-    }
-
+    }    
+    
 
     template <typename T>
     vertex<T>& vertex<T>::operator=(vertex<T>&& t) 
@@ -2025,6 +2025,110 @@ namespace whiteice
       std::swap(this->data, t.data);
       std::swap(this->dataSize, t.dataSize);
       std::swap(this->compressor, t.compressor);
+      
+      return *this;
+    }
+
+
+    template <typename T>
+    vertex<T>& vertex<T>::operator=(const matrix<T>& M)
+    {
+      if(M.compressor != 0 || this->compressor != 0){
+	whiteice::logging.error("vertex::operator=(): compressed vector/matrix data.");
+	assert(0);
+	throw illegal_operation("vertex '='-operator: compressed vertex/matrix data.");
+      }
+
+      if(M.numRows != 1 && M.numCols != 1){
+	whiteice::logging.error("vertex::operator=(): wrong dimension matrix M data.");
+	assert(0);
+	throw illegal_operation("vertex '='-operator: wrong dimension matrix M data.");
+      }
+
+      const unsigned int Mlen = M.numRows*M.numCols;
+      
+      if(Mlen != this->dataSize)
+	if(this->resize(Mlen) != Mlen){
+	  whiteice::logging.error("vertex::operator=(): resize() failed.");
+	  assert(0);
+	  throw illegal_operation("vertex '='-operator: out of memory");
+	}
+
+#ifdef CUBLAS
+
+      if(M.data){
+	cublasStatus_t cudaStat;
+	
+	// cuda copy memory
+	if(typeid(T) == typeid(blas_real<float>)){
+	  cudaStat = cublasScopy(cublas_handle, Mlen,
+				 (const float*)M.data, 1, (float*)data, 1);
+	  gpu_sync();
+	  
+	  if(cudaStat != CUBLAS_STATUS_SUCCESS){
+	    whiteice::logging.error("vertex::operator=(): cublasScopy() failed.");
+	    throw CUDAException("CUBLAS cublasScopy() failed.");
+	  }
+
+	  return (*this);
+	}
+	else if(typeid(T) == typeid(blas_real<double>)){
+	  cudaStat = cublasDcopy(cublas_handle, Mlen,
+				 (const double*)M.data, 1, (double*)data, 1);
+	  gpu_sync();
+	  
+	  if(cudaStat != CUBLAS_STATUS_SUCCESS){
+	    whiteice::logging.error("vertex::operator=(): cublasDcopy() failed.");
+	    throw CUDAException("CUBLAS cublasDcopy() failed.");
+	  }
+
+	  return (*this);
+	}
+	else if(typeid(T) == typeid(blas_complex<float>)){
+	  cudaStat = cublasCcopy(cublas_handle, Mlen,
+				 (const cuComplex*)M.data, 1,
+				 (cuComplex*)data, 1);
+	  gpu_sync();
+	  
+	  if(cudaStat != CUBLAS_STATUS_SUCCESS){
+	    whiteice::logging.error("vertex::operator=(): cublasCcopy() failed.");
+	    throw CUDAException("CUBLAS cublasCcopy() failed.");
+	  }
+
+	  return (*this);
+	}
+	else if(typeid(T) == typeid(blas_complex<double>)){
+	  cudaStat = cublasZcopy(cublas_handle, Mlen,
+				 (const cuDoubleComplex*)M.data, 1,
+				 (cuDoubleComplex*)data, 1);
+	  gpu_sync();
+	  
+	  if(cudaStat != CUBLAS_STATUS_SUCCESS){
+	    whiteice::logging.error("vertex::operator=(): cublasZcopy() failed.");
+	    throw CUDAException("CUBLAS cublasZcopy() failed.");
+	  }
+
+	  return (*this);
+	}
+	else{
+	  // generic memcopy [assumes type T does not allocated memory dynamically]
+	  auto e = cudaMemcpy(data, M.data, Mlen*sizeof(T),
+			      cudaMemcpyDeviceToDevice);
+	  gpu_sync();
+
+	  if(e != cudaSuccess){
+	    whiteice::logging.error("vertex::operator=(): cudaMemcpy() failed.");
+	    throw CUDAException("CUBLAS cudaMemcpy() failed.");
+	  }
+	  
+	  return (*this);
+	}
+      }
+      
+#else
+      memcpy(this->data, M.data, sizeof(T)*Mlen);
+    
+#endif
       
       return *this;
     }

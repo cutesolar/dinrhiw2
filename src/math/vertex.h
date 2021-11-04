@@ -145,6 +145,8 @@ namespace whiteice
       
       vertex<T>& operator=(const vertex<T>& v) ;
 
+      vertex<T>& operator=(const matrix<T>& v) ;
+
       // template <typename TT, typename UU>
       // friend vertex<TT>& operator=(const vertex<UU>& v) ;
       vertex<T>& operator=(vertex<T>&& t) ;
