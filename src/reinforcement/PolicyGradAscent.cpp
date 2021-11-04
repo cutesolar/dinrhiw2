@@ -423,13 +423,13 @@ namespace whiteice
       math::vertex<T> in(policy.input_size() + policy.output_size());
       in.zero();
 
-      whiteice::math::vertex<T> action;
+      whiteice::math::vertex<T> action, state;
       whiteice::math::vertex<T> q;
       
       // calculates mean q-value from the testing dataset
 #pragma omp for nowait schedule(auto)	    	    
       for(unsigned int i=0;i<dtest.size(0);i++){
-	auto state = dtest.access(0, i);
+	state = dtest.access(0, i);
 	
 	policy.calculate(state, action);
 
@@ -462,9 +462,6 @@ namespace whiteice
       whiteice::math::vertex<T> w;
 
       policy.exportdata(w);
-
-      // T reg_term = T(1.0)/T(sqrt(this->policy->exportdatasize()));
-      // value -= reg_term * T(0.5) * (w*w)[0];
 
       value -= regularizer * T(0.5) * (w*w)[0];
     }
