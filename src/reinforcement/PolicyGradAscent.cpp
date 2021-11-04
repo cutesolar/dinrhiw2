@@ -655,11 +655,22 @@ namespace whiteice
 
 	    whiteice::nnetwork<T> pnet(*policy);
 	    math::vertex<T> err;
-
+	    
 	    whiteice::math::vertex<T> in(pnet.input_size() + pnet.output_size());
 
-	    char buffer[80];
-	    double temp = 0.0;
+	    whiteice::math::vertex<T> state, action;
+	    whiteice::math::matrix<T> gradP;
+	    
+	    whiteice::math::matrix<T> gradQ;
+	    whiteice::math::vertex<T> Qvalue;
+
+	    whiteice::math::matrix<T> full_gradQ;
+	    
+	    whiteice::math::matrix<T> Qpostprocess_grad;
+	    whiteice::math::matrix<T> Qpreprocess_grad_full;
+			
+	    whiteice::math::matrix<T> Qpreprocess_grad;
+	    
 	    
 #pragma omp for nowait schedule(auto)
 	    for(unsigned int i=0;i<dtrain.size(0);i++){
@@ -668,40 +679,28 @@ namespace whiteice
 	      
 	      // calculates gradients for Q(state, action(state)) and policy(state)
 
-	      auto state = dtrain.access(0, i); // preprocessed state vector
+	      state = dtrain.access(0, i); // preprocessed state vector
 
-	      whiteice::math::vertex<T> action;
-	      
 	      assert(pnet.calculate(state, action) == true);
 
-	      whiteice::math::matrix<T> gradP;
-	      
 	      pnet.jacobian(state, gradP);
 
 	      dtrain.invpreprocess(0, state); // original state for Q network
 	      // dtrain.invpreprocess(1, action);
 
-	      assert(in.write_subvertex(state, 0) == true);
-	      assert(in.write_subvertex(action, state.size()) == true);
-
-	      this->Q_preprocess->preprocess(0, in);
-
-	      whiteice::math::matrix<T> gradQ;
-	      whiteice::math::vertex<T> Qvalue;
 	      {
+		assert(in.write_subvertex(state, 0) == true);
+		assert(in.write_subvertex(action, state.size()) == true);
+		
+		this->Q_preprocess->preprocess(0, in);
+		
 		this->Q->calculate(in, Qvalue);
 		
-		whiteice::math::matrix<T> full_gradQ;
 		assert(this->Q->gradient_value(in, full_gradQ) == true);
 
-		whiteice::math::matrix<T> Qpostprocess_grad;
-		whiteice::math::matrix<T> Qpreprocess_grad_full;
-		
 		assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
 		assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
 
-		whiteice::math::matrix<T> Qpreprocess_grad;
-		
 		assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
 						       state.size(), 0,
 						       action.size(),
@@ -712,22 +711,7 @@ namespace whiteice
 
 	      }
 	      
-#if 0
-	      {
-		whiteice::math::matrix<T> g;
-
-		g = gradQ * gradP;
-		
-		assert(g.xsize() == policy->exportdatasize());
-		
-		for(unsigned int j=0;j<policy->exportdatasize();j++)
-		  grad[j] = g(0, j);
-	      }
-#else
 	      grad = gradQ * gradP;
-#endif
-	      
-
 	    
 	      sgrad += ninv*grad;
 	      // sgrad += grad;
