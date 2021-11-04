@@ -90,7 +90,7 @@ namespace whiteice
 	esum += T(0.5f)*err[0];
       }
 
-#pragma omp critical
+#pragma omp critical (mfdhjgfreouitreqq)
       {
 	e += esum;
       }
@@ -126,7 +126,7 @@ namespace whiteice
 	esum += T(0.5f)*err[0];
       }
       
-#pragma omp critical
+#pragma omp critical (trweuoifdjkoxvcw)
       {
 	e += esum;
       }
@@ -202,7 +202,7 @@ namespace whiteice
 	sgrad += grad; // /T(dtrain.size(0));
       }
       
-#pragma omp critical
+#pragma omp critical (reiogjivzzdf)
       {
 	sumgrad += sgrad;
 #if 0
@@ -273,7 +273,7 @@ namespace whiteice
 	sgrad -= grad; // /T(dtrain.size(0));
       }
       
-#pragma omp critical
+#pragma omp critical (mnveioqaa)
       {
 	sumgrad += sgrad;
       }

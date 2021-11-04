@@ -3328,7 +3328,8 @@ namespace whiteice
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  
+
+#if 0
   template <typename T>
   unsigned int nnetwork<T>::getLayers() const {
     return (arch.size()-1); 
@@ -3349,6 +3350,7 @@ namespace whiteice
     if(layer >= arch.size()-1) return 0;
     return arch[layer];
   }
+#endif
 
   template <typename T>
   bool nnetwork<T>::getBias(math::vertex<T>& b, unsigned int layer) const 

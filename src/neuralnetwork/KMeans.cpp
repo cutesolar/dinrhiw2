@@ -564,7 +564,7 @@ namespace whiteice
 	    N[winner]++;
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (mfdskfweiporwe)
 	  for(unsigned int i=0;i<best_kmeans_current.size();i++){
 	    kmeans_sum[i] += kmeans_i[i];
 	    TOTAL[i] += N[i];

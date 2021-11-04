@@ -255,7 +255,7 @@ namespace whiteice
 	    
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (grojreojoGTTVVWAssdfs)
 	  {
 	    data.add(0, in);
 	    data.add(1, out);
@@ -343,7 +343,7 @@ namespace whiteice
 	  
 	}
 	
-#pragma omp critical
+#pragma omp critical (HGSJIEOeeewcwaWW)
 	{
 	  data.add(0, in);
 	  data.add(1, out);

@@ -424,8 +424,10 @@ namespace whiteice
     /***************************************************/
     
     // returns vertex dimension/size
+#if 0
     template <typename T>
     unsigned int vertex<T>::size() const { return dataSize; }
+#endif
     
     
     // sets vertex dimension/size, fills new dimensios with zero
@@ -1798,7 +1800,7 @@ namespace whiteice
 	    for(unsigned int i=0;i<v.dataSize;i++)
 	      rvalue += data[i]*v.data[i];
 
-#pragma omp critical
+#pragma omp critical (vertex_operator_multi_equal)
 	    {
 	      r.data[0] += rvalue;
 	    }
@@ -1887,7 +1889,7 @@ namespace whiteice
 	  for(unsigned int i=0;i<v.dataSize;i++)
 	    rvalue += data[i]*v.data[i];
 
-#pragma omp critical
+#pragma omp critical (vertex_operator_multi_equal)
 	  {
 	    r[0] += rvalue;
 	  }

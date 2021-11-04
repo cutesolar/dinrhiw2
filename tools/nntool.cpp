@@ -1226,7 +1226,7 @@ int main(int argc, char** argv)
 		sgrad += ninv*grad;
 	      }
 	      
-#pragma omp critical
+#pragma omp critical (jgjiwrejorefrgehAAfgge)
 	      {
 		sumgrad += sgrad;
 	      }
@@ -1280,7 +1280,7 @@ int main(int argc, char** argv)
 		  e += (err*err)[0] / math::blas_real<double>((double)err.size());
 		}
 
-#pragma omp critical
+#pragma omp critical (mvowefnigihgRERE)
 		{
 		  error += e;
 		}
@@ -1331,7 +1331,7 @@ int main(int argc, char** argv)
 		  e += (err*err)[0] / math::blas_real<double>((double)err.size());
 		}
 
-#pragma omp critical
+#pragma omp critical (korwepojwogGEVET)
 		{
 		  test_error += e;
 		}

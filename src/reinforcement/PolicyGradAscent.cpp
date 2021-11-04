@@ -192,8 +192,6 @@ namespace whiteice
       
       if(initiallyUseNN == false) this->policy->randomize();
 
-      // regularizer = T(0.01)*T(5453.0)/T(this->policy->exportdatasize()); // was: 1/10.000, was 0.02
-      
       whiteice::logging.info("PolicyGradAscent: input Q weights diagnostics");
       this->Q->diagnosticsInfo();
 
@@ -450,7 +448,7 @@ namespace whiteice
 	
       vsum /= T((double)dtest.size(0));
       
-#pragma omp critical
+#pragma omp critical (fshjhjrweiowehhihcw)
       {
 	value += vsum;
       }
@@ -715,7 +713,7 @@ namespace whiteice
 	      sgrad += grad;
 	    }
 	    
-#pragma omp critical
+#pragma omp critical (rfewjofojfofjeoaT)
 	    {
 	      sumgrad += sgrad;
 	    }

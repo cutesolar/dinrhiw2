@@ -3882,7 +3882,7 @@ namespace whiteice
 	for(unsigned int i=0;i<numCols;i++)
 	  t += data[i*(numRows+1)];
 
-#pragma omp critical
+#pragma omp critical (matrix_trace)
 	{
 	  tr += t;
 	}
@@ -3902,7 +3902,7 @@ namespace whiteice
 	  t += data[i*(numCols+1)];
 	}
 
-#pragma omp critical
+#pragma omp critical (matrix_trace)
 	{
 	  tr += t;
 	}
@@ -3953,6 +3953,15 @@ namespace whiteice
       return (*this);
       
 #else
+      zero();
+      
+      const unsigned int N = (numRows<numCols) ? numRows : numCols;
+      
+#pragma omp parallel for schedule(auto)
+      for(unsigned int i=0;i<N;i++)
+	data[i*(numRows+1)] = T(1.0f);
+      
+#if 0
       unsigned int index = 0;
       for(unsigned int j=0;j<numRows;j++){
 	for(unsigned int i=0;i<numCols;i++, index++)
@@ -3961,6 +3970,7 @@ namespace whiteice
 	  else data[index] = T(0.0f);
 	}
       }
+#endif
       
       return (*this);
 #endif
@@ -4068,10 +4078,12 @@ namespace whiteice
 	return (*this);
       }
       else{
-	
+
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<numCols*numRows;i++)
 	  data[i] = T(0.0f);
+
+	memset(data, 0, sizeof(T)*numCols*numRows);
 	
 	return (*this);
       }
@@ -4097,7 +4109,7 @@ namespace whiteice
 #endif
     }
     
-    
+#if 0
     template <typename T>
     unsigned int matrix<T>::xsize() const 
     {
@@ -4118,6 +4130,7 @@ namespace whiteice
     {
       return numRows;
     }
+#endif
     
     
     template <typename T>
@@ -4466,7 +4479,7 @@ namespace whiteice
 	  for(unsigned int i=x1;i<=x2;i++)
 	    l += data[y*numCols + i]*whiteice::math::conj(data[y*numCols + i]);
 
-#pragma omp critical
+#pragma omp critical (matrix_rownorm)
 	  {
 	    len += l;
 	  }
@@ -4500,7 +4513,7 @@ namespace whiteice
 	  for(unsigned int i=x1;i<x2;i++)
 	    l += data[y + i*numRows]*whiteice::math::conj(data[y + i*numRows]);
 
-#pragma omp critical
+#pragma omp critical (matrix_rownorm2)
 	  {
 	    len += l;
 	  }
@@ -4598,7 +4611,7 @@ namespace whiteice
 	  for(unsigned int i=y1;i<y2;i++)
 	    l += data[i + x*numRows]*whiteice::math::conj(data[i + x*numRows]);
 
-#pragma omp critical
+#pragma omp critical (matrix_colnorm)
 	  {
 	    len += l;
 	  }
@@ -4632,7 +4645,7 @@ namespace whiteice
 	  for(unsigned int i=y1;i<=y2;i++)
 	    l += data[x + i*numCols] * data[x + i*numCols];
 
-#pragma omp critical
+#pragma omp critical (matrix_colnorm2)
 	  {
 	    len += l;
 	  }

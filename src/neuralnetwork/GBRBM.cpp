@@ -3,6 +3,8 @@
  *
  *  Created on: 20.6.2015
  *      Author: Tomas Ukkonen
+ *
+ * FIXME: Are OpenMP critical blocks correct (separate names for the blocks) ????
  */
 
 #include "GBRBM.h"
@@ -800,7 +802,7 @@ T GBRBM<T>::learnWeights(const std::vector< math::vertex<T> >& samples,
 		        math::vertex<T> aa, bb, zz;
 			math::matrix<T> WW;
 
-// #pragma omp critical
+// #pragma omp critical (fdnmewroirea)
 			{
 			  aa = a;
 			  bb = b;
@@ -971,7 +973,7 @@ T GBRBM<T>::learnWeights(const std::vector< math::vertex<T> >& samples,
 			    //for(unsigned int i=0;i<3;i++){
 			      T lrate1 = lrate, lrate1z = lratez;
 
-#pragma omp critical			      
+#pragma omp critical (rewiofejoergrji)
 			      if(j==0){
 				a1 = aa + coef1*lrate*ga;
 				b1 = bb + coef1*lrate*gb;
@@ -991,7 +993,7 @@ T GBRBM<T>::learnWeights(const std::vector< math::vertex<T> >& samples,
 				lrate1 = coef3*lrate;
 			      }
 
- #pragma omp critical
+#pragma omp critical (rewiofejoergrji)
 			      if(j==0){
 				z1 = zz + coef1*lratez*gz;
 				lrate1z = coef1*lratez;
@@ -1008,7 +1010,7 @@ T GBRBM<T>::learnWeights(const std::vector< math::vertex<T> >& samples,
 			      // only this function call will happen in parallel..
 			      T error = reconstruct_gbrbm_data_error(samples, 10, W1, a1, b1, z1, CDk); /// was 50
 
-#pragma omp critical			      
+#pragma omp critical (rewiofejoergrji)	      
 			      if(error < smallest_error){
 				a2 = a1;
 				b2 = b1;
@@ -1451,7 +1453,7 @@ T GBRBM<T>::U(const whiteice::math::vertex<T>& q) const  // calculates U(q) = -l
 
 			// ulp += logZ;
 
-#pragma omp critical
+#pragma omp critical (vmwirwerewaer)
 			{
 			  u += ulp;
 			}
@@ -1578,7 +1580,7 @@ T GBRBM<T>::Udiff(const math::vertex<T>& q1, const math::vertex<T>& q2) const
 			auto F1 = -unscaled_log_probability(s, qW1, qa1, qb1, qz1);
 			auto F2 = -unscaled_log_probability(s, qW2, qa2, qb2, qz2);
 
-#pragma omp critical
+#pragma omp critical (rewkoffowfser)
 			{
 			  u += (F1 - F2) + aprox_logZratio;
 			}
@@ -1708,7 +1710,7 @@ whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q)  /
 			    math::exp(-qz[i])*T(0.5)*(v[i]-qa[i])*(v[i]-qa[i]) - T(0.5)*math::exp(-qz[i]/2)*v[i]*qWh[i];
 			}
 
-#pragma omp critical
+#pragma omp critical (fefjoofwwftrw)
 			{
 			  ga += grad_a;
 			  gb += grad_b;
@@ -1741,7 +1743,7 @@ whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q)  /
 
 				auto xx = reconstruct_gbrbm_data(v, qW, qa, qb, qz, CDk); // gets x ~ p(v) from the model (CD-k)
 
-#pragma omp critical
+#pragma omp critical (mfgrjiqweqaa)
 				{
 				  vs.push_back(xx);
 				}
@@ -1798,7 +1800,7 @@ whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q)  /
 				grad_W *= scaling;
 
 				// this is negative phase so we minus point-wise gradients from the sum variables
-#pragma omp critical
+#pragma omp critical (cmdorewjfsjodar)
 				{
 				  ga -= grad_a;
 				  gb -= grad_b;

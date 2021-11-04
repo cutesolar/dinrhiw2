@@ -214,7 +214,7 @@ namespace whiteice
       
       out[action] = unew_value;
       
-#pragma omp critical
+#pragma omp critical (rioIIretrevePPvre)
       {
 	data.add(0, in);
 	data.add(1, out);

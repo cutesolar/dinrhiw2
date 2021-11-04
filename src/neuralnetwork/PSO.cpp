@@ -212,7 +212,7 @@ namespace whiteice
 
 				i.fitness = f->calculate(i.value);
 
-#pragma omp critical(global_best_update)
+#pragma omp critical (global_best_update)
 				{
 					if(i.fitness < i.best_fitness){
 						i.best_fitness = i.fitness;

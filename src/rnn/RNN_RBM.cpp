@@ -646,7 +646,7 @@ namespace whiteice
 	}
       }
 
-#pragma omp critical
+#pragma omp critical (rewirwohtrieohcvhgr)
       {
 	error += e;
 	counter += c;
@@ -856,7 +856,7 @@ namespace whiteice
 	  
 	}
 
-#pragma omp critical
+#pragma omp critical (qwefjiovrjvkfpofep)
 	{
 	  numgradients += th_numgradients;
 	  grad_W += th_grad_W;
@@ -1016,7 +1016,7 @@ namespace whiteice
 	  
 	  }
 
-#pragma omp critical
+#pragma omp critical (foewpoefwoaaaoneiove)
 	  {
 	    n_numgradients += th_numgradients;
 	    n_grad_W += th_grad_W;
