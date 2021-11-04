@@ -645,9 +645,10 @@ namespace whiteice
 	  sumgrad.resize(policy->exportdatasize());
 	  sumgrad.zero();
 
+	  T ninv = T(1.0f/dtrain.size(0));
+
 #pragma omp parallel shared(sumgrad)
 	  {
-	    T ninv = T(1.0f/dtrain.size(0));
 	    math::vertex<T> sgrad, grad;
 	    grad.resize(policy->exportdatasize());
 	    sgrad.resize(policy->exportdatasize());
@@ -713,8 +714,8 @@ namespace whiteice
 	      
 	      grad = gradQ * gradP;
 	    
-	      sgrad += ninv*grad;
-	      // sgrad += grad;
+	      //sgrad += ninv*grad;
+	      sgrad += grad;
 	    }
 	    
 #pragma omp critical
@@ -722,6 +723,8 @@ namespace whiteice
 	      sumgrad += sgrad;
 	    }
 	  }
+
+	  sumgrad *= ninv;
 
 	  {
 	    char buffer[80];
