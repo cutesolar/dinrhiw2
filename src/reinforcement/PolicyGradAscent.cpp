@@ -197,6 +197,17 @@ namespace whiteice
 
       whiteice::logging.info("PolicyGradAscent: input policy weights diagnostics");
       this->policy->diagnosticsInfo();
+
+      {
+	whiteice::math::matrix<T> Qpreprocess_grad_full;
+	assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
+	
+	printf("size(Qpreprocess_grad_full) = (%d,%d)\n",
+	       Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
+
+	fflush(stdout);
+      }
+      
     }
 
     this->policy->exportdata(bestx);
@@ -750,7 +761,7 @@ namespace whiteice
 		Q->calculate(in, Qvalue);
 		
 		whiteice::math::matrix<T> full_gradQ;
-		assert(Q->gradient_value(in, full_gradQ) == true);
+		assert(this->Q->gradient_value(in, full_gradQ) == true);
 
 		printf("Q:size(full_gradQ) = (%d,%d)\n", full_gradQ.ysize(), full_gradQ.xsize());
 		fflush(stdout);

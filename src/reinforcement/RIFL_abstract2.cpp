@@ -221,6 +221,20 @@ namespace whiteice
 
 	  Q_preprocess.createCluster("input-state", numStates + numActions);
 	  Q_preprocess.createCluster("output-state", 1); // q-value
+
+
+	  {
+	    printf("DIM: %d SUM: %d\n", Q_preprocess.dimension(0), numStates + numActions);
+	    
+	    whiteice::math::matrix<T> Qpreprocess_grad_full;
+	    assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
+	    
+	    printf("INIT: size(Qpreprocess_grad_full) = (%d,%d)\n",
+		   Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
+	    
+	    fflush(stdout);
+	  }
+	  
 	}
       }
       
@@ -743,8 +757,29 @@ namespace whiteice
 
 		data.clearData(0);
 		data.clearData(1);
+
+		{
+		  whiteice::math::matrix<T> Qpreprocess_grad_full;
+		  assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
+		  
+		  printf("PRE: size(Qpreprocess_grad_full) = (%d,%d)\n",
+			 Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
+		  
+		  fflush(stdout);
+		}
+
 		
 		Q_preprocess = data;
+
+		{
+		  whiteice::math::matrix<T> Qpreprocess_grad_full;
+		  assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
+		  
+		  printf("POST: size(Qpreprocess_grad_full) = (%d,%d)\n",
+			 Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
+		  
+		  fflush(stdout);
+		}
 		
 #if 1
 		whiteice::nnetwork<T> nn2;
@@ -1037,6 +1072,7 @@ namespace whiteice
 	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
 	    eta2.start(0.0, P_OPTIMIZE_ITERATIONS); // 150 iters per sample
+
 	    
 	    if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
 				   dropout, useInitialNN) == false)
