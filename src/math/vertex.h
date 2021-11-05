@@ -106,8 +106,11 @@ namespace whiteice
       vertex(const std::vector<T>& v);
       virtual ~vertex();
       
+      // returns vertex dimension/size
+      inline unsigned int size() const {
+	return dataSize;
+      }
       
-      unsigned int size() const ;
       unsigned int resize(unsigned int d) ;
       
       // TODO: move norm() to generic number class
@@ -144,6 +147,8 @@ namespace whiteice
       vertex<T>& operator/=(const vertex<T>& v) ;
       
       vertex<T>& operator=(const vertex<T>& v) ;
+
+      vertex<T>& operator=(const matrix<T>& v) ;
 
       // template <typename TT, typename UU>
       // friend vertex<TT>& operator=(const vertex<UU>& v) ;
@@ -187,7 +192,7 @@ namespace whiteice
       // NOTE: If you are using cuBLAS acceleration you have to
       // call gpu_sync() call after modifying vertex values through direct RAM access
       
-      inline T& operator[](const unsigned int& index) 
+      inline T& operator[](const unsigned int index) 
       {
 #ifdef _GLIBCXX_DEBUG	
 	if(index >= dataSize){
@@ -199,7 +204,7 @@ namespace whiteice
 	return data[index]; // no range check
       }
       
-      inline const T& operator[](const unsigned int& index) const 
+      inline const T& operator[](const unsigned int index) const 
       {	
 #ifdef _GLIBCXX_DEBUG	
 	if(index >= dataSize){

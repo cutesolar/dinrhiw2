@@ -491,7 +491,7 @@ namespace whiteice
 	e += delta.norm();
       }
 
-#pragma omp critical
+#pragma omp critical (rewioprwejfwaawq)
       {
 	error += e;
       }
@@ -592,7 +592,7 @@ namespace whiteice
 	e += (delta*delta)[0];
       }
       
-#pragma omp critical
+#pragma omp critical (fewqqwipofdsaa)
       {
 	error += e;
 	DL    += l;
@@ -1213,7 +1213,7 @@ namespace whiteice
       }
       
 
-#pragma omp critical
+#pragma omp critical (rewkowrejowgra)
       if(!failure){
 	pgradient += pgrad;
       }

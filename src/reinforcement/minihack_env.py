@@ -18,20 +18,45 @@ def combine(x):
 
     return rv
 
+def convert_chars(ls):
+    for i in range(len(ls)):
+        if(ls[i] == 32): # stone
+            ls[i] = 10
+        elif(ls[i] == 46): # open floor
+            ls[i] = 0
+        elif(ls[i] == 64): # @ character
+            ls[i] = 1
+        elif(ls[i] == '<'):
+            ls[i] = 5
+        elif(ls[i] == '>'):
+            ls[i] = 6
+        else:
+            ls[i] = 8
+            
+    return ls
+
     
 
 # number of states 107 state space (9x9 char surroundings+player stats)
 # we use now ints as state passed values
 #
 # action is number from 0-7 (1-8 values)
-# 
+#
 
-env = gym.make("MiniHack-River-v0",
-               observation_keys=("chars_crop", "blstats"))
+env_name = "MiniHack-River-v0"
+env_name = "MiniHack-MazeWalk-45x19-v0"
+env_name = "MiniHack-MazeWalk-Mapped-15x15-v0"
+
+env = gym.make(env_name, observation_keys=("chars_crop", "blstats"), obs_crop_w=5, obs_crop_h=5)
+
+render = False
+
+#########################################################
 
 obs = env.reset()
+moves = 0
 
-surroundings = flatten(obs["chars_crop"])
+surroundings = convert_chars(flatten(obs["chars_crop"]))
 stats = obs["blstats"].tolist()
 state = combine([surroundings, stats])
 
@@ -46,7 +71,7 @@ def minihack_getState():
     if(done == True):
         obs = env.reset()
         
-        surroundings = flatten(obs["chars_crop"])
+        surroundings = convert_chars(flatten(obs["chars_crop"]))
         stats = obs["blstats"].tolist()
         state = combine([surroundings, stats])
         
@@ -61,16 +86,24 @@ def minihack_getState():
 #                            bool& endFlag) = 0;
 
 def minihack_performAction(action):
-    global env, done, state
+    global env, done, state,moves
 
     obs, reward, done, info = env.step(action)
     
-    surroundings = flatten(obs["chars_crop"])
+    surroundings = convert_chars(flatten(obs["chars_crop"]))
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])
+
+    if(render):
+        print("moves: " + str(moves) + " reward = " + str(reward))
+        env.render()
+    
+    moves = moves + 1
     
     return [state, reward, done]
 
 
 
 test_state = minihack_getState()
+
+# print("State vector is " + str(len(test_state)) + " dimensions long.\n")

@@ -176,13 +176,12 @@ namespace whiteice
 
       whiteice::math::vertex<T> out(rifl.numActions);
       whiteice::math::vertex<T> u;
-      whiteice::math::matrix<T> e;
       out.zero();
 
       auto instate = datum.state;
 
       rifl.preprocess.preprocess(0, instate);
-      assert(rifl.model.calculate(instate, out, e, 1, 0) == true);
+      assert(rifl.model.calculate(instate, out, 1, 0) == true);
       rifl.preprocess.invpreprocess(1, out);
       
       // calculates updated utility value
@@ -197,7 +196,7 @@ namespace whiteice
 	input.write_subvertex(datum.newstate, 0);
 
 	rifl.preprocess.preprocess(0, input);
-	assert(rifl.model.calculate(input, u, e, 1, 0) == true);
+	assert(rifl.model.calculate(input, u, 1, 0) == true);
 	rifl.preprocess.invpreprocess(1, u);
 
 	for(unsigned int i=0;i<u.size();i++)
@@ -215,7 +214,7 @@ namespace whiteice
       
       out[action] = unew_value;
       
-#pragma omp critical
+#pragma omp critical (rioIIretrevePPvre)
       {
 	data.add(0, in);
 	data.add(1, out);

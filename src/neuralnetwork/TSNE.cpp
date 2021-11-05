@@ -424,7 +424,7 @@ namespace whiteice
 	rs += pvalue;
       }
       
-#pragma omp critical
+#pragma omp critical (rewioaaqwejovrevr)
       {
 	rsum += rs;
       }
@@ -477,7 +477,7 @@ namespace whiteice
 	}
       }
 
-#pragma omp critical
+#pragma omp critical (anvcdshoirwereio)
       {
 	H += h;
       }
@@ -703,7 +703,7 @@ namespace whiteice
 	qij[i][i] = T(0.0f);
       }
 
-#pragma omp critical
+#pragma omp critical (vmbnfweofasefg)
       {
 	qsum += qs;
       }
@@ -755,7 +755,7 @@ namespace whiteice
 	}
       }
 
-#pragma omp critical
+#pragma omp critical (mgfdjkreowiaa)
       {
 	klvalue += klv;
       }
@@ -807,7 +807,7 @@ namespace whiteice
 	  }
 	}
 
-#pragma omp critical
+#pragma omp critical (mbrjioewaakjrew)
 	{
 	  Ps += psi;
 	}

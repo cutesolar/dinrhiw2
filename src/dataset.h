@@ -166,10 +166,20 @@ namespace whiteice
       // accesses random element from specified cluster
       const math::vertex<T>& random_access(unsigned int index = 0) const ;
       
-      unsigned int size(unsigned int index) const ; // dataset size  
+      inline unsigned int size(unsigned int index) const { // dataset size
+	if(index >= clusters.size()) return 0;
+
+	return clusters[index].data.size();
+      }
+      
       bool clear(unsigned int index) ; // data set clear  
       bool resize(unsigned int index, unsigned int nsize) ; // reduces size of data
-      unsigned int dimension(unsigned int index) const ; // dimension of data vectors
+      
+      inline unsigned int dimension(unsigned int index) const { // dimension of data vectors
+	if(index >= clusters.size()) return 0;
+
+	return clusters[index].data_dimension;
+      }
       
       
       // data preprocessing methods

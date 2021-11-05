@@ -154,13 +154,13 @@ namespace whiteice
 
       database_mutex.lock();
       
-      const unsigned int index = rifl.rng.rand() % database.size();
+      const unsigned int index = rng.rand() % database.size();
 
       const auto datum = database[index];
 
       database_mutex.unlock();
       
-#pragma omp critical
+#pragma omp critical (reiwopwjocwecnwoia)
       {
 	data.add(0, datum.state);
       }

@@ -613,7 +613,7 @@ namespace whiteice
 	esum /= T((float)dtest.size(0));
 	// esum /= T((float)MINIBATCHSIZE);
 	
-#pragma omp critical
+#pragma omp critical (rewiorepwverpaqfmomsgrtr)
 	{
 	  error += esum;
 	}
@@ -962,7 +962,7 @@ namespace whiteice
 		  sgrad += ninv*grad;
 		}
 		
-#pragma omp critical
+#pragma omp critical (rewweirpwoirpeworiewporwiA)
 		{
 		  sumgrad += sgrad;
 		}
@@ -1024,7 +1024,7 @@ namespace whiteice
 		  sgrad += ninv*grad;
 		}
 		
-#pragma omp critical
+#pragma omp critical (AAABBBrerweREREEWT)
 		{
 		  sumgrad += sgrad;
 		}

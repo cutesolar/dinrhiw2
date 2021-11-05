@@ -115,7 +115,7 @@ namespace whiteice
 	  esum += T(0.5f)*err[0];
 	}
 	
-#pragma omp critical
+#pragma omp critical (dsjairerew)
 	{
 	  e += esum;
 	}
@@ -162,7 +162,7 @@ namespace whiteice
 	  esum += T(0.5f)*err[0];
 	}
 	
-#pragma omp critical
+#pragma omp critical (reiote2qweq)
 	{
 	  e += esum; // per each recurrency
 	}
@@ -209,7 +209,7 @@ namespace whiteice
 	    esum += T(0.5f)*err[0];
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (fsjogwrgbwe)
 	  {
 	    e += esum;
 	  }
@@ -266,7 +266,7 @@ namespace whiteice
 	    
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (rewuiotymce)
 	  {
 	    e += esum;
 	  }
@@ -298,7 +298,7 @@ namespace whiteice
 	    esum += T(0.5f)*err[0];
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (gjkvmrore)
 	  {
 	    e += esum;
 	  }
@@ -353,7 +353,7 @@ namespace whiteice
 	    
 	  }
 	  
-#pragma omp critical
+#pragma omp critical (cmbnreorpww)
 	  {
 	    e += esum;
 	  }
@@ -410,7 +410,7 @@ namespace whiteice
 	  sgrad += grad;
 	}
 	
-#pragma omp critical
+#pragma omp critical (otiepwrmcoid)
 	{
 	  sumgrad += sgrad;
 	}
@@ -537,7 +537,7 @@ namespace whiteice
 
 	}
 	
-#pragma omp critical
+#pragma omp critical (poirifmejs)
 	{
 	  sumgrad += sgrad;
 	}
@@ -626,7 +626,7 @@ namespace whiteice
 	    grads.push_back(grad);
 	}
 	
-#pragma omp critical
+#pragma omp critical (mkfjhiwmdsa)
 	{
 	  for(unsigned int i=0;i<grads.size();i++){
 	    {
@@ -715,7 +715,7 @@ namespace whiteice
 	  }
 	}
 	
-#pragma omp critical
+#pragma omp critical (xmnrewoijokcsrwe)
 	{
 	  sumgrad += sgrad;
 	  sigma2 += sum_sigma2;
@@ -790,7 +790,7 @@ namespace whiteice
 	  
 	}
 	
-#pragma omp critical
+#pragma omp critical (lporkcmeajifew)
 	{
 	  //for(unsigned int i=0;i<grads.size();i++)
 	  // ngradients.push_back(grads[i]);
@@ -872,7 +872,7 @@ namespace whiteice
 	  
 	}
 	
-#pragma omp critical
+#pragma omp critical (motewjofwkocsw)
 	{
 	  // positive gradients
 	  for(unsigned int i=0;i<grads.size();i++){
@@ -992,7 +992,7 @@ namespace whiteice
 	  
 	}
 	
-#pragma omp critical
+#pragma omp critical (mckfsepofwfgr)
 	{
 	  sumgrad += sgrad;
 
@@ -1085,7 +1085,7 @@ namespace whiteice
 	  }
 	}
 	
-#pragma omp critical
+#pragma omp critical (mvmfekpfwdvsh)
 	{
 	  sumgrad += sgrad;
 	}

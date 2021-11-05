@@ -611,7 +611,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate0)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -683,7 +683,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate1)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -751,7 +751,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mear_covariance_estimate2)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -824,7 +824,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate3)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -885,7 +885,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate4)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -921,7 +921,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate5)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -965,7 +965,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate6)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -1010,7 +1010,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate6)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -1055,7 +1055,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate7)
 	  {
 	    m += mi;
 	    R += Ri;
@@ -1099,7 +1099,7 @@ namespace whiteice
 	    mi += v;
 	  }
 
-#pragma omp critical
+#pragma omp critical (mean_covariance_estimate8)
 	  {
 	    m += mi;
 	    R += Ri;

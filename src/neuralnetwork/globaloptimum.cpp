@@ -271,7 +271,7 @@ namespace whiteice
 	}
 
 	// OpenMPfied code
-#pragma omp critical
+#pragma omp critical (ieworweoirjeowAAATHHD)
 	{
 	  counter++;
 	  eta.update((float)(counter));

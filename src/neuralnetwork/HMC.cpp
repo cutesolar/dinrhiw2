@@ -89,7 +89,7 @@ namespace whiteice
 				e = e  + T(0.5f)*err[0];
 			}
 
-#pragma omp critical
+#pragma omp critical (mvjrwerfwegh)
 			{
 				E = E + e;
 			}
@@ -137,7 +137,7 @@ namespace whiteice
 				sumgrad += grad;
 			}
 
-#pragma omp critical
+#pragma omp critical (mfkrewiorweqqqa)
 			{
 				sum += sumgrad;
 			}
@@ -178,7 +178,7 @@ namespace whiteice
 				sumgrad -= grad; // negative phase
 			}
 
-#pragma omp critical
+#pragma omp critical (mfiodsrwjoa)
 			{
 				sum += sumgrad;
 			}
@@ -722,7 +722,7 @@ namespace whiteice
 	      e = e  + T(0.5f)*err[0];
 	    }
 	    
-#pragma omp critical
+#pragma omp critical (mogjfisdrwe)
 	    {
 	      E = E + e;
 	    }

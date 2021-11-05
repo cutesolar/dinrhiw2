@@ -30,8 +30,8 @@ namespace whiteice {
   class RNG {
   public:
     
-    // uses regular rand() if rdrand is not supported or usehw = false
-    RNG(const bool usehw = true);
+    // rdrand() is SLOW so avoid using hardware
+    RNG(const bool usehw = false);
     
     virtual ~RNG(){
       if(distrib) delete distrib;

@@ -92,6 +92,8 @@ namespace whiteice
       
       matrix<T>& operator=(const matrix<T>&) ;
       matrix<T>& operator=(matrix<T>&& t) ;
+
+      matrix<T>& operator=(const vertex<T>&) ;
       
       bool operator==(const matrix<T>&) const ;
       bool operator!=(const matrix<T>&) const ;
@@ -121,7 +123,7 @@ namespace whiteice
       
       // doesn't behave as expected. returns index:th
       // value from matrix (left->right, top->bottom order)
-      T& operator[](const unsigned int& index) 
+      T& operator[](const unsigned int index) 
       {
 #ifdef _GLIBCXX_DEBUG
 	if(index >= numRows*numCols){
@@ -133,7 +135,7 @@ namespace whiteice
 	return data[index]; // no range check
       }
       
-      const T& operator[](const unsigned int& index) const 
+      const T& operator[](const unsigned int index) const 
       {
 #ifdef _GLIBCXX_DEBUG
 	if(index >= numRows*numCols){
@@ -218,9 +220,18 @@ namespace whiteice
       bool symmetric_pseudoinverse(const T machine_epsilon = T(0.0)) ;
       
       
-      unsigned int size() const ;  // rows*columns
-      unsigned int ysize() const ; // rows      
-      unsigned int xsize() const ; // columns
+      inline unsigned int size() const {  // rows*columns
+	return (numRows*numCols);
+      }
+      
+      inline unsigned int ysize() const { // rows
+	return numRows;
+      }
+      
+      inline unsigned int xsize() const { // columns
+	// if(numRows <= 0) return 0; [not needed???]
+	return numCols;
+      }
       
       bool resize_x(unsigned int d) ; // columns
       bool resize_y(unsigned int d) ; // rows

@@ -135,10 +135,10 @@ namespace whiteice
       realnumber& random();
       
       
-      double& operator[](const unsigned long& index)
+      double& operator[](const unsigned long index)
 	;
 
-      const double& operator[](const unsigned long& index) const
+      const double& operator[](const unsigned long index) const
 	;
       
       bool comparable() { return true; }

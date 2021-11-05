@@ -367,7 +367,7 @@ namespace whiteice
     
     
     template <typename T>
-    T& quaternion<T>::operator[](const unsigned int& index)
+    T& quaternion<T>::operator[](const unsigned int index)
       
     {        
       if(index > 3) // quaternion is 4-dimensional
@@ -378,7 +378,7 @@ namespace whiteice
     
     
     template <typename T>
-    const T& quaternion<T>::operator[](const unsigned int& index) const
+    const T& quaternion<T>::operator[](const unsigned int index) const
       
     {
       if(index > 3) // quaternion is 4-dimensional

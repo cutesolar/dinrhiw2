@@ -298,7 +298,6 @@ namespace whiteice
 	U.resize(numActions);
 	
 	whiteice::math::vertex<T> u;
-	whiteice::math::matrix<T> e;
 
 	{
 	  std::lock_guard<std::mutex> lock(model_mutex);
@@ -308,7 +307,7 @@ namespace whiteice
 	  
 	  preprocess.preprocess(0, input);
 	  
-	  assert(model.calculate(input, u, e, 1, 0) == true);
+	  assert(model.calculate(input, u, 1, 0) == true);
 	  assert(u.size() == numActions);
 	  
 	  preprocess.invpreprocess(1, u);

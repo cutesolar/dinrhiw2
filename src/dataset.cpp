@@ -1700,7 +1700,7 @@ namespace whiteice
     return clusters[cluster].data[dataElem];
   }
 
-
+#if 0
   template <typename T>
   unsigned int dataset<T>::size(unsigned int index) const   // dataset size  
   {
@@ -1709,6 +1709,7 @@ namespace whiteice
     
     return clusters[index].data.size();
   }
+#endif
   
   template <typename T>
   bool dataset<T>::clear(unsigned int index)   // data set clear  
@@ -1719,7 +1720,8 @@ namespace whiteice
     clusters[index].data.clear();
     return true;
   }
-  
+
+#if 0
   template <typename T>
   unsigned int dataset<T>::dimension(unsigned int index) const   // dimension of data vectors
   {
@@ -1728,7 +1730,7 @@ namespace whiteice
     
     return clusters[index].data_dimension;
   }
-  
+#endif
   
   template <typename T>
   bool dataset<T>::getPreprocessings(unsigned int cluster,
@@ -2344,6 +2346,8 @@ namespace whiteice
     
     for(unsigned int j=0;j<clusters[index].preprocessings.size();j++){
       if(clusters[index].preprocessings[j] == dnMeanVarianceNormalization){
+
+#pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<dimension(index);i++)
 	  if(clusters[index].variance[i] > T(10e-8))
 	    for(unsigned int k=0;k<dimension(index);k++)
@@ -2375,6 +2379,8 @@ namespace whiteice
     
     for(unsigned int j=0;j<clusters[index].preprocessings.size();j++){
       if(clusters[index].preprocessings[j] == dnMeanVarianceNormalization){
+
+#pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<dimension(index);i++)
 	  if(clusters[index].variance[i] > T(10e-8))
 	    for(unsigned int k=0;k<dimension(index);k++)

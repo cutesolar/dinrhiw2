@@ -67,8 +67,8 @@ namespace whiteice
       
       quaternion<T>& operator= (const vertex<T>&) ;
       
-      T& operator[](const unsigned int& index) ;
-      const T& operator[](const unsigned int& index) const ;
+      T& operator[](const unsigned int index) ;
+      const T& operator[](const unsigned int index) const ;
       
       
       /* creates rotation matrix of quaternion */

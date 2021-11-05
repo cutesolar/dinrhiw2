@@ -678,7 +678,7 @@ namespace whiteice
 	err += delta.norm();
       }
       
-#pragma omp critical
+#pragma omp critical (mvsdkqwoqarit)
       {
 	error += err;
       }
@@ -735,7 +735,7 @@ namespace whiteice
 	uval += err;
       }
 
-#pragma omp critical
+#pragma omp critical (mgeqiopqaq)
       {
 	Uvalue += uval;
       }

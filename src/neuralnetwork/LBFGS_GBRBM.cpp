@@ -63,7 +63,7 @@ namespace whiteice
 	esum += err[0];
       }
 
-#pragma omp critical
+#pragma omp critical (rewowjogrjoajrqoecd)
       {
 	e += esum;
       }

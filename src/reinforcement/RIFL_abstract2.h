@@ -90,6 +90,16 @@ namespace whiteice
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
+    // tells policy() returns value one hot encoded unscaled probability values (log(p_i))
+    // from which proper one-hot action vector is sampled.
+    void setOneHotAction(bool isOneHotAction){ oneHotEncodedAction = isOneHotAction; }
+    bool getOneHotAction() const{ return oneHotEncodedAction; }
+
+    // do we do smart episode calculations where reinforcement learning
+    // values are re-calculated to be R[k] = gamma*R[k+1] + reinforcement[k], R[N+1]=0
+    void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
+    bool getSmartEpisodes() const{ return useEpisodes; }
+
     // saves learnt Reinforcement Learning Model to file
     bool save(const std::string& filename) const;
     
@@ -108,6 +118,10 @@ namespace whiteice
 			       T& reinforcement,
 			       bool& endFlag) = 0;
 
+    void onehot_prob_select(const whiteice::math::vertex<T>& action,
+			    whiteice::math::vertex<T>& new_action,
+			    T temperature = T(1.0f));
+
     // reinforcement Q model: Q(state, action) ~ discounted future cost
     whiteice::bayesian_nnetwork<T> Q, lagged_Q;
     whiteice::dataset<T> Q_preprocess;
@@ -123,6 +137,8 @@ namespace whiteice
     
     T epsilon;
     T gamma;
+    bool oneHotEncodedAction = false;
+    bool useEpisodes = false;
     
     class whiteice::RNG<T> rng;
     
