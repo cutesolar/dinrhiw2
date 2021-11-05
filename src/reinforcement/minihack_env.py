@@ -31,7 +31,7 @@ def convert_chars(ls):
         elif(ls[i] == '>'):
             ls[i] = 6
         else:
-            ls[i] = 5
+            ls[i] = 8
             
     return ls
 
@@ -47,7 +47,7 @@ env_name = "MiniHack-River-v0"
 env_name = "MiniHack-MazeWalk-45x19-v0"
 env_name = "MiniHack-MazeWalk-Mapped-15x15-v0"
 
-env = gym.make(env_name, observation_keys=("chars_crop", "blstats"))
+env = gym.make(env_name, observation_keys=("chars_crop", "blstats"), obs_crop_w=5, obs_crop_h=5)
 
 render = False
 
@@ -105,3 +105,5 @@ def minihack_performAction(action):
 
 
 test_state = minihack_getState()
+
+# print("State vector is " + str(len(test_state)) + " dimensions long.\n")
