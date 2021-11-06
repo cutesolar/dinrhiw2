@@ -18,7 +18,7 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	RBM.cpp CRBM.cpp DBN.cpp BBRBM.cpp construct_nnetwork.cpp LBFGS_GBRBM.cpp LBFGS_BBRBM.cpp \
 	GBRBM.cpp HMCGBRBM.cpp PTHMCGBRBM.cpp PTHMCabstract.cpp  HMCconvergencecheck.cpp UHMC.cpp \
 	stackedRBM_pretraining.cpp rLBFGS_nnetwork.cpp Mixture.cpp EnsembleMeans.cpp \
-	globaloptimum.cpp \
+	globaloptimum.cpp KMBoosting.cpp WeightingOptimizer.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
 	../math/RNG.cpp
@@ -35,7 +35,7 @@ OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensio
 	RBM.o CRBM.o DBN.o BBRBM.o construct_nnetwork.o LBFGS_GBRBM.o LBFGS_BBRBM.o \
 	GBRBM.o HMCGBRBM.o PTHMCGBRBM.o PTHMCabstract.o  HMCconvergencecheck.o UHMC.o \
 	stackedRBM_pretraining.o rLBFGS_nnetwork.o Mixture.o EnsembleMeans.o \
-	globaloptimum.o
+	globaloptimum.o KMBoosting.o WeightingOptimizer.o
 
 EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
