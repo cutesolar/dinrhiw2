@@ -2328,6 +2328,9 @@ namespace whiteice
   template <typename T>
   bool dataset<T>::preprocess_grad(unsigned int index, math::matrix<T>& W) const 
   {
+    printf("dataset::preprocess_grad() called.\n");
+    fflush(stdout);
+    
     if(index >= clusters.size())
       return false;
 
@@ -2337,11 +2340,14 @@ namespace whiteice
 
     W.resize(this->dimension(index), this->dimension(index));
     W.identity();
+
+    printf("W size: %d %d\n", W.ysize(), W.xsize());
+    fflush(stdout);
     
     for(unsigned int j=0;j<clusters[index].preprocessings.size();j++){
       if(clusters[index].preprocessings[j] == dnMeanVarianceNormalization){
 
-#pragma omp parallel for schedule(auto)
+//#pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<dimension(index);i++)
 	  if(clusters[index].variance[i] > T(10e-8))
 	    for(unsigned int k=0;k<dimension(index);k++)
@@ -2374,7 +2380,7 @@ namespace whiteice
     for(unsigned int j=0;j<clusters[index].preprocessings.size();j++){
       if(clusters[index].preprocessings[j] == dnMeanVarianceNormalization){
 
-#pragma omp parallel for schedule(auto)
+//#pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<dimension(index);i++)
 	  if(clusters[index].variance[i] > T(10e-8))
 	    for(unsigned int k=0;k<dimension(index);k++)
