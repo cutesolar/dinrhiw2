@@ -61,6 +61,16 @@ namespace whiteice
      */
     bool isRunning();
 
+    
+    // sets and gets minibatch settings for estimating gradient
+    void setUseMinibatch(bool minibatch = true){
+      this->use_minibatch = minibatch;
+    }
+    
+    bool getUseMinibatch() const {
+      return use_minibatch;
+    }
+    
 
     // if lrate is <= 0, disable the SGD (default)
     void setSGD(T sgd_lrate = T(0.0f)){
@@ -115,12 +125,12 @@ namespace whiteice
     bool regularize; // use regularizer term..
     T regularizer;
 
-    bool debug; // debugging messages (disabled)
-
+    bool use_minibatch = false; // use minibatch to estimate gradient
     
     bool use_SGD = false; // stochastic gradient descent with fixed learning rate
     T sgd_lrate = T(0.01f);
-    
+
+    bool debug; // debugging messages (disabled)
     
     whiteice::math::vertex<T> bestx; // best policy weights
     T best_value;

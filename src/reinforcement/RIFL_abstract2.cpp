@@ -955,19 +955,21 @@ namespace whiteice
 	  const bool useInitialNN = true; // WAS: start from scratch everytime
 	  
 	  grad.setRegularizer(T(0.01f)); // DISABLE REGULARIZER FOR Q-NETWORK
-	  grad.setNormalizeError(false); // calculate real error values
+	  grad.setNormalizeError(false); // calculate real error values	  
 	  
 	  
 	  if(hasModel[0] >= 10){
 	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
-	    
+
+	    grad.setUseMinibatch(true);
 	    grad.setSGD(T(0.01f)); // what is correct learning rate???
 	    
 	    grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
 	  }
 	  else{
 	    eta.start(0.0, 5);
-	    
+
+	    grad2.setUseMinibatch(false);
 	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
 	    grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
@@ -1168,7 +1170,8 @@ namespace whiteice
 	    
 	    if(hasModel[1] >= 10){
 	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
-	      
+
+	      grad2.setUseMinibatch(true);
 	      grad2.setSGD(T(0.01f)); // what is correct learning rate???
 	      
 	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
@@ -1176,7 +1179,8 @@ namespace whiteice
 	    }
 	    else{
 	      eta2.start(0.0, 5);
-	      
+
+	      grad2.setUseMinibatch(false);
 	      grad2.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	      
 	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, 5,

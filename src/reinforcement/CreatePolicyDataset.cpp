@@ -146,7 +146,7 @@ namespace whiteice
     }
 
     
-#pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(guided)
     for(unsigned int i=0;i<NUMDATA;i++){
 
       if(running == false) // we don't do anything anymore..

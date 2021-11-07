@@ -185,7 +185,7 @@ namespace whiteice
 
 	T prev_R = T(0.0f);
 	
-#pragma omp parallel for schedule(auto)
+#pragma omp parallel for schedule(guided)
 	for(unsigned i=0;i<episode.size();i++){
 	  
 	  if(running == false) // we don't do anything anymore..
@@ -221,12 +221,14 @@ namespace whiteice
 	      lagged_policy.calculate(input, u, 1, 0);
 	      
 	      policy_preprocess.invpreprocess(1, u); // does nothing..
-	      
+
+#if 0
 	      // add exploration noise..
 	      auto noise = u;
 	      // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
 	      rng.normal(noise);
 	      u += T(0.05)*noise;
+#endif
 	      
 	      assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
 	    }
@@ -272,8 +274,8 @@ namespace whiteice
       
     }
     else{
-      
-#pragma omp parallel for schedule(auto)
+
+#pragma omp parallel for schedule(guided)
       for(unsigned int i=0;i<NUMDATA;i++){
 	
 	if(running == false) // we don't do anything anymore..
@@ -317,10 +319,12 @@ namespace whiteice
 	    policy_preprocess.invpreprocess(1, u); // does nothing..
 	    
 	    // add exploration noise..
+#if 0
 	    auto noise = u;
 	    // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
 	    rng.normal(noise);
 	    u += T(0.05)*noise;
+#endif
 	    
 	    assert(tmp.write_subvertex(u, rifl.numStates) == true); // writes policy's action
 	  }

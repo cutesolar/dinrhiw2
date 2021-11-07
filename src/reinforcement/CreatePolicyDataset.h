@@ -53,7 +53,7 @@ namespace whiteice
     std::vector< rifl2_datapoint<T> > const & database;    
     std::mutex & database_mutex;
 
-    whiteice::RNG<T> rng;
+    //whiteice::RNG<T> rng;
     
     unsigned int NUMDATA; // number of datapoints to create
     whiteice::dataset<T>& data;

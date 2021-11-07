@@ -27,6 +27,8 @@ namespace whiteice
     heuristics = false;
     dropout = false;
 
+    use_minibatch = false;
+
     this->deep_pretraining = deep_pretraining;
     
     debug = true; // DEBUGing messasges turned ON
@@ -76,6 +78,8 @@ namespace whiteice
     regularizer = grad.regularizer;
     regularize = grad.regularize;
     deep_pretraining = grad.deep_pretraining;
+
+    use_minibatch = grad.use_minibatch;
     
     use_SGD = grad.use_SGD;
     sgd_lrate = grad.sgd_lrate;
@@ -432,7 +436,7 @@ namespace whiteice
       whiteice::math::vertex<T> q;
       
       // calculates mean q-value from the testing dataset
-#pragma omp for nowait schedule(auto)	    	    
+#pragma omp for nowait schedule(guided)
       for(unsigned int i=0;i<dtest.size(0);i++){
 	state = dtest.access(0, i);
 	
@@ -649,7 +653,10 @@ namespace whiteice
 	  sumgrad.resize(policy->exportdatasize());
 	  sumgrad.zero();
 
-	  T ninv = T(1.0f/dtrain.size(0));
+	  const unsigned int MINIBATCHSIZE = 100;
+	  
+	  const T ninv = use_minibatch ? T(1.0f/MINIBATCHSIZE) : T(1.0f/dtrain.size(0));
+	  
 
 #pragma omp parallel shared(sumgrad)
 	  {
@@ -676,55 +683,115 @@ namespace whiteice
 			
 	    whiteice::math::matrix<T> Qpreprocess_grad;
 	    
-	    
-#pragma omp for nowait schedule(auto)
-	    for(unsigned int i=0;i<dtrain.size(0);i++){
+	    if(use_minibatch){
 	      
-	      if(dropout) pnet.setDropOut();
-	      
-	      // calculates gradients for Q(state, action(state)) and policy(state)
+#pragma omp for nowait schedule(guided)
+	      for(unsigned int i=0;i<MINIBATCHSIZE;i++){
 
-	      state = dtrain.access(0, i); // preprocessed state vector
-
-	      assert(pnet.calculate(state, action) == true);
-
-	      pnet.jacobian(state, gradP);
-
-	      dtrain.invpreprocess(0, state); // original state for Q network
-	      // dtrain.invpreprocess(1, action);
-
-	      {
-		assert(in.write_subvertex(state, 0) == true);
-		assert(in.write_subvertex(action, state.size()) == true);
+		const unsigned int index = rng.rand() % dtrain.size(0);
 		
-		this->Q_preprocess->preprocess(0, in);
+		if(dropout) pnet.setDropOut();
 		
-		this->Q->calculate(in, Qvalue);
+		// calculates gradients for Q(state, action(state)) and policy(state)
 		
-		assert(this->Q->gradient_value(in, full_gradQ) == true);
-
-		assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
-		assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
-
-		assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
-						       state.size(), 0,
-						       action.size(),
-						       Qpreprocess_grad_full.ysize()) == true);
-
+		state = dtrain.access(0, index); // preprocessed state vector
 		
-		gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
-
+		assert(pnet.calculate(state, action) == true);
+		
+		pnet.jacobian(state, gradP);
+		
+		dtrain.invpreprocess(0, state); // original state for Q network
+		// dtrain.invpreprocess(1, action);
+		
+		{
+		  assert(in.write_subvertex(state, 0) == true);
+		  assert(in.write_subvertex(action, state.size()) == true);
+		  
+		  this->Q_preprocess->preprocess(0, in);
+		  
+		  this->Q->calculate(in, Qvalue);
+		  
+		  assert(this->Q->gradient_value(in, full_gradQ) == true);
+		  
+		  assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
+		  assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
+		  
+		  assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
+							 state.size(), 0,
+							 action.size(),
+							 Qpreprocess_grad_full.ysize()) == true);
+		  
+		  
+		  gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
+		  
+		}
+		
+		grad = gradQ * gradP;
+		
+		//sgrad += ninv*grad;
+		sgrad += grad;
 	      }
 	      
-	      grad = gradQ * gradP;
-	    
-	      //sgrad += ninv*grad;
-	      sgrad += grad;
-	    }
-	    
+	      
 #pragma omp critical (rfewjofojfofjeoaT)
-	    {
-	      sumgrad += sgrad;
+	      {
+		sumgrad += sgrad;
+	      }
+	      
+	    }
+	    else{
+	      
+#pragma omp for nowait schedule(guided)
+	      for(unsigned int i=0;i<dtrain.size(0);i++){
+		
+		if(dropout) pnet.setDropOut();
+		
+		// calculates gradients for Q(state, action(state)) and policy(state)
+		
+		state = dtrain.access(0, i); // preprocessed state vector
+		
+		assert(pnet.calculate(state, action) == true);
+		
+		pnet.jacobian(state, gradP);
+		
+		dtrain.invpreprocess(0, state); // original state for Q network
+		// dtrain.invpreprocess(1, action);
+		
+		{
+		  assert(in.write_subvertex(state, 0) == true);
+		  assert(in.write_subvertex(action, state.size()) == true);
+		  
+		  this->Q_preprocess->preprocess(0, in);
+		  
+		  this->Q->calculate(in, Qvalue);
+		  
+		  assert(this->Q->gradient_value(in, full_gradQ) == true);
+		  
+		  assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
+		  assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
+		  
+		  assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
+							 state.size(), 0,
+							 action.size(),
+							 Qpreprocess_grad_full.ysize()) == true);
+		  
+		  
+		  gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
+		  
+		}
+		
+		grad = gradQ * gradP;
+		
+		//sgrad += ninv*grad;
+		sgrad += grad;
+	      }
+	      
+	      
+#pragma omp critical (rfewjofojfofjeoaT)
+	      {
+		sumgrad += sgrad;
+	      }
+	      
 	    }
 	  }
 
