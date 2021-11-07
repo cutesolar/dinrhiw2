@@ -48,6 +48,9 @@ namespace whiteice
 
       first_time = true;
 
+      use_SGD = false;
+      sgd_lrate = T(0.0f);
+
       // regularizer = T(0.0001); // 1/10.000 (keep weights from becoming large)
       // regularizer = T(1.0); // this works for "standard" cases
       
@@ -68,6 +71,9 @@ namespace whiteice
       this->heuristics = grad.heuristics;
       this->deep_pretraining = grad.deep_pretraining;
       this->use_minibatch = grad.use_minibatch;
+
+      this->use_SGD = grad.use_SGD;
+      this->sgd_lrate = grad.sgd_lrate;
 
       dropout = grad.dropout;
       regularizer = grad.regularizer;
@@ -1067,14 +1073,23 @@ namespace whiteice
 	    
 
 	    // restarts gradient descent from lrate = 0.50
-	    // lrate *= 4;
 	    
-	    lrate = T(0.50f);
+	    lrate = sqrt(lrate);
+	    lrate *= T(100.0);
 	    // lrate = 0.01f;
 
 	    
 	    // line search: (we should maybe increase lrate to both directions lrate_next = 2.0*lrate and lrate_next2 = 0.5*lrate...
 	    do{
+	      if(use_SGD){ // just single step towards gradient
+		weights = w0;
+		weights -= sgd_lrate * sumgrad;
+		
+		nn->importdata(weights);
+
+		break; // don't do linesearch..
+	      }
+	      
 	      weights = w0;
 	      weights -= lrate * sumgrad;
 
@@ -1127,7 +1142,7 @@ namespace whiteice
 		whiteice::logging.info(buffer);
 	      }
 
-#if 1
+#if 0
 	      // leaky error reduction, we sometimes allow jump to worse
 	      // position in gradient direction
 	      if((rng.rand() % 100) == 0 && real(error) < real(T(1.00f))){ // was 0.50f
@@ -1137,13 +1152,13 @@ namespace whiteice
 #endif
 	    }
 	    while(real(delta_error) < T(0.0) && real(lrate) >= real(T(10e-25)) && running);
-	    
-	    
+
 	    
 	    // replaces error with TESTing set error
 	    error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
 
-	    {
+	    if(use_SGD == false){
+	      
 	      if(real(error) >= real(local_thread_best_error)){
 		// no improvement for this iteration
 		std::lock_guard<std::mutex> lock(noimprove_lock);
@@ -1161,7 +1176,7 @@ namespace whiteice
 	    }
 	    
 	    
-	    {
+	    if(use_SGD == false){
 	      char buffer[256];
 	      double tmp1, tmp2, tmp3, tmp4;
 	      whiteice::math::convert(tmp1, error);
@@ -1183,10 +1198,10 @@ namespace whiteice
 	    }
 
 	    
-	    nn->exportdata(weights);
+	    //nn->exportdata(weights);
 	    w0 = weights;
 
-	    {
+	    if(use_SGD == false){
 	      if(real(error) < real(best_error)){
 		std::lock_guard<std::mutex> lock(solution_lock);
 
@@ -1213,20 +1228,28 @@ namespace whiteice
 		  }
 		}
 	      }
-	      
-	      
-	      // TODO: PUSH ALWAYS BEST ERROR TO SEE CONVERGENCE OF THREAD
-	      // ONLY TRUE IMPROVEMENTS ALLOW KEEPING ITERATING
-	      {
-		std::lock_guard<std::mutex> lock(errors_lock);
-		
-		auto& e = errors[std::this_thread::get_id()];
-		e.push_back(error);
-		while(e.size() > EHISTORY) e.pop_front();
-	      }
-
 	    }
+	    else{
+	      const T gerror = getError(*nn, *data, false, false);
 
+	      std::lock_guard<std::mutex> lock(solution_lock);
+	      
+	      nn->exportdata(bestx);
+	      best_error = error;
+	      best_pure_error = gerror;
+	    }
+	    
+	    
+	    // TODO: PUSH ALWAYS BEST ERROR TO SEE CONVERGENCE OF THREAD
+	    // ONLY TRUE IMPROVEMENTS ALLOW KEEPING ITERATING
+	    {
+	      std::lock_guard<std::mutex> lock(errors_lock);
+		
+	      auto& e = errors[std::this_thread::get_id()];
+	      e.push_back(error);
+	      while(e.size() > EHISTORY) e.pop_front();
+	    }
+	    
 	    iterations++;
 	    
 	    // cancellation point
@@ -1254,28 +1277,6 @@ namespace whiteice
 	    convergence[std::this_thread::get_id()] = true;
 	  }
 
-#if 0
-	  {
-	    // REMOVE THIS LATER
-	    float errorf = 0.0f;
-	    whiteice::math::convert(errorf, error);
-
-	    std::ostringstream ss;
-	    ss << std::this_thread::get_id();
-	    std::string str_id = ss.str();
-	    
-	    printf("Iter: %d. Thread converged (%s). RESTART THREAD: %d %d %d %d: %f.\n",
-		   iterations,
-		   str_id.c_str(),
-		   (int)(error > T(0.00001f)),
-		   (int)noimprovements[std::this_thread::get_id()],
-		   (int)(iterations < MAXITERS),
-		   (int)(running),
-		   (float)errorf);
-	    fflush(stdout);
-	  }
-#endif
-	
 	  
 	  // 3. after convergence checks if the result is better
 	  //    than the earlier one

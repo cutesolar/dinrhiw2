@@ -19,8 +19,12 @@ namespace whiteice
 {
 
   template <typename T>
-  AdditionProblem<T>::AdditionProblem() : RIFL_abstract2<T>(3, 3)
+  AdditionProblem<T>::AdditionProblem() :
+    RIFL_abstract2<T>(3, 3, {50,50,50}, {50,50,50})
   {
+    this->setOneHotAction(false);
+    this->setSmartEpisodes(false); // gives more weight to reinforcement values when calculating Q
+    
     {
       reset();
       resetLastStep = false;
@@ -88,11 +92,11 @@ namespace whiteice
       if(iteration > 15){
 	newstate = state + action;
 	// reinforcement = T(1.0)/(small_value+newstate.norm());
-	reinforcement = T(5.0)-newstate.norm();
+	reinforcement = T(10.0)-newstate.norm();
 	// reinforcement = T(5.0)-newstate[0];
 	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
-	if(reinforcement > T(5.0)) reinforcement = T(5.0);
+	if(reinforcement > T(10.0)) reinforcement = T(10.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
 
 	reset();
@@ -108,11 +112,11 @@ namespace whiteice
       else{
 	newstate = state + action;
 	// reinforcement = T(1.0)/(small_value+newstate.norm());
-	reinforcement = T(5.0)-newstate.norm();
+	reinforcement = T(10.0)-newstate.norm();
 	// reinforcement = T(5.0)-newstate[0];
 	// reinforcement = state.norm()-newstate.norm(); [don't work]
 	if(reinforcement < T(0.0)) reinforcement = T(0.0);
-	if(reinforcement > T(5.0)) reinforcement = T(5.0);
+	if(reinforcement > T(10.0)) reinforcement = T(10.0);
 	std::cout << "ITER " << iteration << " REINFORCEMENT = " << reinforcement << std::endl;
 	endFlag = false;
 

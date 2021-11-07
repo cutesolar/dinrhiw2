@@ -69,6 +69,16 @@ namespace whiteice
 
       // returns regularizer value, zero means regularizing is disabled
       T getRegularizer() const;
+
+      // if lrate is <= 0, disable the SGD (default)
+      void setSGD(T sgd_lrate = T(0.0f)){
+	if(sgd_lrate <= T(0.0f)){ use_SGD = false; sgd_lrate = T(0.0f); return; }
+	use_SGD = true;
+	this->sgd_lrate = sgd_lrate;
+      }
+	
+      bool getSGD() const { return use_SGD; }
+
       
       /*
        * starts the optimization process using data as 
@@ -166,11 +176,14 @@ namespace whiteice
 
       // counter per thread to test if there have been no improvements
       std::map<std::thread::id, unsigned int> noimprovements;
-      const unsigned int MAX_NOIMPROVEMENT_ITERS = 5;
+      const unsigned int MAX_NOIMPROVEMENT_ITERS = 25;
 
       whiteice::RNG<T> rng; // we use random numbers
       bool use_minibatch; // use minibatch to estimate gradient
       bool overfit; // use all data to fit to solution (disabled as default)
+
+      bool use_SGD = false; // stochastic gradient descent with fixed learning rate
+      T sgd_lrate = T(0.01f);
 	
       mutable std::mutex solution_lock, start_lock, errors_lock;
       mutable std::mutex convergence_lock, noimprove_lock;

@@ -27,14 +27,14 @@ namespace whiteice
   };
 #endif
   
-  // observation space size is 51 (5x5 char environment + player stats)  and action is one-hot-encoded value
+  // observation space size is 51 (5x5 char environment + player stats) [and action is one-hot-encoded value: NOT]
   template <typename T>
   MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) :
-    RIFL_abstract2<T>(8, 51, {50,50,50,50}, {50,50,50,50})
+    RIFL_abstract2<T>(8, 51, {50,50,50}, {50,50,50})
   {
     // we inteprete action values as one hot encoded probabilistic values
-    this->setOneHotAction(true);
-    this->setSmartEpisodes(true); // gives more weight to reinforcement values when calculating Q
+    this->setOneHotAction(false);
+    this->setSmartEpisodes(false); // gives more weight to reinforcement values when calculating Q
     
     
     if(!Py_IsInitialized()){

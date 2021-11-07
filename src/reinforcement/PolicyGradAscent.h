@@ -60,6 +60,17 @@ namespace whiteice
      * Returns true if optimizer is running
      */
     bool isRunning();
+
+
+    // if lrate is <= 0, disable the SGD (default)
+    void setSGD(T sgd_lrate = T(0.0f)){
+      if(sgd_lrate <= T(0.0f)){ use_SGD = false; sgd_lrate = T(0.0f); return; }
+      use_SGD = true;
+      this->sgd_lrate = sgd_lrate;
+    }
+    
+    bool getSGD() const { return use_SGD; }
+    
     
     /*
      * returns the best NN solution found so far and
@@ -105,6 +116,11 @@ namespace whiteice
     T regularizer;
 
     bool debug; // debugging messages (disabled)
+
+    
+    bool use_SGD = false; // stochastic gradient descent with fixed learning rate
+    T sgd_lrate = T(0.01f);
+    
     
     whiteice::math::vertex<T> bestx; // best policy weights
     T best_value;

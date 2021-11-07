@@ -38,6 +38,9 @@ namespace whiteice
     running = false;
     thread_is_running = 0;
 
+    use_SGD = false; // stochastic gradient descent with fixed learning rate
+    sgd_lrate = T(0.01f);
+
     regularize = true; // REGULARIZER - ENABLED
     regularizer = T(0.01); // was: 1/10.000, was 0.02
     // regularizer = T(0.0); // DISABLED
@@ -73,6 +76,9 @@ namespace whiteice
     regularizer = grad.regularizer;
     regularize = grad.regularize;
     deep_pretraining = grad.deep_pretraining;
+    
+    use_SGD = grad.use_SGD;
+    sgd_lrate = grad.sgd_lrate;
 
     debug = grad.debug;
     first_time = true;
@@ -197,16 +203,6 @@ namespace whiteice
 
       whiteice::logging.info("PolicyGradAscent: input policy weights diagnostics");
       this->policy->diagnosticsInfo();
-
-      {
-	whiteice::math::matrix<T> Qpreprocess_grad_full;
-	assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
-	
-	printf("size(Qpreprocess_grad_full) = (%d,%d)\n",
-	       Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
-
-	fflush(stdout);
-      }
       
     }
 
@@ -627,9 +623,11 @@ namespace whiteice
 	      best_value = value;
 	      best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
 	      policy->exportdata(bestx);
-	      auto ptr = this->policy;
-	      this->policy = new whiteice::nnetwork<T>(*policy);
-	      delete ptr;
+	      this->policy->importdata(bestx);
+	      
+	      //auto ptr = this->policy;
+	      //this->policy = new whiteice::nnetwork<T>(*policy);
+	      //delete ptr;
 	  }
 	  
 	  solution_lock.unlock();
@@ -779,6 +777,19 @@ namespace whiteice
 	  lrate *= T(100.0);
 	  
 	  do{
+	    if(use_SGD){ // just single step towards gradient instead of line search
+	      weights = w0;
+	      weights += sgd_lrate * sumgrad;
+	      
+	      policy->importdata(weights);
+
+	      if(dropout) policy->removeDropOut();
+
+	      value = getValue(*policy, *Q, *Q_preprocess, dtrain);
+
+	      break;
+	    }
+	    
 	    weights = w0;
 	    weights += lrate * sumgrad;
 	    
@@ -820,9 +831,10 @@ namespace whiteice
 	    }
 	    
 	  }
-	  while(delta_value > T(0.0) && lrate >= T(10e-30) && running);
+	  while(delta_value >= T(0.0) && lrate >= T(10e-30) && running);
 
-	  {
+	  
+	  if(use_SGD == false){
 	    char buffer[128];
 	    
 	    double v, d, l;
@@ -835,29 +847,26 @@ namespace whiteice
 		     iterations, MAXITERS,
 		     v, d, l);
 	    whiteice::logging.info(buffer);
-
-#if 0
-	    whiteice::logging.info("PolicyGradientAscent: policy-network diagnostics");
-	    policy->diagnosticsInfo();
-#endif
 	  }
 	  
-	  policy->exportdata(weights);
+	  //policy->exportdata(weights);
 	  w0 = weights;
  	  
 	  iterations++;
 	  
-	  {
-	    solution_lock.lock();
+	  if(use_SGD == false){
+	    std::lock_guard<std::mutex> lock(solution_lock);
 	      
 	    if(value > best_value){
 	      // improvement (larger mean q-value of the policy)
 	      best_value = value;
 	      best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
 	      policy->exportdata(bestx);
-	      auto ptr = this->policy;
-	      this->policy = new whiteice::nnetwork<T>(*policy);
-	      delete ptr;
+	      this->policy->importdata(bestx);
+	      
+	      //auto ptr = this->policy;
+	      //this->policy = new whiteice::nnetwork<T>(*policy);
+	      //delete ptr;
 	      
 	      {
 		char buffer[128];
@@ -873,8 +882,16 @@ namespace whiteice
 	      
 	    }
 	    
-	    solution_lock.unlock();
 	  }
+	  else{
+	    std::lock_guard<std::mutex> lock(solution_lock);
+
+	    best_value = value;
+	    best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
+	    policy->exportdata(bestx);
+	    this->policy->importdata(bestx);
+	  }
+	  
 	  
 	  // cancellation point
 	  {

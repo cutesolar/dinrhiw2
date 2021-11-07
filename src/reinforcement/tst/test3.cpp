@@ -21,7 +21,7 @@ int main(int argc, char** argv)
   whiteice::logging.setOutputFile("debug.log");
 
   
-  printf("REINFORCEMENT LEARNING TESTCASE 3\n");
+  printf("REINFORCEMENT (CONTINUOUS) LEARNING TESTCASE 3 (Rotation Problem)\n");
   fflush(stdout);
   
   whiteice::logging.info("REINFORCMENT LEARNING TESTCASE 3");

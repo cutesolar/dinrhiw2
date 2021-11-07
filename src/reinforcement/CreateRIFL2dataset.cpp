@@ -334,7 +334,7 @@ namespace whiteice
 	  if(maxvalue < abs(y[0]))
 	    maxvalue = abs(y[0]);
 	  
-	  if(epoch > 0 && datum.lastStep == false){
+	  if(epoch >= 10 && datum.lastStep == false){
 	    out[0] = datum.reinforcement + rifl.gamma*y[0];
 	  }
 	  else{ // the first iteration of reinforcement learning do not use Q or if this is last step

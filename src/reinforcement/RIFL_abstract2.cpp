@@ -221,19 +221,6 @@ namespace whiteice
 
 	  Q_preprocess.createCluster("input-state", numStates + numActions);
 	  Q_preprocess.createCluster("output-state", 1); // q-value
-
-
-	  {
-	    printf("DIM: %d SUM: %d\n", Q_preprocess.dimension(0), numStates + numActions);
-	    
-	    whiteice::math::matrix<T> Qpreprocess_grad_full;
-	    assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
-	    
-	    printf("INIT: size(Qpreprocess_grad_full) = (%d,%d)\n",
-		   Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
-	    
-	    fflush(stdout);
-	  }
 	  
 	}
       }
@@ -526,8 +513,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 5; // 40, was 1 (dont work), 5, 10, WAS: 5
-    const unsigned int P_OPTIMIZE_ITERATIONS = 5; // 10, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 1; // 40, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int P_OPTIMIZE_ITERATIONS = 1; // 10, was 1 (dont work), 5, 10, WAS: 5
 
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
@@ -782,13 +769,18 @@ namespace whiteice
 	  for(const auto& e : episode)
 	    total_reward += e.reinforcement;
 
-	  printf("Episode %d reward: %f [%d %d models]\n",
-		 (int)episodes_counter, total_reward.c[0],
-		 hasModel[0], hasModel[1]);
+	  char buffer[80];
+
+	  snprintf(buffer, 80, "Episode %d reward: %f [%d %d models]",
+		   (int)episodes_counter, total_reward.c[0],
+		   hasModel[0], hasModel[1]);
+
+	  whiteice::logging.info(buffer);
+
 
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
 	  fflush(episodesFile);
-
+	  
 	  if(episodes.size() >= EPISODES_MAX_SIZE){
 	    const unsigned long index = (episodes_counter % EPISODES_MAX_SIZE);
 	    episodes[index] = episode;
@@ -826,11 +818,7 @@ namespace whiteice
 	  else{
 	    database.push_back(datum);
 	  }
-
-	  char buffer[80];
-	  snprintf(buffer, 80, "Adding new data (reward %f) to database of size %d", reinforcement.c[0], (int)database.size());
-	  whiteice::logging.info(buffer);
-		   
+	  
 	}
 
 	database_counter++;
@@ -878,29 +866,8 @@ namespace whiteice
 		data.clearData(0);
 		data.clearData(1);
 
-		{
-		  whiteice::math::matrix<T> Qpreprocess_grad_full;
-		  assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
-		  
-		  printf("PRE: size(Qpreprocess_grad_full) = (%d,%d)\n",
-			 Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
-		  
-		  fflush(stdout);
-		}
-
-		
 		Q_preprocess = data;
 
-		{
-		  whiteice::math::matrix<T> Qpreprocess_grad_full;
-		  assert(Q_preprocess.preprocess_grad(0, Qpreprocess_grad_full) == true);
-		  
-		  printf("POST: size(Qpreprocess_grad_full) = (%d,%d)\n",
-			 Qpreprocess_grad_full.ysize(), Qpreprocess_grad_full.xsize());
-		  
-		  fflush(stdout);
-		}
-		
 #if 1
 		whiteice::nnetwork<T> nn2;
 		std::vector< math::vertex<T> > lagged_weights;
@@ -987,20 +954,25 @@ namespace whiteice
 	  const bool dropout = false;
 	  const bool useInitialNN = true; // WAS: start from scratch everytime
 	  
-	  eta.start(0.0, Q_OPTIMIZE_ITERATIONS); // 150 iters
-
-	  grad.setRegularizer(T(0.01)); // DISABLE REGULARIZER FOR Q-NETWORK
+	  grad.setRegularizer(T(0.01f)); // DISABLE REGULARIZER FOR Q-NETWORK
 	  grad.setNormalizeError(false); // calculate real error values
 	  
-	  // grad.startOptimize(data, nn, 2, 150);
 	  
-	  if(grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN) == false){
-	    whiteice::logging.error("RIFL_abstract2: starting grad optimizer FAILED");
-	    assert(0);
+	  if(hasModel[0] >= 10){
+	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
+	    
+	    grad.setSGD(T(0.01f)); // what is correct learning rate???
+	    
+	    grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
 	  }
 	  else{
-	    whiteice::logging.info("RIFL_abstract2: grad Q optimizer started");
+	    eta.start(0.0, 5);
+	    
+	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	    
+	    grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
 	  }
+	  
 
 	  old_grad_iterations = -1;
 
@@ -1193,18 +1165,27 @@ namespace whiteice
 	    const bool dropout = false;
 	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
-	    eta2.start(0.0, P_OPTIMIZE_ITERATIONS); // 150 iters per sample
-
 	    
-	    if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
-				   dropout, useInitialNN) == false)
-	    {
-	      whiteice::logging.error("RIFL_abstract2: starting grad2 policy-optimizer FAILED");
-	      assert(0);
+	    if(hasModel[1] >= 10){
+	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
+	      
+	      grad2.setSGD(T(0.01f)); // what is correct learning rate???
+	      
+	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
+				  dropout, useInitialNN);
 	    }
 	    else{
-	      whiteice::logging.info("RIFL_abstract2: grad2 policy-optimizer started");
+	      eta2.start(0.0, 5);
+	      
+	      grad2.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	      
+	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, 5,
+				  dropout, useInitialNN);
 	    }
+
+	    
+	    
+
 	    
 	    old_grad2_iterations = -1;
 	    
@@ -1247,6 +1228,9 @@ namespace whiteice
 
     grad.stopComputation();
     grad2.stopComputation();
+
+    if(episodesFile) fclose(episodesFile);
+    episodesFile = NULL;
 
     if(dataset_thread){
       delete dataset_thread;

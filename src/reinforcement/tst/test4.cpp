@@ -21,10 +21,10 @@ int main(int argc, char** argv)
   whiteice::logging.setOutputFile("debug.log");
 
   
-  printf("REINFORCEMENT LEARNING TESTCASE 4\n");
+  printf("REINFORCEMENT (CONTINUOUS) LEARNING TESTCASE 4 (Addition Problem)\n");
   fflush(stdout);
   
-  whiteice::logging.info("REINFORCMENT LEARNING TESTCASE 4");
+  whiteice::logging.info("REINFORCMENT LEARNING TESTCASE 4 (Addition Problem)");
 
   srand(time(0));
 
