@@ -156,7 +156,7 @@ namespace whiteice
     
     void optimizer_loop();
 
-    whiteice::RNG<T> rng;
+    //whiteice::RNG<T> rng; // can use global rng for now..
     
   };
   

@@ -39,9 +39,23 @@ namespace whiteice {
       if(rdsource) delete rdsource;
     }
 
-    // random integers
+    // general random integers
     unsigned int rand() const; // 32bit
     unsigned long long rand64() const; // 64bit
+
+    // general floating point numbers
+    float uniformf() const {
+      return unif();
+    }
+    
+    float normalf() const {
+      return rnor();
+    }
+    
+    float expf() const {
+      float e = rexp(); if(e > 0.0f){ return e; } else{ return -e; }
+    }
+
     
     // real valued uniformly distributed variables
     // with complex numbers the imaginary part will be zero

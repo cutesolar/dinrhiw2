@@ -294,7 +294,7 @@ namespace whiteice
     // [if neuron is dropout neuron its non-linearity is zero]
     std::vector< std::vector<bool> > dropout;  // used by gradient calculation (backward step)
     
-    whiteice::RNG<T> rng;
+    //whiteice::RNG<T> rng; // [use global rng instead]
 
     bool residual; // true if residual neural networks (skip every 2 layers) if used
     

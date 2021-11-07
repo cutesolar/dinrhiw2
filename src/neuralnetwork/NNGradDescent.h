@@ -178,7 +178,7 @@ namespace whiteice
       std::map<std::thread::id, unsigned int> noimprovements;
       const unsigned int MAX_NOIMPROVEMENT_ITERS = 25;
 
-      whiteice::RNG<T> rng; // we use random numbers
+      //whiteice::RNG<T> rng; // we use random numbers (can use global rng source)
       bool use_minibatch; // use minibatch to estimate gradient
       bool overfit; // use all data to fit to solution (disabled as default)
 
