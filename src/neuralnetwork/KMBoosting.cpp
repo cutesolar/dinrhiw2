@@ -168,8 +168,8 @@ namespace whiteice
   {
     if(thread_running == false) return;
 
-    std::vector< whiteice::nnetwork<T> > experts; // M experts
-    whiteice::nnetwork<T> weighting; // w(x) weight for each expert
+    std::vector< whiteice::nnetwork<T> > experts = this->experts; // M experts
+    whiteice::nnetwork<T> weighting = this->weighting; // w(x) weight for each expert
     
 
     {
@@ -193,15 +193,16 @@ namespace whiteice
       }
 
       bool points_ok = false;
+      unsigned int counter = 0;
 
-      while(points_ok == false){
+      while(points_ok == false && counter < 10){
 
 	for(unsigned int i=0;i<datapoints.size();i++){
 	  datapoints[i].clearAll();
 	}
 
 	for(unsigned int i=0;i<data.size(0);i++){
-	  unsigned int index = rng.rand() % datapoints.size();
+	  const unsigned int index = rng.rand() % datapoints.size();
 
 	  datapoints[index].add(0, data.access(0, i));
 	  datapoints[index].add(1, data.access(1, i));
@@ -212,6 +213,8 @@ namespace whiteice
 	  if(datapoints[i].size(0) == 0) ok = false;
 	}
 
+	counter++;
+
 	if(ok == false) continue;
 	else points_ok = true;
 
@@ -220,6 +223,14 @@ namespace whiteice
 	  datapoints[i].preprocess(1);
 	}
 
+      }
+
+      if(counter >= 10){
+	for(unsigned int i=0;i<datapoints.size();i++){
+	  datapoints[i] = data;
+	  datapoints[i].preprocess(0);
+	  datapoints[i].preprocess(1);
+	}
       }
       
     }
@@ -242,12 +253,12 @@ namespace whiteice
 
 	whiteice::math::NNGradDescent<T> grad;
 	
-	grad.setUseMinibatch(true);
+	grad.setUseMinibatch(false);
 	grad.setOverfit(false);
 	grad.setNormalizeError(false);
-	grad.setRegularizer(T(0.01));
+	grad.setRegularizer(T(0.001));
 
-	const unsigned int MAXITERS = 0xFFFFFFFF;
+	const unsigned int MAXITERS = 100;
 	const bool dropout = false;
 	const bool initiallyUseNN = true;
 
@@ -262,12 +273,22 @@ namespace whiteice
 	}
 
 	while(grad.isRunning()){
-	  sleep(1);
-
 	  if(thread_running == false){
 	    grad.stopComputation();
 	    return;
 	  }
+
+	  if(debug){
+	    T grad_error;
+	    unsigned int grad_converged;
+	    
+	    if(grad.getSolutionStatistics(grad_error, grad_converged)){
+	      printf("Expert %d/%d: NNGrad error: %f %d/%d\n",
+		     (int)i, (int)experts.size(), grad_error.c[0], grad_converged, MAXITERS);
+	    }
+	  }
+
+	  sleep(1);
 	}
 
 	T error;
@@ -330,6 +351,14 @@ namespace whiteice
 	    clusters[choice].add(0, input);
 	    clusters[choice].add(1, output);
 	  }
+	}
+
+	if(debug){
+	  printf("KMBoosting: datapoint deltas: %d\n", deltas);
+	  printf("cluster sizes: ");
+	  for(unsigned int i=0;i<clusters.size();i++)
+	    printf("%d ", clusters[i].size(0));
+	  printf("\n");
 	}
 
 	if(deltas <= data.size(0)/100){

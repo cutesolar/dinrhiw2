@@ -53,6 +53,9 @@
 
 #include "hermite.h"
 
+#include "KMBoosting.h"
+
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -97,6 +100,8 @@ void neuronlayer_test();
 void neuronlayer_test2();
 void neuralnetwork_test();
 */
+
+void kmboosting_test();
 
 void nnetwork_test();
 void nnetwork_complex_test();
@@ -169,8 +174,9 @@ int main()
 
     // nnetwork_gradient_value_test(); // gradient_value() calculation works
 
+    kmboosting_test();
     
-    simple_tsne_test(); // FIXME: has bugs
+    // simple_tsne_test(); // FIXME: has bugs
 
     return 0;
 
@@ -453,6 +459,61 @@ void kmeans_test()
     std::cout << "K-Means save()&load() test PASSED." << std::endl;
   }
   
+}
+
+/************************************************************/
+
+void kmboosting_test()
+{
+  std::cout << "KMBoosting test (neural network boosting test)" << std::endl;
+
+  whiteice::dataset<> data;
+  const unsigned int M = 10;
+  std::vector<unsigned int> arch;
+
+  arch.push_back(10);
+  arch.push_back(10);
+  arch.push_back(10);
+  arch.push_back(1);
+
+  whiteice::KMBoosting<> nnboosting(M, arch);
+
+  data.createCluster("input", arch[0]);
+  data.createCluster("output", arch[arch.size()-1]);
+
+  // generates data from a neural network
+  whiteice::nnetwork<> gen(arch);
+  gen.randomize();
+
+  math::vertex<> in;
+  math::vertex<> out;
+  in.resize(arch[0]);
+
+  
+  for(unsigned int i=0;i<10000;i++){
+    rng.normal(in);
+
+    gen.calculate(in, out);
+    
+    data.add(0, in);
+    data.add(1, out);
+  }
+
+  
+  if(nnboosting.startOptimize(data) == false){
+    printf("ERROR: KMBoosting::startOptimize() FAILED.\n");
+    exit(-1);
+  }
+
+  while(nnboosting.isRunning()){
+    sleep(1);
+    // printf("Computing boosting results\n");
+  }
+
+  if(nnboosting.hasModel() == false){
+    printf("ERROR: KMBoosting stopped without model. (FAILURE).\n");
+    exit(-1);
+  }
 }
 
 /************************************************************/

@@ -61,6 +61,8 @@ namespace whiteice
 
     bool hasModelFlag;
 
+    const bool debug = true;
+
     whiteice::dataset<T> data;
     
     std::thread* optimizer_thread;
