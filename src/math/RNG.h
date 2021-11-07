@@ -94,7 +94,7 @@ namespace whiteice {
   };
 
   
-  // extern class RNG< math::blas_real<float> > rng;
+  extern class RNG< whiteice::math::blas_real<float> > rng;
 
   extern template class RNG< float >;
   extern template class RNG< double >;

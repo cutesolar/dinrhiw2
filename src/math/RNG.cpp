@@ -390,7 +390,7 @@ void RNG<T>::cpuid(unsigned int leaf, unsigned int subleaf, unsigned int regs[4]
 
   // template and constant class
 
-  // class RNG< math::blas_real<float> > rng(true);
+  class RNG< whiteice::math::blas_real<float> > rng(true);
 
   template class RNG< float >;
   template class RNG< double >;
