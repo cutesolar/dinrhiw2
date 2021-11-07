@@ -912,10 +912,10 @@ namespace whiteice
 	    const unsigned int MINIBATCHSIZE = 100; 
 
 	    if(use_minibatch){
+	      const T ninv = T(1.0f/MINIBATCHSIZE);
+	      
 #pragma omp parallel shared(sumgrad)
 	      {
-		T ninv = T(1.0f/MINIBATCHSIZE);
-		//T ninv = T(1.0f/dtrain.size(0));
 		math::vertex<T> sgrad, grad;
 		sgrad.resize(nn->exportdatasize());
 		sgrad.zero();
@@ -965,7 +965,8 @@ namespace whiteice
 		    }
 		  }
 		  
-		  sgrad += ninv*grad;
+		  // sgrad += ninv*grad;
+		  sgrad += grad;
 		}
 		
 #pragma omp critical (rewweirpwoirpeworiewporwiA)
@@ -974,11 +975,16 @@ namespace whiteice
 		}
 	      
 	      }
+	      
+	      
+	      sumgrad *= ninv;
 	    }
 	    else{ // do not use minibatch but ALL data is used to compute gradient
+
+	      const T ninv = T(1.0f/dtrain.size(0));
+	      
 #pragma omp parallel shared(sumgrad)
 	      {
-		T ninv = T(1.0f/dtrain.size(0));
 		math::vertex<T> sgrad, grad;
 		sgrad.resize(nn->exportdatasize());
 		sgrad.zero();
@@ -1027,7 +1033,8 @@ namespace whiteice
 		    }
 		  }
 		  
-		  sgrad += ninv*grad;
+		  // sgrad += ninv*grad;
+		  sgrad += grad;
 		}
 		
 #pragma omp critical (AAABBBrerweREREEWT)
@@ -1036,8 +1043,10 @@ namespace whiteice
 		}
 	      
 	      }
-	      
+
+	      sumgrad *= ninv;
 	    }
+	    
 	    
 
 	    {
