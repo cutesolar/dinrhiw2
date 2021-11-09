@@ -780,10 +780,12 @@ namespace whiteice
 	  for(const auto& e : episode)
 	    total_reward += e.reinforcement;
 
+	  total_reward /= T(episode.size());
+
 	  char buffer[80];
 
-	  snprintf(buffer, 80, "Episode %d reward: %f [%d %d models]",
-		   (int)episodes_counter, total_reward.c[0],
+	  snprintf(buffer, 80, "Episode %d avg reward: %f (%d moves) [%d %d models]",
+		   (int)episodes_counter, total_reward.c[0], (int)episode.size(),
 		   hasModel[0], hasModel[1]);
 
 	  whiteice::logging.info(buffer);
