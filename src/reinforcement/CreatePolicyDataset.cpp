@@ -160,7 +160,7 @@ namespace whiteice
 
       database_mutex.unlock();
       
-#pragma omp critical (reiwopwjocwecnwoia)
+#pragma omp critical
       {
 	data.add(0, datum.state);
       }

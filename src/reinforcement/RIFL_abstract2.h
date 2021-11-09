@@ -120,7 +120,7 @@ namespace whiteice
 
     void onehot_prob_select(const whiteice::math::vertex<T>& action,
 			    whiteice::math::vertex<T>& new_action,
-			    T temperature = T(1.0f));
+			    const T temperature = T(1.0f));
 
     // reinforcement Q model: Q(state, action) ~ discounted future cost
     whiteice::bayesian_nnetwork<T> Q, lagged_Q;

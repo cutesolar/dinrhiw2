@@ -47,6 +47,15 @@ namespace whiteice
        */
       RIFL_abstract(const unsigned int numActions,
 		    const unsigned int numStates);
+
+      /*
+       * numActions         - the number of discerete different actions
+       * numStates          - the number of dimensions in state vectors
+       * arch               - Q neural network architecture "numStates-*-*-numActions"
+       */
+      RIFL_abstract(const unsigned int numActions,
+		    const unsigned int numStates,
+		    std::vector<unsigned int> arch);
       
       ~RIFL_abstract() ;
       
@@ -81,6 +90,9 @@ namespace whiteice
       void setHasModel(unsigned int hasModel) ;
       unsigned int getHasModel() ;
       
+      unsigned int getNumActions() const { return numActions; }
+      unsigned int getNumStates() const { return numStates; }
+      
     // saves learnt Reinforcement Learning Model to file
       bool save(const std::string& filename) const;
       
@@ -114,7 +126,7 @@ namespace whiteice
       T epsilon;
       T gamma;
       
-      whiteice::RNG<T> rng;
+      // whiteice::RNG<T> rng; [don't use own rng)]
       
       volatile int thread_is_running;
       std::thread* rifl_thread;

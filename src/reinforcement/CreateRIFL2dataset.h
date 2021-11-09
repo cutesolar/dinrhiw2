@@ -44,7 +44,7 @@ namespace whiteice
 
     // returns reference to dataset
     // (warning: if calculations are running then dataset can change during use)
-    whiteice::dataset<T> const & getDataset() const;
+    const whiteice::dataset<T>& getDataset() const;
 
     private:
 
@@ -55,8 +55,8 @@ namespace whiteice
     
     RIFL_abstract2<T> const & rifl;
 
-    std::vector< rifl2_datapoint<T> > const & database;
-    std::vector< std::vector< rifl2_datapoint<T> > > const & episodes;
+    const std::vector< rifl2_datapoint<T> >& database;
+    const std::vector< std::vector< rifl2_datapoint<T> > >& episodes;
     std::mutex & database_mutex;
 
     bool smartEpisodes = false;

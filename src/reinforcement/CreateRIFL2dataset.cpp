@@ -242,7 +242,7 @@ namespace whiteice
 	    if(maxvalue < abs(y[0]))
 	      maxvalue = abs(y[0]);
 	    
-	    if(epoch > 0 && datum.lastStep == false){
+	    if(epoch > 10 && datum.lastStep == false){
 	      const T R = rifl.gamma * prev_R + datum.reinforcement;
 	      
 	      out[0] = R + rifl.gamma*y[0];
@@ -257,7 +257,7 @@ namespace whiteice
 	    
 	  }
 	  
-#pragma omp critical (grojreojoGTTVVWAssdfs)
+#pragma omp critical
 	  {
 	    data.add(0, in);
 	    data.add(1, out);
@@ -347,7 +347,7 @@ namespace whiteice
 	  
 	}
 	
-#pragma omp critical (HGSJIEOeeewcwaWW)
+#pragma omp critical
 	{
 	  data.add(0, in);
 	  data.add(1, out);

@@ -22,8 +22,8 @@ namespace whiteice
     
     // initializes parameters
     {
-      gamma = T(0.80);
-      epsilon = T(0.66);
+      gamma = T(0.95);
+      epsilon = T(0.80);
 
       learningMode = true;
       hasModel = 0;
@@ -49,12 +49,12 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::rectifier);
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
 	
-	nn.randomize(2, T(0.01));
+	nn.randomize(2, T(0.50));
 	model.importNetwork(nn);
 	
 	// creates empty preprocessing
@@ -69,6 +69,66 @@ namespace whiteice
     whiteice::logging.info("RIFL_abstract CTOR finished");
   }
 
+  
+  template <typename T>
+  RIFL_abstract<T>::RIFL_abstract(const unsigned int numActions,
+				  const unsigned int numStates,
+				  std::vector<unsigned int> arch)
+  {
+    {
+      char buffer[128];
+      snprintf(buffer, 128, "RIFL_abstract CTOR called (%d, %d)",
+	       numActions, numStates);
+      whiteice::logging.info(buffer);
+    }
+    
+    // initializes parameters
+    {
+      gamma = T(0.95);
+      epsilon = T(0.80);
+
+      learningMode = true;
+      hasModel = 0;
+      
+      this->numActions        = numActions;
+      this->numStates         = numStates;
+
+      if(arch.size() < 2)
+	arch.resize(2);
+
+      arch[0] = numStates;
+      arch[arch.size()-1] = numActions;
+    }
+
+    
+    // initializes neural network architecture and weights randomly
+    // neural network is deep 6-layer residual neural network
+    {
+
+      whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
+      // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
+      // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: rectifier
+      
+      {
+	std::lock_guard<std::mutex> lock(model_mutex);
+	
+	nn.randomize(2, T(0.50));
+	model.importNetwork(nn);
+	
+	// creates empty preprocessing
+	preprocess.createCluster("input-state", numStates);
+	preprocess.createCluster("output-action-qs", numActions);
+      }
+    }
+
+    thread_is_running = 0;
+    rifl_thread = nullptr;
+    
+    whiteice::logging.info("RIFL_abstract CTOR finished");
+  }
+  
+  
   template <typename T>
   RIFL_abstract<T>::~RIFL_abstract() 
   {
@@ -255,11 +315,19 @@ namespace whiteice
     std::mutex database_mutex;
 
     bool endFlag = false;
+
+    std::vector< rifl_datapoint<T> > episode;
+    
+    FILE* episodesFile = fopen("episodes-result.txt", "w");
+    
+    unsigned long episodes_counter = 0;
     
     // gradient descent learning class
     whiteice::math::NNGradDescent<T> grad;
-    grad.setOverfit(true);
-    grad.setRegularizer(T(0.10f)); // enable regularizer against large values
+    grad.setOverfit(false);
+    grad.setUseMinibatch(true);
+    grad.setSGD(T(1e-4f));
+    grad.setRegularizer(T(0.001f)); // enable regularizer against large values
 
     // dataset for learning class
     whiteice::dataset<T> data;
@@ -271,11 +339,11 @@ namespace whiteice
     int old_grad_iterations = 0;
 
     const unsigned int DATASIZE = 1000000;
-    const unsigned int SAMPLESIZE = 10;
-    const unsigned int BATCHSIZE = 128;
+    const unsigned int SAMPLESIZE = 5000; // number of samples database must have before use
+    const unsigned int BATCHSIZE = 500;
     const unsigned int ITERATIONS = 1; // was 250
 
-    T temperature = T(1.0);
+    T temperature = T(0.1); // was: 1.0 - for random selection of actions.
 
     bool first_time = true;
     whiteice::math::vertex<T> state;
@@ -321,7 +389,7 @@ namespace whiteice
       unsigned int action = 0;
 
       {
-#if 0
+#if 1
 	T psum = T(0.0);
 	
 	std::vector<T> p;
@@ -347,7 +415,7 @@ namespace whiteice
 	  psum += more;
 	}
 
-	T r = rng.uniform();
+	T r = rng.uniformf();
 	
 	unsigned int index = 0;
 
@@ -379,7 +447,7 @@ namespace whiteice
 	// random selection with (1-epsilon) probability
 	// show model with epsilon probability
 	{
-	  T r = rng.uniform();
+	  T r = rng.uniformf();
 	  
 	  if(r > epsilon){
 	    action = rng.rand() % (numActions);
@@ -390,7 +458,7 @@ namespace whiteice
 	if(hasModel == 0)
 	  action = rng.rand() % (numActions);
 
-#if 1
+#if 0
 	{
 	  printf("U = ");
 	  for(unsigned int i=0;i<U.size();i++){
@@ -429,6 +497,30 @@ namespace whiteice
 	datum.reinforcement = reinforcement;
 	datum.action = action;
 	datum.lastStep = endFlag;
+
+	episode.push_back(datum);
+
+	if(datum.lastStep){
+	  T total_reward = T(0.0f);
+	  
+	  for(const auto& e : episode)
+	    total_reward += e.reinforcement;
+
+	  char buffer[80];
+
+	  snprintf(buffer, 80, "Episode %d reward: %f [%d models]",
+		   (int)episodes_counter, total_reward.c[0],
+		   hasModel);
+
+	  whiteice::logging.info(buffer);
+
+
+	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
+	  fflush(episodesFile);
+
+	  episode.clear();
+	  episodes_counter++;
+	}
 
 	// for synchronizing access to database datastructure
 	// (also used by CreateRIFLdataset class/thread)
@@ -484,20 +576,26 @@ namespace whiteice
 		  assert(0);
 		}
 
-		nn.setNonlinearity(whiteice::nnetwork<T>::rectifier);
-		nn.setNonlinearity(nn.getLayers()-1,whiteice::nnetwork<T>::rectifier);
+		//nn.setNonlinearity(whiteice::nnetwork<T>::rectifier);
+		//nn.setNonlinearity(nn.getLayers()-1,whiteice::nnetwork<T>::rectifier);
 	      }
 	      
 	      const bool dropout = false;
 	      const bool useInitialNN = true;
-	      
-	      // if(grad.startOptimize(data, nn, 2, 250, dropout) == false){
-	      if(grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN) == false){
-		whiteice::logging.error("RIFL_abstract: starting grad optimizer FAILED");
-		assert(0);
+
+	      grad.setOverfit(false);
+	      grad.setUseMinibatch(true);
+	      grad.setNormalizeError(false);
+	      grad.setSGD(T(1e-4f));
+
+	      if(hasModel >= 10){
+		grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN);
 	      }
 	      else{
-		whiteice::logging.info("RIFL_abstract: grad optimizer started");
+		grad.setUseMinibatch(false);
+		grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+		
+		grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
 	      }
 	    
 	      old_grad_iterations = -1;
@@ -730,6 +828,8 @@ namespace whiteice
 
     
     grad.stopComputation();
+
+    if(episodesFile) fclose(episodesFile);
     
     if(dataset_thread){
       dataset_thread->stop();

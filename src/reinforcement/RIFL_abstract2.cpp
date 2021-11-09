@@ -205,7 +205,7 @@ namespace whiteice
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
-	  nn.setResidual(false);
+	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
 
@@ -243,7 +243,7 @@ namespace whiteice
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
-	  nn.setResidual(false);
+	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
 
@@ -459,7 +459,7 @@ namespace whiteice
   template <typename T>
   void RIFL_abstract2<T>::onehot_prob_select(const whiteice::math::vertex<T>& action,
 					     whiteice::math::vertex<T>& new_action,
-					     T temperature)
+					     const T temperature)
   {
     assert(action.size() > 0);
     
@@ -503,8 +503,17 @@ namespace whiteice
     
     ACTION = index;
 
+    // std::cout << "action = " << action << " => SELECT ACTION: " << ACTION << std::endl;
+
     new_action.resize(action.size());
     new_action.zero();
+
+#if 0
+    for(unsigned int i=0;i<new_action.size();i++){
+      new_action[ACTION] = T(-1.0f);
+    }
+#endif
+    
     new_action[ACTION] = T(1.0f);
   }
 
@@ -515,7 +524,7 @@ namespace whiteice
     // number of iteratios to use per epoch for optimization
     const unsigned int Q_OPTIMIZE_ITERATIONS = 1; // 40, was 1 (dont work), 5, 10, WAS: 5
     const unsigned int P_OPTIMIZE_ITERATIONS = 1; // 10, was 1 (dont work), 5, 10, WAS: 5
-
+    
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
     
@@ -661,8 +670,10 @@ namespace whiteice
       if(oneHotEncodedAction){
 	whiteice::math::vertex<T> new_action;
 
+	const T temperature = T(0.10f);
+
 	// maps probabilistic vector values to a single value
-	onehot_prob_select(action, new_action);
+	onehot_prob_select(action, new_action, temperature);
 	
 	action = new_action;
       }
@@ -780,13 +791,17 @@ namespace whiteice
 
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
 	  fflush(episodesFile);
-	  
-	  if(episodes.size() >= EPISODES_MAX_SIZE){
-	    const unsigned long index = (episodes_counter % EPISODES_MAX_SIZE);
-	    episodes[index] = episode;
-	  }
-	  else{
-	    episodes.push_back(episode);
+
+	  if(useEpisodes){
+	    
+	    if(episodes.size() >= EPISODES_MAX_SIZE){
+	      const unsigned long index = (episodes_counter % EPISODES_MAX_SIZE);
+	      episodes[index] = episode;
+	    }
+	    else{
+	      episodes.push_back(episode);
+	    }
+	    
 	  }
 
 	  episode.clear();
@@ -827,7 +842,8 @@ namespace whiteice
       
       // 5. update/optimize Q(state, action) network
       // activates batch learning if it is not running
-      if(database.size() >= MINIMUM_DATASIZE && episodes.size() > MINIMUM_EPISODE_SIZE)
+      if(database.size() >= MINIMUM_DATASIZE &&
+	 (episodes.size() > MINIMUM_EPISODE_SIZE || useEpisodes == false))
       {
 	
 	// skip if other optimization step (policy network)
@@ -954,7 +970,7 @@ namespace whiteice
 	  const bool dropout = false;
 	  const bool useInitialNN = true; // WAS: start from scratch everytime
 	  
-	  grad.setRegularizer(T(0.01f)); // DISABLE REGULARIZER FOR Q-NETWORK
+	  grad.setRegularizer(T(0.001f)); // DISABLE REGULARIZER FOR Q-NETWORK
 	  grad.setNormalizeError(false); // calculate real error values	  
 	  
 	  
@@ -962,14 +978,14 @@ namespace whiteice
 	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
 
 	    grad.setUseMinibatch(true);
-	    grad.setSGD(T(0.01f)); // what is correct learning rate???
+	    grad.setSGD(T(1e-4f)); // what is correct learning rate???
 	    
 	    grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
 	  }
 	  else{
 	    eta.start(0.0, 5);
 
-	    grad2.setUseMinibatch(false);
+	    grad.setUseMinibatch(false);
 	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
 	    grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
@@ -1021,7 +1037,8 @@ namespace whiteice
       // 6. update/optimize policy(state) network
       // activates batch learning if it is not running
       
-      if(database.size() >= MINIMUM_DATASIZE && episodes.size() > MINIMUM_EPISODE_SIZE)
+      if(database.size() >= MINIMUM_DATASIZE &&
+	 (episodes.size() > MINIMUM_EPISODE_SIZE || useEpisodes == false))
       {
 	
 	// skip if other optimization step is behind us
@@ -1172,7 +1189,7 @@ namespace whiteice
 	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
 
 	      grad2.setUseMinibatch(true);
-	      grad2.setSGD(T(0.01f)); // what is correct learning rate???
+	      grad2.setSGD(T(1e-4f)); // what is correct learning rate???
 	      
 	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
 				  dropout, useInitialNN);

@@ -9,15 +9,15 @@
 #include <fenv.h>
 #endif
 
-#include "MinihackRIFL2.h"
-#include "RIFL_abstract2.h"
+#include "MinihackRIFL.h"
+#include "RIFL_abstract.h"
 #include "Log.h"
 
 
 
 int main(int argc, char** argv)
 {
-  printf("MINIHACK REINFORCEMENT LEARNING. (CONTINUOUS ACTIONS)\n");
+  printf("MINIHACK REINFORCEMENT LEARNING. (DISCRETE ACTIONS)\n");
   fflush(stdout);
 
   const std::string scriptFile = "minihack_env.py";
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   
   
   if(useFlag == false){
-    whiteice::MinihackRIFL2< whiteice::math::blas_real<float> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
 
     system.setEpsilon(0.80); // 20% of control choices are random
     system.setLearningMode(true);
@@ -90,7 +90,7 @@ int main(int argc, char** argv)
       counter++;
     }
 
-    if(system.save("minihack-rifl2.dat"))
+    if(system.save("minihack2-rifl.dat"))
       printf("MODEL FILE SAVED\n");
 
     system.stop();
@@ -98,12 +98,12 @@ int main(int argc, char** argv)
   }
   else{
 
-    whiteice::MinihackRIFL2< whiteice::math::blas_real<float> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
 
     system.setEpsilon(1.00); // 100% of examples are selected accoring to model
     system.setLearningMode(false);    
     
-    if(system.load("minihack-rifl2.dat") == false){
+    if(system.load("minihack2-rifl.dat") == false){
       printf("ERROR: loading model file failed.\n");
       return -1;
     }

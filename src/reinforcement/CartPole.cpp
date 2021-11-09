@@ -102,7 +102,7 @@ namespace whiteice
   void CartPole<T>::reset()
   {
     // cart-pole system system state
-    theta = this->rng.uniform()*T(2.0*M_PI) - T(M_PI); // angle is [-PI, PI]
+    theta = T(rng.uniformf())*T(2.0*M_PI) - T(M_PI); // angle is [-PI, PI]
     theta = theta / T(100.0); 
     theta_dot = T(0.0);
     theta_dotdot = T(0.0);

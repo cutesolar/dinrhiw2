@@ -161,10 +161,10 @@ namespace whiteice
 
       database_mutex.lock();
       
-      const unsigned int index = rifl.rng.rand() % database.size();
+      const unsigned int index = rng.rand() % database.size();
+      
       const unsigned int action = database[index].action;
-
-      const auto& datum = database[index];
+      const auto datum = database[index];
 
       database_mutex.unlock();
       
@@ -203,7 +203,7 @@ namespace whiteice
 	  if(maxvalue < u[i])
 	    maxvalue = u[i];
 
-	if(epoch == 0 || datum.lastStep == true){
+	if(epoch <= 10 || datum.lastStep == true){
 	  // first iteration always uses pure reinforcement values
 	  unew_value = datum.reinforcement;
 	}
@@ -214,7 +214,7 @@ namespace whiteice
       
       out[action] = unew_value;
       
-#pragma omp critical (rioIIretrevePPvre)
+#pragma omp critical
       {
 	data.add(0, in);
 	data.add(1, out);
@@ -227,7 +227,7 @@ namespace whiteice
     if(running == false)
       return; // exit point
 
-#if 0
+#if 1
     // add preprocessing to dataset
     {
       data.preprocess
@@ -244,7 +244,7 @@ namespace whiteice
     {
       T sum = T(0.0);
       for(auto& m : maxvalues)
-	sum += abs(m);
+	sum += m;
 
       sum /= T(maxvalues.size());
 
@@ -252,7 +252,7 @@ namespace whiteice
       whiteice::math::convert(tmp, sum);
 
       char buffer[80];
-      snprintf(buffer, 80, "CreateRIFLdataset: avg abs(max(Q))-value %f",
+      snprintf(buffer, 80, "CreateRIFLdataset: avg max(Q)-value %f",
 	       tmp);
 
       whiteice::logging.info(buffer);

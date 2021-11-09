@@ -44,7 +44,7 @@ namespace whiteice
     sgd_lrate = T(0.01f);
 
     regularize = true; // REGULARIZER - ENABLED
-    regularizer = T(0.01); // was: 1/10.000, was 0.02
+    regularizer = T(0.001); // was: 1/10.000, was 0.01
     // regularizer = T(0.0); // DISABLED
   }
 
@@ -459,7 +459,7 @@ namespace whiteice
 	
       vsum /= T((double)dtest.size(0));
       
-#pragma omp critical (fshjhjrweiowehhihcw)
+#pragma omp critical
       {
 	value += vsum;
       }
@@ -733,7 +733,7 @@ namespace whiteice
 	      }
 	      
 	      
-#pragma omp critical (rfewjofojfofjeoaT)
+#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -787,7 +787,7 @@ namespace whiteice
 	      }
 	      
 	      
-#pragma omp critical (rfewjofojfofjeoaT)
+#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -850,8 +850,12 @@ namespace whiteice
 	      
 	      policy->importdata(weights);
 
-	      if(dropout) policy->removeDropOut();
-
+	      //if(dropout) policy->removeDropOut();
+	      
+	      if(heuristics){
+		normalize_weights_to_unity(*policy);
+	      }
+	      
 	      value = getValue(*policy, *Q, *Q_preprocess, dtrain);
 
 	      break;
@@ -863,7 +867,7 @@ namespace whiteice
 	    if(policy->importdata(weights) == false)
 	      whiteice::logging.error("PolicyGradAscent: weight import failed");
 	    
-	    if(dropout) policy->removeDropOut();
+	    //if(dropout) policy->removeDropOut();
 	    
 	    if(heuristics){
 	      normalize_weights_to_unity(*policy);

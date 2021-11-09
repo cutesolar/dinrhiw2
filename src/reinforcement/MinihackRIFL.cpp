@@ -6,38 +6,23 @@
  *
  */
 
-#include "MinihackRIFL2.h"
+#include "MinihackRIFL.h"
 
 
 namespace whiteice
 {
-#if 0
-  // acquire and release the GIL
-  struct gil_lock
-  {
-    gil_lock()
-    {
-      PyEval_AcquireLock();
-    }
-    
-    ~gil_lock()
-    {
-      PyEval_ReleaseLock();
-    }
-  };
-#endif
   
   // observation space size is 51 (5x5 char environment + player stats) [and action is one-hot-encoded value: NOT]
   template <typename T>
-  MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) 
-    : // RIFL_abstract2<T>(8, 51, {50,50,50,50}, {50,50,50,50})
-    RIFL_abstract2<T>(8, 51, {100,100,100,100}, {100,100,100,100})
-    //RIFL_abstract2<T>(8, 51, {200,200,200,200}, {200,200,200,200})
+  MinihackRIFL<T>::MinihackRIFL(const std::string& pythonScript) 
+    : // RIFL_abstract<T>(8, 51, {50,50,50,50})
+    RIFL_abstract<T>(8, 51, {100,100,100,100})
+    //RIFL_abstract<T>(8, 51, {200,200,200,200})
   {
     // we inteprete action values as one hot encoded probabilistic values from which one-hot-encoded
     // vector is chosen: [0 0 1 0] means 3rd action is chosen.
-    this->setOneHotAction(true);
-    this->setSmartEpisodes(false); // gives more weight to reinforcement values when calculating Q
+    //this->setOneHotAction(true);
+    //this->setSmartEpisodes(false); // gives more weight to reinforcement values when calculating Q
     
     
     if(!Py_IsInitialized()){
@@ -107,7 +92,7 @@ namespace whiteice
   
 
   template <typename T>
-  MinihackRIFL2<T>::~MinihackRIFL2()
+  MinihackRIFL<T>::~MinihackRIFL()
   {
     //PyThreadState* prestate = PyThreadState_Get();
     //PyEval_RestoreThread(pystate);
@@ -134,14 +119,14 @@ namespace whiteice
 
   
   template <typename T>
-  bool MinihackRIFL2<T>::isRunning() const
+  bool MinihackRIFL<T>::isRunning() const
   {
     return (errors == 0);
   }
   
   
   template <typename T>
-  bool MinihackRIFL2<T>::getState(whiteice::math::vertex<T>& state)
+  bool MinihackRIFL<T>::getState(whiteice::math::vertex<T>& state)
   {
     if(errors > 0) return false;
 
@@ -233,7 +218,7 @@ namespace whiteice
 
   
   template <typename T>
-  bool MinihackRIFL2<T>::performAction(const whiteice::math::vertex<T>& action,
+  bool MinihackRIFL<T>::performAction(const unsigned int action,
 				       whiteice::math::vertex<T>& newstate,
 				       T& reinforcement, bool& endFlag)
   {
@@ -244,55 +229,13 @@ namespace whiteice
     
     // [state, reward, done] = minihack_performAction(action) (action is integer 0..7)
 
-    if(action.size() != this->getNumActions()){
-      printf("ERROR: performAction(): action.size() has no proper size.\n");
+    if(action >= this->getNumActions()){
+      printf("ERROR: performAction(): unknown/bad action value.\n");
       errors++;
       return false;
     }
 
-    // maps one-hot-encoded probabilistic action to integer action 0-7 (8 values)
-    unsigned long ACTION = 0;
-
-    {
-      const T temperature = T(0.10f);
-      T psum = T(0.0f);
-      std::vector<T> p;
-
-      for(unsigned int i=0;i<action.size();i++){
-	auto value = action[i];
-
-	if(value < T(-6.0f)) value = T(-6.0f);
-	else if(value > T(+6.0f)) value = T(+6.0f);
-
-	auto q = exp(value/temperature);
-	psum += q;
-	p.push_back(q);
-      }
-
-      for(unsigned int i=0;i<p.size();i++)
-	p[i] /= psum;
-
-      psum = T(0.0f);
-      for(unsigned int i=0;i<p.size();i++){
-	auto more = p[i];
-	p[i] += psum;
-	psum += more;
-      }
-
-      T r = rng.uniform();
-      
-      unsigned long index = 0;
-
-      while(r > p[index]){
-	index++;
-	if(index >= p.size()){
-	  index = p.size()-1;
-	  break;
-	}
-      }
-      
-      ACTION = index;
-    }
+    const unsigned long ACTION = (unsigned long)action;
 
     //printf("ACTION %d selected.\n", (int)ACTION); fflush(stdout);
 
@@ -524,7 +467,7 @@ namespace whiteice
   
   
 
-  template class MinihackRIFL2< math::blas_real<float> >;
-  template class MinihackRIFL2< math::blas_real<double> >;  
+  template class MinihackRIFL< math::blas_real<float> >;
+  template class MinihackRIFL< math::blas_real<double> >;  
   
 };
