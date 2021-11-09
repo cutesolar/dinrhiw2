@@ -495,8 +495,7 @@ namespace whiteice
     // direct accesses to matrix/vertex memory areas
 
     if(input.size() != input_size()) return false;
-    if(dropout.size() != getLayers())
-      return this->calculate(input, output);
+    if(dropout.size() != getLayers()) return false;
 
     output = input;
     math::vertex<T>& state = output;
@@ -580,8 +579,7 @@ namespace whiteice
 			      std::vector< math::vertex<T> >& bpdata) const
   {
     if(input.size() != input_size()) return false;
-    if(dropout.size() != getLayers())
-      return this->calculate(input, output, bpdata);
+    if(dropout.size() != getLayers()) return false;
     
     // TODO write cblas and cuBLAS optimized version which uses
     // direct accesses to matrix/vertex memory areas
@@ -623,7 +621,7 @@ namespace whiteice
   }
 
   
-  template <typename T> // number of layers
+  template <typename T> // number of layers+1
   unsigned int nnetwork<T>::length() const {
     return arch.size();
   }
