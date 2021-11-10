@@ -324,9 +324,12 @@ namespace whiteice
     
     // gradient descent learning class
     whiteice::math::NNGradDescent<T> grad;
+
+    const T lrate = T(1e-6); // was: 1e-4
+    
     grad.setOverfit(false);
     grad.setUseMinibatch(true);
-    grad.setSGD(T(1e-4f));
+    grad.setSGD(lrate);
     grad.setRegularizer(T(0.001f)); // enable regularizer against large values
 
     // dataset for learning class
@@ -342,8 +345,6 @@ namespace whiteice
     const unsigned int SAMPLESIZE = 5000; // number of samples database must have before use
     const unsigned int BATCHSIZE = 500;
     const unsigned int ITERATIONS = 1; // was 250
-
-    T temperature = T(0.1); // was: 1.0 - for random selection of actions.
 
     bool first_time = true;
     whiteice::math::vertex<T> state;
@@ -389,7 +390,9 @@ namespace whiteice
       unsigned int action = 0;
 
       {
-#if 1
+#if 0
+	const T temperature = T(0.1); // was: 1.0 - for random selection of actions.
+	
 	T psum = T(0.0);
 	
 	std::vector<T> p;
@@ -588,7 +591,7 @@ namespace whiteice
 	      grad.setOverfit(false);
 	      grad.setUseMinibatch(true);
 	      grad.setNormalizeError(false);
-	      grad.setSGD(T(1e-4f));
+	      grad.setSGD(lrate);
 
 	      if(hasModel >= 10){
 		grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN);

@@ -34,11 +34,14 @@ TEST4A_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test4a.o
 
 TEST5_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack.o MinihackRIFL2.o
 
+TEST6_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack2.o MinihackRIFL.o
+
 
 SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp \
 	CreateRIFLdataset.cpp CreateRIFL2dataset.cpp CreatePolicyDataset.cpp \
-	RotationProblem.cpp AdditionProblem.cpp MinihackRIFL2.cpp \
+	RotationProblem.cpp AdditionProblem.cpp MinihackRIFL2.cpp MinihackRIFL.cpp \
 	CartPole2.cpp tst/test.cpp tst/test2.cpp tst/test3.cpp tst/test4a.cpp \
+	tst/test_minihack.cpp tst/test_minihack2.cpp \
 	../dataset.cpp \
 	../dynamic_bitset.cpp \
 	../math/quaternion.cpp \
@@ -66,6 +69,7 @@ TARGET3=testsuite3
 TARGET4=testsuite4
 TARGET4A=testsuite4a
 TARGET5=minihack_test
+TARGET6=minihack2_test
 
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9
 
@@ -80,13 +84,14 @@ CD = cd
 
 ##################################################
 
-all: $(TEST1_OBJECTS) $(TEST2_OBJECTS) $(TEST3_OBJECTS) $(TEST4_OBJECTS) $(TEST4A_OBJECTS) $(TEST5_OBJECTS)
+all: $(TEST1_OBJECTS) $(TEST2_OBJECTS) $(TEST3_OBJECTS) $(TEST4_OBJECTS) $(TEST4A_OBJECTS) $(TEST5_OBJECTS) $(TEST6_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TEST1_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET2) $(TEST2_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET3) $(TEST3_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4) $(TEST4_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4A) $(TEST4A_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TEST5_OBJECTS) $(LIBS) $(LIBS_PYTHON)
+	$(CXX) $(CXXFLAGS) -o $(TARGET6) $(TEST6_OBJECTS) $(LIBS) $(LIBS_PYTHON)
 
 clean:
 	$(RM) $(TEST1_OBJECTS)
@@ -101,6 +106,8 @@ clean:
 	$(RM) $(TARGET4A)
 	$(RM) $(TEST5_OBJECTS)
 	$(RM) $(TARGET5)
+	$(RM) $(TEST6_OBJECTS)
+	$(RM) $(TARGET6)
 	$(RM) *~
 
 realclean: clean
