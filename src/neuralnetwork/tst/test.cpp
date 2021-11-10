@@ -55,6 +55,8 @@
 
 #include "KMBoosting.h"
 
+#include "rLBFGS_recurrent_nnetwork.h"
+
 
 #include <iostream>
 #include <fstream>
@@ -63,6 +65,7 @@
 #include <new>
 #include <random>
 #include <chrono>
+#include <thread>
 
 #include <assert.h>
 #include <string.h>
@@ -101,13 +104,15 @@ void neuronlayer_test2();
 void neuralnetwork_test();
 */
 
+void recurrent_nnetwork_test();
+
 void kmboosting_test();
 
 void nnetwork_test();
 void nnetwork_complex_test();
 
 void lreg_nnetwork_test();
-void recurrent_nnetwork_test();
+void simple_recurrent_nnetwork_test();
 void mixture_nnetwork_test();
 void ensemble_means_test();
 
@@ -174,7 +179,9 @@ int main()
 
     // nnetwork_gradient_value_test(); // gradient_value() calculation works
 
-    kmboosting_test();
+    // kmboosting_test();
+
+    recurrent_nnetwork_test();
     
     // simple_tsne_test(); // FIXME: has bugs
 
@@ -196,7 +203,7 @@ int main()
 
     return 0;
 
-    // recurrent_nnetwork_test(); // FIXME doesn't seem to work anymore.
+    // simple_recurrent_nnetwork_test(); // FIXME doesn't seem to work anymore.
     
     return 0;
 	
@@ -463,8 +470,99 @@ void kmeans_test()
 
 /************************************************************/
 
+void recurrent_nnetwork_test()
+{
+  std::cout << "Full recurrent neural network training test." << std::endl;
+
+  whiteice::dataset<> data;
+
+  const unsigned int INPUT_DIM = 2 + (rng.rand() % 10); // 2-11
+  const unsigned int OUTPUT_DIM = 2 + (rng.rand() % 10); // 2-11
+  const unsigned int RECURRENT_DIM = 1 + (rng.rand() % 5); // 1-5
+
+  data.createCluster("input", INPUT_DIM+RECURRENT_DIM);
+  data.createCluster("output", OUTPUT_DIM+RECURRENT_DIM);
+  data.createCluster("episodes info", 2);
+
+  std::vector<unsigned int> arch, arch2;
+
+  arch.push_back(INPUT_DIM);
+  arch.push_back(10);
+  arch.push_back(10);
+  arch.push_back(OUTPUT_DIM);
+
+  arch2.push_back(INPUT_DIM+RECURRENT_DIM);
+  arch2.push_back(10);
+  arch2.push_back(10);
+  arch2.push_back(OUTPUT_DIM+RECURRENT_DIM);
+
+  whiteice::nnetwork<> gen(arch), trained_nnetwork(arch2);
+  gen.randomize();
+  trained_nnetwork.randomize();
+
+  math::vertex<> in, out, range;
+  in.resize(arch[0]);
+  range.resize(2);
+
+  unsigned int counter=0;
+
+  // generates training episodes
+  // [no recurrency/state in training samples so even regular nnetwork can learn these]
+  for(unsigned int episode=0;episode<50;episode++){
+    const unsigned int START = counter;
+
+    for(unsigned int i=0;i<20;i++,counter++){
+      rng.normal(in);
+      gen.calculate(in, out);
+
+      data.add(0, in);
+      data.add(1, out);
+    }
+
+    const unsigned int END = counter;
+
+    range[0] = START;
+    range[1] = END;
+
+    data.add(2, range);
+  }
+
+  whiteice::rLBFGS_recurrent_nnetwork<> trainer(trained_nnetwork, data);
+
+  whiteice::math::vertex<> x0;
+  trained_nnetwork.exportdata(x0);
+
+  trainer.minimize(x0);
+
+  int solution_iteration_seen = -1;
+
+  while(trainer.isRunning()){
+    whiteice::math::vertex<> x;
+    whiteice::math::blas_real<float> error;
+    unsigned int iterations;
+
+    if(trainer.getSolution(x, error, iterations)){
+      if(((int)iterations) > solution_iteration_seen){
+	solution_iteration_seen = (int)iterations;
+
+	std::cout << "ITER " << iterations << ". Error = " << error << std::endl;
+      }
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(333)); // 333ms sleep 
+  }
+
+  std::cout << "Trainer stopped." << std::endl;
+  
+}
+
+
+/************************************************************/
+
 void kmboosting_test()
 {
+  // THIS DOES NOT WORK: refactor KMBoosting to do gradient boosting instead.
+  
   std::cout << "KMBoosting test (neural network boosting test)" << std::endl;
 
   whiteice::dataset<> data;
@@ -2006,7 +2104,7 @@ void mixture_nnetwork_test()
 
 /************************************************************/
 
-void recurrent_nnetwork_test()
+void simple_recurrent_nnetwork_test()
 {
 
   std::cout << "Simple recurrent neural network optimizer tests."
