@@ -1800,7 +1800,7 @@ namespace whiteice
 	    for(unsigned int i=0;i<v.dataSize;i++)
 	      rvalue += data[i]*v.data[i];
 
-#pragma omp critical (vertex_operator_multi_equal)
+#pragma omp critical
 	    {
 	      r.data[0] += rvalue;
 	    }
@@ -1889,7 +1889,7 @@ namespace whiteice
 	  for(unsigned int i=0;i<v.dataSize;i++)
 	    rvalue += data[i]*v.data[i];
 
-#pragma omp critical (vertex_operator_multi_equal)
+#pragma omp critical
 	  {
 	    r[0] += rvalue;
 	  }
