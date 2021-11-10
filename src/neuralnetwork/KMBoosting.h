@@ -10,7 +10,9 @@
  *    given x, w(x). Optimize w(x) until convergence.
  * 6. Predict output as y = SUM w_i(x)*nn(x).
  *
- * TODO: experimental code: handle overfitting problem somehow...
+ * FIXME: KMBoosting idea does NOT work, rewrite this code to use Gradient Boosting instead.
+ *
+ * 
  */
 
 #ifndef __whiteice__KMBoosting_h
