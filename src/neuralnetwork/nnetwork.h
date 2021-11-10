@@ -111,7 +111,7 @@ namespace whiteice
 		   const std::vector< std::vector<bool> >& dropout,
 		   std::vector< math::vertex<T> >& bpdata) const;
 
-    unsigned int length() const; // number of layers
+    unsigned int length() const; // number of layers+1 (arch size)
 
     // set nnetworks parameters to random values
     // type = 0: random [-1,+1] values

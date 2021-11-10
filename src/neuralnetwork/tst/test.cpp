@@ -480,8 +480,12 @@ void recurrent_nnetwork_test()
   const unsigned int OUTPUT_DIM = 2 + (rng.rand() % 10); // 2-11
   const unsigned int RECURRENT_DIM = 1 + (rng.rand() % 5); // 1-5
 
-  data.createCluster("input", INPUT_DIM+RECURRENT_DIM);
-  data.createCluster("output", OUTPUT_DIM+RECURRENT_DIM);
+  std::cout << "Input dim: " << INPUT_DIM
+	    << ". Output dim: " << OUTPUT_DIM
+	    << ". Recurrent dim: " << RECURRENT_DIM << "." << std::endl;
+
+  data.createCluster("input", INPUT_DIM);
+  data.createCluster("output", OUTPUT_DIM);
   data.createCluster("episodes info", 2);
 
   std::vector<unsigned int> arch, arch2;
@@ -497,6 +501,10 @@ void recurrent_nnetwork_test()
   arch2.push_back(OUTPUT_DIM+RECURRENT_DIM);
 
   whiteice::nnetwork<> gen(arch), trained_nnetwork(arch2);
+
+  //gen.setNonlinearity(gen.getLayers()-1, nnetwork<>::tanh);
+  //trained_nnetwork.setNonlinearity(trained_nnetwork.getLayers()-1, nnetwork<>::tanh);
+  
   gen.randomize();
   trained_nnetwork.randomize();
 
@@ -528,6 +536,15 @@ void recurrent_nnetwork_test()
   }
 
   whiteice::rLBFGS_recurrent_nnetwork<> trainer(trained_nnetwork, data);
+  // wolfe conditions are required to guaranteed to get good results
+  trainer.setUseWolfeConditions(true);
+  
+  trainer.setGradientOnly(true);
+
+  // const float SGD_LRATE = 1e-5;
+  // const unsigned int MAX_NOPROGRESS_ITERATIONS = 20;
+  // 
+  // trainer.setSGD(1e-5, 
 
   whiteice::math::vertex<> x0;
   trained_nnetwork.exportdata(x0);
@@ -551,6 +568,8 @@ void recurrent_nnetwork_test()
 
     std::this_thread::sleep_for(std::chrono::milliseconds(333)); // 333ms sleep 
   }
+
+  trainer.stopComputation();
 
   std::cout << "Trainer stopped." << std::endl;
   
