@@ -1,6 +1,9 @@
 /*
  * Implments Stochasic Gradient Descent absract class to be inherited by a specific optimization class.
  * 
+ *
+ * TODO: allow implementing class to enable dropout heuristic in neural networks.
+ *
  */
 
 #include "SGD.h"
@@ -38,6 +41,8 @@ namespace whiteice
       optimizer_thread = nullptr;
       this->overfit = overfit;
       this->keepWorse = false;
+      this->smart_convergence_check = true;
+      this->adaptive_lrate = true;
     }
     
  
@@ -236,46 +241,106 @@ namespace whiteice
 #endif
 #endif
 
-      // TODO: IMPLEMENT Stochastic Gradient Descent!!
-
       thread_is_running_cond.notify_all();
 
       this->iterations = 0;
       unsigned int no_improve_iterations = 0;
+      std::list<T> errors; // used for convergence check
 
       vertex<T> grad;
       
       vertex<T> x(bestx);
-      T y = besty;
+      T real_besty = besty;
 
+      T current_lrate = lrate;
+      
+      // stops if given number of iterations has passed or no improvements in N iters
+      // or if instructed to stop. Additionally, in the loop there is convergence check
+      // to check if to stop computing.
       while((iterations < MAX_ITERS || MAX_ITERS == 0) &&
 	    (no_improve_iterations) < MAX_NO_IMPROVE_ITERS &&
 	    thread_running)
       {
 	grad = Ugrad(x);
 
-	x -= lrate*grad; // minimization
+	x -= current_lrate*grad; // minimization
 
 	heuristics(x);
 
 	const T ynew = getError(x);
 
-	if(ynew < y){
+	if(ynew < real_besty){
 	  no_improve_iterations = 0;
 	}
 	else{
 	  no_improve_iterations++;
 	}
 	
-	if(ynew < y || keepWorse){
-	  std::lock_guard<std::mutex> lock(solution_mutex);
-	  
-	  this->besty = ynew;
-	  this->bestx = x;
-	  y = ynew;
+	if(ynew < besty || keepWorse){
+	  {
+	    std::lock_guard<std::mutex> lock(solution_mutex);
+	    
+	    this->besty = ynew;
+	    this->bestx = x;
+	  }
 	}
 
+	if(ynew < real_besty){ // results improved
+	  real_besty = ynew;
+	  
+	  if(adaptive_lrate)
+	    current_lrate *= T(1.25f);
+	}
+	else{ // result didn't improve
+	  if(adaptive_lrate)
+	    current_lrate *= T(0.5f);
+	}
+
+	if(current_lrate < T(1e-20))
+	  current_lrate = T(1e-20);
+	else if(current_lrate > T(1e20))
+	  current_lrate = T(1e20);
+
 	iterations++;
+
+	
+	// smart convergence check: checks if (st.dev. / mean) <= 0.001 (<= 0.1%)
+	if(smart_convergence_check){
+	  errors.push_back(real_besty); // NOTE: getError() must return >= 0.0 values
+
+	  if(errors.size() >= 30){
+	  
+	    while(errors.size() > 30)
+	      errors.pop_front();
+	    
+	    T m = T(0.0f);
+	    T s = T(0.0f);
+	    
+	    for(const auto& e : errors){
+	      m += e;
+	      s += e*e;
+	    }
+	    
+	    m /= errors.size();
+	    s /= errors.size();
+
+	    s -= m*m;
+	    s = sqrt(abs(s));
+
+	    T r = T(0.0f);
+
+	    if(m > T(0.0f))
+	      r = s/m;
+
+	    if(r <= T(0.005f)){ // convergence: 0.1% st.dev. when compared to mean.
+	      solution_converged = true;
+	      break;
+	    }
+
+	  }
+	}
+
+	
 
 	while(sleep_mode && thread_running){
 	  std::chrono::milliseconds duration(200);
@@ -284,7 +349,10 @@ namespace whiteice
 
       }
 
+      
       {
+	solution_converged = true;
+	
 	// std::lock_guard<std::mutex> lock(thread_mutex); // needed or safe??
 	
 	thread_running = false; // very tricky here, writing false => false or true => false SHOULD BE ALWAYS SAFE without locks

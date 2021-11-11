@@ -542,10 +542,10 @@ void recurrent_nnetwork_test()
   // trainer.setGradientOnly(true);
 
   whiteice::SGD_recurrent_nnetwork<> trainer(trained_nnetwork, data);
-  trainer.setKeepWorse(true);
+  trainer.setKeepWorse(false);
 
   // const float SGD_LRATE = 1e-5;
-  // const unsigned int MAX_NOPROGRESS_ITERATIONS = 20;
+  // const unsigned int MAX_NOPROGRESS_ITERATIONS = 50;
   // 
   // trainer.setSGD(1e-5,
 

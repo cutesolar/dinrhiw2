@@ -54,10 +54,19 @@ namespace whiteice
         bool minimize(vertex<T> x0,
 		      const T lrate = T(1e-2),
 		      const unsigned int MAX_ITERS=0, // stop when max no improve iters has passed
-		      const unsigned int MAX_NO_IMPROVE_ITERS = 30);
+		      const unsigned int MAX_NO_IMPROVE_ITERS = 50);
 
+	// do we keep each iterations result as the current best solution..
 	void setKeepWorse(bool keepFlag){ keepWorse = keepFlag; }
 	bool getKeepWorse() const { return keepWorse; }
+
+	// do we stop when average improvement is less than 0.1% of the mean
+	void setSmartConvergenceCheck(bool checkFlag){ smart_convergence_check = checkFlag; }
+	bool getSmartConvergenceCheck() const { return smart_convergence_check; }
+
+	// do we adapt lrate if results don't improve
+	void setAdaptiveLRate(bool adaptiveFlag){ adaptive_lrate = adaptiveFlag; }
+	bool getAdaptiveLRate() const { return adaptive_lrate; }
 
 	// x is the best parameter found, y is training error and
 	// iterations is number of training iterations.
@@ -90,8 +99,10 @@ namespace whiteice
 	unsigned int MAX_ITERS;
 	unsigned int MAX_NO_IMPROVE_ITERS;
       
-        bool overfit;
-	bool keepWorse; // do we save worse solutions
+        bool overfit = false;
+	bool keepWorse = false; // do we save worse solutions
+	bool smart_convergence_check = true; // do we stop when average improvement is less than 0.1% of the mean
+	bool adaptive_lrate = true; // do we adapt lrate between iterations
 	
         volatile bool sleep_mode, thread_running, solution_converged;
       
