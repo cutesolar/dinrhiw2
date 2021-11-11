@@ -317,6 +317,7 @@ namespace whiteice
     bool endFlag = false;
 
     std::vector< rifl_datapoint<T> > episode;
+    std::vector< std::vector< rifl_datapoint<T> > > episodes;
     
     FILE* episodesFile = fopen("episodes-result.txt", "w");
     
@@ -345,6 +346,7 @@ namespace whiteice
     const unsigned int SAMPLESIZE = 5000; // number of samples database must have before use
     const unsigned int BATCHSIZE = 500;
     const unsigned int ITERATIONS = 1; // was 250
+    const unsigned int EPISODES_MAX = 10000;
 
     bool first_time = true;
     whiteice::math::vertex<T> state;
@@ -390,7 +392,30 @@ namespace whiteice
       unsigned int action = 0;
 
       {
-#if 0
+#if 1
+	// normalizs U values (mean-variance normalization)
+	{
+	  T m = T(0.0f), s = T(0.0f);
+
+	  for(const auto& ui : U){
+	    m += ui;
+	    s += ui*ui;
+	  }
+
+	  m /= U.size();
+	  s /= U.size();
+
+	  s -= m*m;
+	  s = sqrt(abs(s));
+
+	  if(s == T(0.0f)) s = T(1.0f);
+
+	  for(auto& ui : U){
+	    ui = (ui - m)/s;
+	  }
+	}
+
+	
 	const T temperature = T(0.1); // was: 1.0 - for random selection of actions.
 	
 	T psum = T(0.0);
@@ -522,6 +547,12 @@ namespace whiteice
 
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
 	  fflush(episodesFile);
+
+	  if(episodes.size() < EPISODES_MAX)
+	    episodes.push_back(episode);
+	  else{
+	    episodes[((episodes_counter)%EPISODES_MAX)] = episode;
+	  }
 
 	  episode.clear();
 	  episodes_counter++;
