@@ -53,8 +53,11 @@
 #include "pLBFGS_nnetwork.h"
 
 #include "rLBFGS_nnetwork.h"
+#include "rLBFGS_recurrent_nnetwork.h"
 #include "Mixture.h"
 #include "EnsembleMeans.h"
+
+#include "SGD.h"
 
 #include "RNG.h"
 

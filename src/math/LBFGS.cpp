@@ -34,7 +34,7 @@ namespace whiteice
       optimizer_thread = nullptr;
       this->overfit = overfit;
       this->onlygradient = false;
-      this->use_wolfe = false;
+      this->use_wolfe = true; // results are not always good unless Wolfe conditions is not used
     }
     
  
@@ -592,10 +592,12 @@ namespace whiteice
 	  std::this_thread::sleep_for(duration);
 	}
       }
+
       
       
       thread_running = false; // very tricky here, writing false => false or true => false SHOULD BE ALWAYS SAFE without locks
       // thread_is_running_cond.notify_all(); // waiters have to use wait_for() [timeout milliseconds] as it IS possible to miss notify_all()
+      
     }
     
     

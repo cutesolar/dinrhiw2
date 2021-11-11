@@ -1,6 +1,6 @@
 /*
- * Limited Memory-Broyden-Fletcher-Goldfarb-Shanno (L-BFGS) optimizer
- * minimizes the target error function.
+ * SGD - Stochastic Gradient Descent optimizer (abstract class)
+ * 
  */
 
 #include <thread>
@@ -13,8 +13,8 @@
 #include "RNG.h"
 
 
-#ifndef LBFGS_h
-#define LBFGS_h
+#ifndef __whiteice__SGD_h
+#define __whiteice__SGD_h
 
 
 namespace whiteice
@@ -23,11 +23,11 @@ namespace whiteice
   {
     
     template <typename T=blas_real<float> >
-      class LBFGS
+      class SGD
       {
       public:
-        LBFGS(bool overfit=false); // overfit: do not use early stopping via getError() function
-        virtual ~LBFGS();
+        SGD(bool overfit=false); // overfit: do not use early stopping via getError() function
+        virtual ~SGD();
       
       protected:
         /* optimized function */
@@ -35,7 +35,7 @@ namespace whiteice
         virtual T U(const vertex<T>& x) const = 0;
         virtual vertex<T> Ugrad(const vertex<T>& x) const = 0;
       
-        // heuristically improve solution x during LBFGS optimization
+        // heuristically improve solution x during SGD optimization
         virtual bool heuristics(vertex<T>& x) const = 0;
       
       public:
@@ -51,7 +51,13 @@ namespace whiteice
       
       
 	// x0 is starting point
-        bool minimize(vertex<T> x0);
+        bool minimize(vertex<T> x0,
+		      const T lrate = T(1e-6),
+		      const unsigned int MAX_ITERS=1,
+		      const unsigned int MAX_NO_IMPROVE_ITERS = 100);
+
+	void setKeepWorse(bool keepFlag){ keepWorse = keepFlag; }
+	bool getKeepWorse() const { return keepWorse; }
 
 	// x is the best parameter found, y is training error and
 	// iterations is number of training iterations.
@@ -69,38 +75,23 @@ namespace whiteice
         // returns true if optimization thread is running
         bool isRunning() const;
 
-	// NOTE: This DOES NOT work!
-	// follow only gradient instead of 2nd order H aprox
-	void setGradientOnly(bool gradientOnly=true){
-	  this->onlygradient = gradientOnly;
-	}
-
-	void setUseWolfeConditions(bool useWolfe = true){
-	  this->use_wolfe = useWolfe; // SLOW but should guarantee convergence to grad == zero point.
-	}
 	
       private:
       
-        bool linesearch(vertex<T>& xn,
-			T& scale,
-			const vertex<T>& x,
-			const vertex<T>& d) const;
-
 	bool box_values(vertex<T>& x) const;
+	
             
-
-        bool wolfe_conditions(const vertex<T>& x0,
-			      const T& alpha,
-			      const vertex<T>& p) const;
-      
         // best solution found
 	vertex<T> bestx; 
 	T besty;
         volatile unsigned int iterations;
+
+	T lrate;
+	unsigned int MAX_ITERS;
+	unsigned int MAX_NO_IMPROVE_ITERS;
       
         bool overfit;
-	bool onlygradient; // only follow gradient (no 2nd order aprox)
-	bool use_wolfe; // do we use wolfe conditions in line search?
+	bool keepWorse; // do we save worse solutions
 	
         volatile bool sleep_mode, thread_running, solution_converged;
       
@@ -110,9 +101,6 @@ namespace whiteice
         
         std::thread* optimizer_thread;
         mutable std::mutex sleep_mutex, thread_mutex, solution_mutex;
-
-      protected:
-	whiteice::RNG<T> rng;
 	
       private:
 	void optimizer_loop();
@@ -129,10 +117,10 @@ namespace whiteice
   namespace math
   {
     
-  extern template class LBFGS< float >;
-  extern template class LBFGS< double >;
-  extern template class LBFGS< blas_real<float> >;
-  extern template class LBFGS< blas_real<double> >;
+  extern template class SGD< float >;
+  extern template class SGD< double >;
+  extern template class SGD< blas_real<float> >;
+  extern template class SGD< blas_real<double> >;
     
   };
 };
