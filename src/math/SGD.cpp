@@ -77,7 +77,7 @@ namespace whiteice
 	return false;
       }
 
-      if(lrate <= T(0.0f) || MAX_ITERS <= 0 || MAX_NO_IMPROVE_ITERS <= 0){
+      if(lrate <= T(0.0f) || MAX_NO_IMPROVE_ITERS <= 0){
 	thread_mutex.unlock();
 	return false;
       }
@@ -95,7 +95,7 @@ namespace whiteice
       solution_mutex.unlock();
 
       this->lrate = lrate;
-      this->MAX_ITERS = MAX_ITERS;
+      this->MAX_ITERS = MAX_ITERS; // if MAX_ITERS == zero, don't stop until convergence (no improve)
       this->MAX_NO_IMPROVE_ITERS = MAX_NO_IMPROVE_ITERS;
       
       thread_running = true;
@@ -248,7 +248,7 @@ namespace whiteice
       vertex<T> x(bestx);
       T y = besty;
 
-      while((iterations < MAX_ITERS) &&
+      while((iterations < MAX_ITERS || MAX_ITERS == 0) &&
 	    (no_improve_iterations) < MAX_NO_IMPROVE_ITERS &&
 	    thread_running)
       {
@@ -260,19 +260,21 @@ namespace whiteice
 
 	const T ynew = getError(x);
 
-	if(ynew < y || keepWorse){
-	  std::lock_guard<std::mutex> lock(solution_mutex);
-	  
-	  this->besty = ynew;
-	  this->bestx = x;
-	  y = ynew;
-
+	if(ynew < y){
 	  no_improve_iterations = 0;
 	}
 	else{
 	  no_improve_iterations++;
 	}
 	
+	if(ynew < y || keepWorse){
+	  std::lock_guard<std::mutex> lock(solution_mutex);
+	  
+	  this->besty = ynew;
+	  this->bestx = x;
+	  y = ynew;
+	}
+
 	iterations++;
 
 	while(sleep_mode && thread_running){

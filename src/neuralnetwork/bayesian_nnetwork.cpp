@@ -431,7 +431,7 @@ namespace whiteice
 	cov += ninv*out.outerproduct();
       }
       
-#pragma omp critical (mvoierfjdskrweaa)
+#pragma omp critical
       {
 	mean += m;
 	covariance += cov;
@@ -518,7 +518,7 @@ namespace whiteice
 
       m *= ninv;
       
-#pragma omp critical (mofefgvjsasaaarewt)
+#pragma omp critical
       {
 	mean += m;
       }

@@ -56,7 +56,7 @@
 #include "KMBoosting.h"
 
 #include "rLBFGS_recurrent_nnetwork.h"
-
+#include "SGD_recurrent_nnetwork.h"
 
 #include <iostream>
 #include <fstream>
@@ -535,21 +535,27 @@ void recurrent_nnetwork_test()
     data.add(2, range);
   }
 
-  whiteice::rLBFGS_recurrent_nnetwork<> trainer(trained_nnetwork, data);
-  // wolfe conditions are required to guaranteed to get good results
-  trainer.setUseWolfeConditions(true);
-  
-  trainer.setGradientOnly(true);
+  //whiteice::rLBFGS_recurrent_nnetwork<> trainer(trained_nnetwork, data);
+  // // wolfe conditions are required to guaranteed to get good results
+  // trainer.setUseWolfeConditions(true);
+  // 
+  // trainer.setGradientOnly(true);
+
+  whiteice::SGD_recurrent_nnetwork<> trainer(trained_nnetwork, data);
+  trainer.setKeepWorse(true);
 
   // const float SGD_LRATE = 1e-5;
   // const unsigned int MAX_NOPROGRESS_ITERATIONS = 20;
   // 
-  // trainer.setSGD(1e-5, 
+  // trainer.setSGD(1e-5,
 
+  const unsigned int MAX_NO_IMPROVE_ITERS = 30;
+  float lrate = 1e-2;
+  
   whiteice::math::vertex<> x0;
   trained_nnetwork.exportdata(x0);
 
-  trainer.minimize(x0);
+  trainer.minimize(x0, lrate, 0, MAX_NO_IMPROVE_ITERS);
 
   int solution_iteration_seen = -1;
 

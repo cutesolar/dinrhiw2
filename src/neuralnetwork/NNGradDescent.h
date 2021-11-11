@@ -71,10 +71,10 @@ namespace whiteice
       T getRegularizer() const;
 
       // if lrate is <= 0, disable the SGD (default)
-      void setSGD(T sgd_lrate = T(0.0f)){
-	if(sgd_lrate <= T(0.0f)){ use_SGD = false; sgd_lrate = T(0.0f); return; }
-	use_SGD = true;
-	this->sgd_lrate = sgd_lrate;
+      void setSGD(T sgd_lrate_ = T(0.0f)){
+	if(sgd_lrate <= T(0.0f)){ this->use_SGD = false; this->sgd_lrate = T(0.0f); return; }
+	this->use_SGD = true;
+	this->sgd_lrate = sgd_lrate_;
       }
 	
       bool getSGD() const { return use_SGD; }

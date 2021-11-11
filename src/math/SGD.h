@@ -52,9 +52,9 @@ namespace whiteice
       
 	// x0 is starting point
         bool minimize(vertex<T> x0,
-		      const T lrate = T(1e-6),
-		      const unsigned int MAX_ITERS=1,
-		      const unsigned int MAX_NO_IMPROVE_ITERS = 100);
+		      const T lrate = T(1e-2),
+		      const unsigned int MAX_ITERS=0, // stop when max no improve iters has passed
+		      const unsigned int MAX_NO_IMPROVE_ITERS = 30);
 
 	void setKeepWorse(bool keepFlag){ keepWorse = keepFlag; }
 	bool getKeepWorse() const { return keepWorse; }
