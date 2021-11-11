@@ -539,7 +539,7 @@ void recurrent_nnetwork_test()
   // // wolfe conditions are required to guaranteed to get good results
   // trainer.setUseWolfeConditions(true);
   // 
-  // trainer.setGradientOnly(true);
+  // trainer.setGradientOnly(false);
 
   whiteice::SGD_recurrent_nnetwork<> trainer(trained_nnetwork, data);
   trainer.setKeepWorse(false);
