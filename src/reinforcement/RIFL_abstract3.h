@@ -12,15 +12,20 @@
  * LONG-JI, LIN
  * Machine Learning, 8, 293-321 (1992)
  *
+ * NOTE: The new implementation (version 3) now uses 
+ * recurrent neural networks so the agent has a state.
+ *
  */
 
-#ifndef whiteice_RIFL_abstract_h
-#define whiteice_RIFL_abstract_h
+#ifndef whiteice_RIFL_abstract3_h
+#define whiteice_RIFL_abstract3_h
 
 #include <string>
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "RIFL_abstract.h"
 
 #include "dinrhiw_blas.h"
 #include "vertex.h"
@@ -33,11 +38,11 @@ namespace whiteice
 {
 
   template <typename T>
-    class CreateRIFLdataset;
+  class CreateRIFL3dataset;
   
   
   template <typename T = math::blas_real<float> >
-    class RIFL_abstract
+    class RIFL_abstract3
     {
     public:
       
@@ -45,19 +50,19 @@ namespace whiteice
        * numActions        - the number of discrete different actions
        * numStates         - the number of dimensions in state vectors
        */
-      RIFL_abstract(const unsigned int numActions,
-		    const unsigned int numStates);
+      RIFL_abstract3(const unsigned int numActions,
+		     const unsigned int numStates);
 
       /*
        * numActions         - the number of discerete different actions
        * numStates          - the number of dimensions in state vectors
        * arch               - Q neural network architecture "numStates-*-*-numActions"
        */
-      RIFL_abstract(const unsigned int numActions,
-		    const unsigned int numStates,
-		    std::vector<unsigned int> arch);
+      RIFL_abstract3(const unsigned int numActions,
+		     const unsigned int numStates,
+		     std::vector<unsigned int> arch);
       
-      ~RIFL_abstract() ;
+      ~RIFL_abstract3() ;
       
       // starts Reinforcement Learning thread
       bool start();
@@ -80,11 +85,6 @@ namespace whiteice
       void setLearningMode(bool learn) ;
       bool getLearningMode() const ;
 
-      // do we sample episodes and not samples, needed for recurrent neural network learning
-      void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
-      bool getSmartEpisodes() const{ return useEpisodes; }
-      
-      
       /*
        * hasModel is number of current optimization model (starting from zero)
        * (from init or from load)
@@ -106,8 +106,6 @@ namespace whiteice
       
     protected:
       
-      unsigned int numActions, numStates;
-      
       virtual bool getState(whiteice::math::vertex<T>& state) = 0;
       
       virtual bool performAction(const unsigned int action,
@@ -115,7 +113,12 @@ namespace whiteice
 				 T& reinforcement,
 				 bool& endFlag) = 0;
             
-    protected:
+    private:
+
+      unsigned int numActions, numStates;
+
+      // number of dimensions to be used as recurrent dimensions
+      const unsigned int RECURRENT_DIMENSIONS = 5;
       
       // helper function, returns minimum value in vec
       unsigned int min(const std::vector<unsigned int>& vec) const ;
@@ -127,7 +130,8 @@ namespace whiteice
       
       unsigned int hasModel;
       bool learningMode;
-      bool useEpisodes;
+      
+      const bool useEpisodes = true; // always use episodes for training.
       
       T epsilon;
       T gamma;
@@ -142,25 +146,15 @@ namespace whiteice
       
       // friend thread class to do heavy computations in background
       // out of main loop 
-      friend class CreateRIFLdataset<T>;
+      friend class CreateRIFL3dataset<T>;
       
   };
 
-  template <typename T>
-    struct rifl_datapoint
-    {
-      whiteice::math::vertex<T> state, newstate;
-      unsigned int action;
-      T reinforcement;
-      
-      bool lastStep;
-    };
 
-
-  extern template class RIFL_abstract< math::blas_real<float> >;
-  extern template class RIFL_abstract< math::blas_real<double> >;
+  extern template class RIFL_abstract3< math::blas_real<float> >;
+  extern template class RIFL_abstract3< math::blas_real<double> >;
 };
 
-#include "CreateRIFLdataset.h"
+#include "CreateRIFL3dataset.h"
 
 #endif

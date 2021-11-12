@@ -68,7 +68,10 @@ int main(int argc, char** argv)
       system.setHasModel(1);
     }
     
-    system.start();
+    if(system.start() == false){
+      printf("ERROR: Starting reinforcement learning FAILED.\n");
+      return -1;
+    }
 
     sleep(1);
 
@@ -83,7 +86,7 @@ int main(int argc, char** argv)
       
       sleep(1); 
       if((counter % 180) == 0){ // saved model file every 3 minutes
-	if(system.save("minihack-rifl2.dat"))
+	if(system.save("minihack2-rifl.dat"))
 	  printf("MODEL FILE SAVED\n");
       }
       

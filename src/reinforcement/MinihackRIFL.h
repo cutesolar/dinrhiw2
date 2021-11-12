@@ -13,7 +13,8 @@
 #ifndef __whiteice_minihack_rifl2_h
 #define __whiteice_minihack_rifl2_h
 
-#include "RIFL_abstract.h"
+//#include "RIFL_abstract.h"
+#include "RIFL_abstract3.h"
 #include "RNG.h"
 
 #include <string>
@@ -22,7 +23,8 @@
 namespace whiteice
 {
   template <typename T>
-    class MinihackRIFL : public RIFL_abstract<T>
+  //class MinihackRIFL : public RIFL_abstract<T>
+  class MinihackRIFL : public RIFL_abstract3<T>
     {
     public:
 

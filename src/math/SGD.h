@@ -71,6 +71,8 @@ namespace whiteice
 	// x is the best parameter found, y is training error and
 	// iterations is number of training iterations.
         bool getSolution(vertex<T>& x, T& y, unsigned int& iterations) const;
+
+	bool getSolutionStatistics(T& y, unsigned int& iterations) const;
 	
 	// continues, pauses, stops computation
         bool continueComputation();

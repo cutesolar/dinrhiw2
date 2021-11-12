@@ -1,21 +1,25 @@
 
-#include "RIFL_abstract.h"
+#include "RIFL_abstract3.h"
 #include "NNGradDescent.h"
+
+#include "SGD_recurrent_nnetwork.h"
+
 
 #include <assert.h>
 #include <list>
 #include <functional>
 
+
 namespace whiteice
 {
 
   template <typename T>
-  RIFL_abstract<T>::RIFL_abstract(const unsigned int numActions,
-				  const unsigned int numStates)
+  RIFL_abstract3<T>::RIFL_abstract3(const unsigned int numActions,
+				    const unsigned int numStates)
   {
     {
       char buffer[128];
-      snprintf(buffer, 128, "RIFL_abstract CTOR called (%d, %d)",
+      snprintf(buffer, 128, "RIFL_abstract3 CTOR called (%d, %d)",
 	       numActions, numStates);
       whiteice::logging.info(buffer);
     }
@@ -24,9 +28,8 @@ namespace whiteice
     {
       gamma = T(0.95);
       epsilon = T(0.80);
-
+      
       learningMode = true;
-      useEpisodes = false;
       hasModel = 0;
       
       this->numActions        = numActions;
@@ -39,13 +42,13 @@ namespace whiteice
     {
       // wide neural network..
       std::vector<unsigned int> arch;
-      arch.push_back(numStates);
+      arch.push_back(numStates + RECURRENT_DIMENSIONS);
       arch.push_back(50);
       arch.push_back(50);
       arch.push_back(50);
       arch.push_back(50);
       arch.push_back(50);
-      arch.push_back(numActions);
+      arch.push_back(numActions + RECURRENT_DIMENSIONS);
 
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
@@ -61,24 +64,25 @@ namespace whiteice
 	// creates empty preprocessing
 	preprocess.createCluster("input-state", numStates);
 	preprocess.createCluster("output-action-qs", numActions);
+	preprocess.createCluster("episode-ranges", 2);
       }
     }
 
     thread_is_running = 0;
     rifl_thread = nullptr;
     
-    whiteice::logging.info("RIFL_abstract CTOR finished");
+    whiteice::logging.info("RIFL_abstract3 CTOR finished");
   }
 
   
   template <typename T>
-  RIFL_abstract<T>::RIFL_abstract(const unsigned int numActions,
-				  const unsigned int numStates,
-				  std::vector<unsigned int> arch)
+  RIFL_abstract3<T>::RIFL_abstract3(const unsigned int numActions,
+				    const unsigned int numStates,
+				    std::vector<unsigned int> arch)
   {
     {
       char buffer[128];
-      snprintf(buffer, 128, "RIFL_abstract CTOR called (%d, %d)",
+      snprintf(buffer, 128, "RIFL_abstract3 CTOR called (%d, %d)",
 	       numActions, numStates);
       whiteice::logging.info(buffer);
     }
@@ -89,7 +93,6 @@ namespace whiteice
       epsilon = T(0.80);
 
       learningMode = true;
-      useEpisodes = false;
       hasModel = 0;
       
       this->numActions        = numActions;
@@ -98,8 +101,8 @@ namespace whiteice
       if(arch.size() < 2)
 	arch.resize(2);
 
-      arch[0] = numStates;
-      arch[arch.size()-1] = numActions;
+      arch[0] = numStates + RECURRENT_DIMENSIONS;
+      arch[arch.size()-1] = numActions + RECURRENT_DIMENSIONS;
     }
 
     
@@ -121,18 +124,19 @@ namespace whiteice
 	// creates empty preprocessing
 	preprocess.createCluster("input-state", numStates);
 	preprocess.createCluster("output-action-qs", numActions);
+	preprocess.createCluster("episode-ranges", 2);
       }
     }
 
     thread_is_running = 0;
     rifl_thread = nullptr;
     
-    whiteice::logging.info("RIFL_abstract CTOR finished");
+    whiteice::logging.info("RIFL_abstract3 CTOR finished");
   }
   
   
   template <typename T>
-  RIFL_abstract<T>::~RIFL_abstract() 
+  RIFL_abstract3<T>::~RIFL_abstract3() 
   {
     // stops executing thread
     {
@@ -157,7 +161,7 @@ namespace whiteice
   
   // starts Reinforcement Learning thread
   template <typename T>
-  bool RIFL_abstract<T>::start()
+  bool RIFL_abstract3<T>::start()
   {
     if(thread_is_running != 0) return false;
 
@@ -167,7 +171,7 @@ namespace whiteice
 
     try{
       thread_is_running++;
-      rifl_thread = new std::thread(std::bind(&RIFL_abstract<T>::loop, this));
+      rifl_thread = new std::thread(std::bind(&RIFL_abstract3<T>::loop, this));
     }
     catch(std::exception& e){
       thread_is_running--;
@@ -182,7 +186,7 @@ namespace whiteice
   
   // stops Reinforcement Learning thread
   template <typename T>
-  bool RIFL_abstract<T>::stop()
+  bool RIFL_abstract3<T>::stop()
   {
     if(thread_is_running <= 0) return false;
 
@@ -202,7 +206,7 @@ namespace whiteice
   }
 
   template <typename T>
-  bool RIFL_abstract<T>::isRunning() const
+  bool RIFL_abstract3<T>::isRunning() const
   {
     return (thread_is_running > 0);
   }
@@ -211,7 +215,7 @@ namespace whiteice
   // epsilon E [0,1] percentage of actions are chosen according to model
   //                 1-e percentage of actions are random (exploration)
   template <typename T>
-  bool RIFL_abstract<T>::setEpsilon(T epsilon) 
+  bool RIFL_abstract3<T>::setEpsilon(T epsilon) 
   {
     if(epsilon < T(0.0) || epsilon > T(1.0)) return false;
     this->epsilon = epsilon;
@@ -220,33 +224,33 @@ namespace whiteice
   
 
   template <typename T>
-  T RIFL_abstract<T>::getEpsilon() const 
+  T RIFL_abstract3<T>::getEpsilon() const 
   {
     return epsilon;
   }
 
 
   template <typename T>
-  void RIFL_abstract<T>::setLearningMode(bool learn) 
+  void RIFL_abstract3<T>::setLearningMode(bool learn) 
   {
     learningMode = learn;
   }
 
   template <typename T>
-  bool RIFL_abstract<T>::getLearningMode() const 
+  bool RIFL_abstract3<T>::getLearningMode() const 
   {
     return learningMode;
   }
 
 
   template <typename T>
-  void RIFL_abstract<T>::setHasModel(unsigned int hasModel) 
+  void RIFL_abstract3<T>::setHasModel(unsigned int hasModel) 
   {
     this->hasModel = hasModel;
   }
 
   template <typename T>
-  unsigned int RIFL_abstract<T>::getHasModel() 
+  unsigned int RIFL_abstract3<T>::getHasModel() 
   {
     return hasModel;
   }
@@ -254,7 +258,7 @@ namespace whiteice
   
   // saves learnt Reinforcement Learning Model to file
   template <typename T>
-  bool RIFL_abstract<T>::save(const std::string& filename) const
+  bool RIFL_abstract3<T>::save(const std::string& filename) const
   {    
 
     {
@@ -276,7 +280,7 @@ namespace whiteice
   
   // loads learnt Reinforcement Learning Model from file
   template <typename T>
-  bool RIFL_abstract<T>::load(const std::string& filename)
+  bool RIFL_abstract3<T>::load(const std::string& filename)
   {
     {
       std::lock_guard<std::mutex> lock(model_mutex);
@@ -298,7 +302,7 @@ namespace whiteice
 
   // helper function, returns minimum value in v
   template <typename T>
-  unsigned int RIFL_abstract<T>::min(const std::vector<unsigned int>& vec)
+  unsigned int RIFL_abstract3<T>::min(const std::vector<unsigned int>& vec)
     const 
   {
     if(vec.size() <= 0) return 0;
@@ -311,7 +315,7 @@ namespace whiteice
   
 
   template <typename T>
-  void RIFL_abstract<T>::loop()
+  void RIFL_abstract3<T>::loop()
   {
     std::vector< rifl_datapoint<T> > database;
     std::mutex database_mutex;
@@ -324,22 +328,31 @@ namespace whiteice
     FILE* episodesFile = fopen("episodes-result.txt", "w");
     
     unsigned long episodes_counter = 0;
-    
-    // gradient descent learning class
-    whiteice::math::NNGradDescent<T> grad;
 
-    const T lrate = T(1e-6); // was: 1e-4
-    
-    grad.setOverfit(false);
-    grad.setUseMinibatch(true);
-    grad.setSGD(lrate);
-    grad.setRegularizer(T(0.001f)); // enable regularizer against large values
+    //
+    //// gradient descent learning class
+    //whiteice::math::NNGradDescent<T> grad;
+    //
+    //grad.setOverfit(false);
+    //grad.setUseMinibatch(true);
+    //grad.setSGD(lrate);
+    //grad.setRegularizer(T(0.001f)); // enable regularizer against large values
+    //
+
+    whiteice::SGD_recurrent_nnetwork<T>* grad = nullptr;
+
+    const T lrate = T(1e-1); // was: 1e-4, WAS: 1e-6, waSS: 1e-2
+
+
+    whiteice::math::vertex<T> recurrent_data;
+    recurrent_data.resize(RECURRENT_DIMENSIONS);
+    recurrent_data.zero();
 
     // dataset for learning class
     whiteice::dataset<T> data;
 
     // used to calculate dataset in background for NNGradDescent..
-    whiteice::CreateRIFLdataset<T>* dataset_thread = nullptr;
+    whiteice::CreateRIFL3dataset<T>* dataset_thread = nullptr;
 
     unsigned int epoch = 0;
     int old_grad_iterations = 0;
@@ -347,12 +360,14 @@ namespace whiteice
     const unsigned int DATASIZE = 1000000;
     const unsigned int SAMPLESIZE = 5000; // number of samples database must have before use
     const unsigned int BATCHSIZE = 500;
-    const unsigned int ITERATIONS = 1; // was 250
+    const unsigned int ITERATIONS = 10; // was 250, WAS: 1
     const unsigned int MINIMUM_EPISODE_SIZE = 50;
     const unsigned int EPISODES_MAX = 10000;
 
     bool first_time = true;
     whiteice::math::vertex<T> state;
+    state.resize(numStates);
+    state.zero();
 
     
     while(thread_is_running > 0){
@@ -374,20 +389,31 @@ namespace whiteice
 	whiteice::math::vertex<T> u;
 
 	{
-	  std::lock_guard<std::mutex> lock(model_mutex);
-	  whiteice::math::vertex<T> input;
+	  whiteice::math::vertex<T> input, output;
 	  
-	  input = state;
+	  input.resize(numStates + RECURRENT_DIMENSIONS);
+	  output.resize(numActions);
 	  
-	  preprocess.preprocess(0, input);
-	  
-	  assert(model.calculate(input, u, 1, 0) == true);
-	  assert(u.size() == numActions);
-	  
-	  preprocess.invpreprocess(1, u);
+	  {
+	    std::lock_guard<std::mutex> lock(model_mutex);
+	    
+	    preprocess.preprocess(0, state);
+	    
+	    input.write_subvertex(state, 0);
+	    input.write_subvertex(recurrent_data, state.size());
+	    
+	    assert(model.calculate(input, u, 1, 0) == true);
+	    assert(u.size() == numActions + RECURRENT_DIMENSIONS);
+
+	    u.subvertex(output, 0, numActions);
+	    
+	    preprocess.invpreprocess(1, output);
+	    u.subvertex(recurrent_data, numActions, RECURRENT_DIMENSIONS);
+	  }
 
 	  for(unsigned int i=0;i<numActions;i++)
-	    U[i] = u[i];
+	    U[i] = output[i];
+	  
 	}
       }
       
@@ -511,6 +537,10 @@ namespace whiteice
 	  continue;
 	}
 
+	if(endFlag){
+	  recurrent_data.zero(); // zeroes the memory/starting point of the model
+	}
+
 	//auto delta = newstate - state;
 	//std::cout << "state ||delta||^2 = " << (delta*delta)[0] << std::endl;
       }
@@ -597,12 +627,15 @@ namespace whiteice
 	      dataset_thread->stop();
 	      delete dataset_thread;
 	      dataset_thread = nullptr;
+	      
+	      // data.diagnostics(-1, true);
+
+	      std::vector< math::vertex<T> > weights;
 
 	      // fetch NN parameters from model
 	      {
 		// gradient is not yet running.. preparing nn for launch..
 		// (no preprocess)
-		std::vector< math::vertex<T> > weights;
 		
 		std::lock_guard<std::mutex> lock(model_mutex);
 		
@@ -620,22 +653,33 @@ namespace whiteice
 		//nn.setNonlinearity(nn.getLayers()-1,whiteice::nnetwork<T>::rectifier);
 	      }
 	      
-	      const bool dropout = false;
-	      const bool useInitialNN = true;
+	      //const bool dropout = false;
+	      //const bool useInitialNN = true;
 
-	      grad.setOverfit(false);
-	      grad.setUseMinibatch(true);
-	      grad.setNormalizeError(false);
-	      grad.setSGD(lrate);
+	      if(grad) delete grad;
 
+	      grad = new SGD_recurrent_nnetwork(nn, data, false);
+	      
+	      //grad.setOverfit(false);
+	      //grad.setUseMinibatch(true);
+	      //grad.setNormalizeError(false);
+	      //grad.setSGD(lrate);
+	      
 	      if(hasModel >= 10){
-		grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN);
+		// grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN);
+		
+		grad->setKeepWorse(true);
+		
+		grad->minimize(weights[0], lrate, ITERATIONS);
 	      }
 	      else{
-		grad.setUseMinibatch(false);
-		grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+		// grad.setUseMinibatch(false);
+		// grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+		// grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
 		
-		grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
+		grad->setKeepWorse(false);
+
+		grad->minimize(weights[0], lrate, 10);
 	      }
 	    
 	      old_grad_iterations = -1;
@@ -644,36 +688,54 @@ namespace whiteice
 	    }
 	  }
 
+	  bool grad_is_running = false;
+
+	  if(grad) if(grad->isRunning()) grad_is_running = true;
+
 	  // dataset_thread not running
-	  if(grad.isRunning() == false){
+	  ///if(grad.isRunning() == false){
+	  if(grad_is_running == false){
 	    if(first_time == false){
 	      // gradient descent has completed, fetch results and start dataset_thread again here
 	      
 	      // we do not have proper dataset/model yet so we fetch params
-	      grad.getSolution(nn);
+	      //grad.getSolution(nn);
+
+	      std::vector< whiteice::math::vertex<T> > w;
+
+	      model.exportSamples(nn, w);
+	      assert(w.size() >= 1);
+	      grad->getSolution(w[0], error, iters);
+	      
+	      nn.importdata(w[0]);
 	      
 	      char buffer[128];
 	      double tmp = 0.0;
 	      whiteice::math::convert(tmp, error);
 	      snprintf(buffer, 128,
-		       "RIFL_abstract: new optimized Q-model (%f error, %d iters, epoch %d)",
+		       "RIFL_abstract3: new optimizer Q-model (%f error, %d iters, epoch %d)",
 		       tmp, iters, epoch);
 	      whiteice::logging.info(buffer);
-	      
-	      std::lock_guard<std::mutex> lock(model_mutex);
-	      
-	      model.importNetwork(nn);
-	      
-	      nn.diagnosticsInfo();
-	      
-	      data.clearData(0);
-	      data.clearData(1);
-	      
-	      preprocess = data;
-	      
-	      whiteice::logging.info("RIFL_abstract: new model imported");
 
-	      grad.reset();
+	      {
+		std::lock_guard<std::mutex> lock(model_mutex);
+		
+		model.importNetwork(nn);
+		
+		nn.diagnosticsInfo();
+		
+		data.clearData(0);
+		data.clearData(1);
+		data.clearData(2);
+		
+		preprocess = data;
+	      }
+	      
+	      whiteice::logging.info("RIFL_abstract3: new model imported");
+
+	      delete grad;
+	      grad = nullptr;
+	     
 	      hasModel++;
 	      epoch++;
 	      first_time = false;
@@ -684,29 +746,32 @@ namespace whiteice
 	    data.clear();
 	    data.createCluster("input-state", numStates);
 	    data.createCluster("output-action-q", numActions);
+	    data.createCluster("episode-ranges", 2);
 	    
-	    dataset_thread = new CreateRIFLdataset<T>(*this,
-						      database,
-						      episodes,
-						      database_mutex,					
-						      epoch,
-						      data);
+	    dataset_thread = new CreateRIFL3dataset<T>(*this,
+						       database,
+						       episodes,
+						       database_mutex,		
+						       epoch,
+						       data);
 	    dataset_thread->start(BATCHSIZE, useEpisodes);
 	    
-	    whiteice::logging.info("RIFL_abstract: new dataset_thread started");
+	    whiteice::logging.info("RIFL_abstract3: new dataset_thread started");
 	    
 	    first_time = false;
 
 	    continue;
 	  }
 	  else{ // grad.isRunning() == true, report progress
-	    
-	    if(grad.getSolutionStatistics(error, iters)){
+
+	    if(grad == nullptr) continue;
+
+	    if(grad->getSolutionStatistics(error, iters)){
 	      if(((signed int)iters) > old_grad_iterations){
 		char buffer[80];
 		
 		snprintf(buffer, 80,
-			 "RIFL_abstract: epoch %d optimizer %d iters. error: %f hasmodel %d",
+			 "RIFL_abstract3: epoch %d optimizer %d iters. error: %f hasmodel %d",
 			 epoch, iters, error.c[0], hasModel);
 		
 		whiteice::logging.info(buffer);
@@ -717,7 +782,7 @@ namespace whiteice
 	    else{
 	      char buffer[80];
 	      snprintf(buffer, 80,
-		       "RIFL_abstract: epoch %d grad.getSolution() FAILED",
+		       "RIFL_abstract3: epoch %d grad.getSolution() FAILED",
 		       epoch);
 	      
 	      whiteice::logging.error(buffer);
@@ -726,149 +791,11 @@ namespace whiteice
 	    continue;
 	  }
 	  
-
-#if 0
-	  // if gradient thread have stopped or is not yet running..
-	  if(grad.isRunning() == false){
-	    
-	    
-	    if(grad.getSolutionStatistics(error, iters) == false){
-	      // gradient is not yet running.. or reset() preparing nn for launch..
-	    }
-	    else{
-	      // gradient have stopped running
-
-	      if(dataset_thread == nullptr){
-		// we do not have proper dataset/model yet so we fetch params
-		grad.getSolution(nn);
-			      
-		char buffer[128];
-		double tmp = 0.0;
-		whiteice::math::convert(tmp, error);
-		snprintf(buffer, 128,
-			 "RIFL_abstract: new optimized Q-model (%f error, %d iters, epoch %d)",
-			 tmp, iters, epoch);
-		whiteice::logging.info(buffer);
-
-		std::lock_guard<std::mutex> lock(model_mutex);
-
-		model.importNetwork(nn);
-		  
-		nn.diagnosticsInfo();
-		  
-		data.clearData(0);
-		data.clearData(1);
-		
-		preprocess = data;
-		
-		whiteice::logging.info("RIFL_abstract: new model imported");
-		
-		grad.reset();
-		epoch++;
-		hasModel++;
-	      }
-	      
-	    }
-
-
-	    if(dataset_thread == nullptr){
-	      data.clear();
-	      data.createCluster("input-state", numStates + dimActionFeatures);
-	      data.createCluster("output-action-q", 1);
-	      
-	      dataset_thread = new CreateRIFLdataset<T>(*this,
-							database,
-							database_mutex,
-							epoch,
-							data);
-	      dataset_thread->start(BATCHSIZE);
-
-	      whiteice::logging.info("RIFL_abstract: new dataset_thread started");
-	      
-	      continue;
-	      
-	    }
-	    else{
-	      if(dataset_thread->isCompleted() != true)
-		continue; // we havent computed proper dataset yet..
-	    }
-
-	    whiteice::logging.info("RIFL_abstract: new dataset_thread finished");
-	    if(dataset_thread) dataset_thread->stop();
-
-	    // fetch NN parameters from model
-	    {
-	      // gradient is not yet running.. preparing nn for launch..
-	      // (no preprocess)
-	      std::vector< math::vertex<T> > weights;
-	      
-	      std::lock_guard<std::mutex> lock(model_mutex);
-	      
-	      if(model.exportSamples(nn, weights, 1) == false){
-		assert(0);
-	      }
-	      
-	      assert(weights.size() > 0);
-	      
-	      if(nn.importdata(weights[0]) == false){
-		assert(0);
-	      }
-
-	      nn.setNonlinearity(whiteice::nnetwork<T>::rectifier);
-	      nn.setNonlinearity(nn.getLayers()-1,whiteice::nnetwork<T>::rectifer);
-	    }
-	    
-	    const bool dropout = false;
-	    bool useInitialNN = true;
-	    const unsigned int ITERATIONS=1; // was 250
-	    
-	    // if(grad.startOptimize(data, nn, 2, 250, dropout) == false){
-	    if(grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN) == false){
-	      whiteice::logging.error("RIFL_abstract: starting grad optimizer FAILED");
-	      assert(0);
-	    }
-	    else{
-	      whiteice::logging.info("RIFL_abstract: grad optimizer started");
-	    }
-	    
-	    old_grad_iterations = -1;
-	    
-	    if(dataset_thread) delete dataset_thread;
-	    dataset_thread = nullptr;
-	  }
-	  else{
-
-	    if(grad.getSolutionStatistics(error, iters)){
-	      if(((signed int)iters) > old_grad_iterations){
-		char buffer[80];
-		
-		snprintf(buffer, 80,
-			 "RIFL_abstract: epoch %d optimizer %d iters. error: %f hasmodel %d",
-			 epoch, iters, error.c[0], hasModel);
-		
-		whiteice::logging.info(buffer);
-
-		old_grad_iterations = (int)iters;
-	      }
-	    }
-	    else{
-	      char buffer[80];
-	      snprintf(buffer, 80,
-		       "RIFL_abstract: epoch %d grad.getSolution() FAILED",
-		       epoch);
-	      
-	      whiteice::logging.error(buffer);
-	    }
-	  }
-#endif
 	}
 	
       }
       
     }
-
-    
-    grad.stopComputation();
 
     if(episodesFile) fclose(episodesFile);
     
@@ -877,10 +804,16 @@ namespace whiteice
       delete dataset_thread;
       dataset_thread = nullptr;
     }
+
+    if(grad){
+      grad->stopComputation();
+      delete grad;
+      grad = nullptr;
+    }
     
   }
 
-  template class RIFL_abstract< math::blas_real<float> >;
-  template class RIFL_abstract< math::blas_real<double> >;
+  template class RIFL_abstract3< math::blas_real<float> >;
+  template class RIFL_abstract3< math::blas_real<double> >;
   
 };

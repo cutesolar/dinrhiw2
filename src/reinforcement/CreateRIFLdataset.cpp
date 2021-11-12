@@ -19,13 +19,15 @@ namespace whiteice
   // calculates reinforcement learning training dataset from database
   // using database_lock
   template <typename T>
-  CreateRIFLdataset<T>::CreateRIFLdataset(RIFL_abstract<T> const & rifl_,
-					  std::vector< rifl_datapoint<T> > const & database_,
+  CreateRIFLdataset<T>::CreateRIFLdataset(const RIFL_abstract<T> & rifl_,
+					  const std::vector< rifl_datapoint<T> > & database_,
+					  const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
 					  std::mutex & database_mutex_,
-					  unsigned int const & epoch_,
+					  const unsigned int & epoch_,
 					  whiteice::dataset<T>& data_) :
     rifl(rifl_), 
     database(database_),
+    episodes(episodes_),
     database_mutex(database_mutex_),
     epoch(epoch_),
     data(data_)
@@ -33,6 +35,8 @@ namespace whiteice
     worker_thread = nullptr;
     running = false;
     completed = false;
+
+    useEpisodes = false;
   }
 
   
@@ -51,7 +55,7 @@ namespace whiteice
   
   // starts thread that creates NUMDATAPOINTS samples to dataset
   template <typename T>
-  bool CreateRIFLdataset<T>::start(const unsigned int NUMDATAPOINTS)
+  bool CreateRIFLdataset<T>::start(const unsigned int NUMDATAPOINTS, const bool useEpisodes)
   {
     if(NUMDATAPOINTS == 0) return false;
 
@@ -62,9 +66,16 @@ namespace whiteice
 
     try{
       NUMDATA = NUMDATAPOINTS;
+
+      this->useEpisodes = useEpisodes;
+      
       data.clear();
       data.createCluster("input-state", rifl.numStates);
       data.createCluster("output-action", rifl.numActions);
+
+      if(useEpisodes){
+	data.createCluster("episode-ranges", 2);
+      }
       
       completed = false;
       
@@ -151,78 +162,182 @@ namespace whiteice
     // used to calculate avg max abs(Q)-value
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
-    
-    
-#pragma omp parallel for schedule(auto)
-    for(unsigned int i=0;i<NUMDATA;i++){
 
-      if(running == false) // we don't do anything anymore..
-	continue; // exits OpenMP loop..
+    if(useEpisodes){
 
-      database_mutex.lock();
-      
-      const unsigned int index = rng.rand() % database.size();
-      
-      const unsigned int action = database[index].action;
-      const auto datum = database[index];
+      unsigned int counter = 0;
 
-      database_mutex.unlock();
-      
-      whiteice::math::vertex<T> in;
-      
-      in.resize(rifl.numStates);
-      in.zero();
-      assert(in.write_subvertex(datum.state, 0) == true);
+      while(counter < NUMDATA){
 
-      whiteice::math::vertex<T> out(rifl.numActions);
-      whiteice::math::vertex<T> u;
-      out.zero();
+	if(running == false)
+	  break; // exits loop
 
-      auto instate = datum.state;
+	database_mutex.lock();
+	
+	const unsigned int  index = rng.rand() % episodes.size();
+	const auto episode = episodes[index];
 
-      rifl.preprocess.preprocess(0, instate);
-      assert(rifl.model.calculate(instate, out, 1, 0) == true);
-      rifl.preprocess.invpreprocess(1, out);
-      
-      // calculates updated utility value
-	      
-      T unew_value = T(0.0);
-      T maxvalue = T(-INFINITY);
-      
-      {
-	whiteice::math::vertex<T> input(rifl.numStates);
-
-	input.zero();
-	input.write_subvertex(datum.newstate, 0);
-
-	rifl.preprocess.preprocess(0, input);
-	assert(rifl.model.calculate(input, u, 1, 0) == true);
-	rifl.preprocess.invpreprocess(1, u);
-
-	for(unsigned int i=0;i<u.size();i++)
-	  if(maxvalue < u[i])
-	    maxvalue = u[i];
-
-	if(epoch <= 10 || datum.lastStep == true){
-	  // first iteration always uses pure reinforcement values
-	  unew_value = datum.reinforcement;
+	database_mutex.unlock();
+	
+	// adds episode start and end in dataset (to be added data)
+	{
+	  const unsigned int START = data.size(0);
+	  const unsigned int LENGTH = episode.size();
+	  
+	  whiteice::math::vertex<T> range;
+	  range.resize(2);
+	  range[0] = START;
+	  range[1] = START+LENGTH;
+	  data.add(3, range);
 	}
-	else{ 
-	  unew_value = datum.reinforcement + rifl.gamma*maxvalue;
-	}
-      }
-      
-      out[action] = unew_value;
-      
+
+#pragma omp parallel for schedule(guided)
+	for(unsigned i=0;i<episode.size();i++){
+
+	  if(running == false) // we don't do anything anymore..
+	    continue; // exits OpenMP loop..
+	  
+	  const unsigned int action = episode[i].action;
+	  const auto& datum = episode[i];
+
+	
+	  whiteice::math::vertex<T> in;
+	  
+	  in.resize(rifl.numStates);
+	  in.zero();
+	  assert(in.write_subvertex(datum.state, 0) == true);
+	  
+	  whiteice::math::vertex<T> out(rifl.numActions);
+	  whiteice::math::vertex<T> u;
+	  out.zero();
+	  
+	  auto instate = datum.state;
+	  
+	  rifl.preprocess.preprocess(0, instate);
+	  assert(rifl.model.calculate(instate, out, 1, 0) == true);
+	  rifl.preprocess.invpreprocess(1, out);
+	  
+	  // calculates updated utility value
+	  
+	  T unew_value = T(0.0);
+	  T maxvalue = T(-INFINITY);
+	  
+	  {
+	    whiteice::math::vertex<T> input(rifl.numStates);
+	    
+	    input.zero();
+	    input.write_subvertex(datum.newstate, 0);
+	    
+	    rifl.preprocess.preprocess(0, input);
+	    assert(rifl.model.calculate(input, u, 1, 0) == true);
+	    rifl.preprocess.invpreprocess(1, u);
+	    
+	    for(unsigned int i=0;i<u.size();i++)
+	      if(maxvalue < u[i])
+		maxvalue = u[i];
+	    
+	    if(epoch <= 10 || datum.lastStep == true){
+	      // first iteration always uses pure reinforcement values
+	      unew_value = datum.reinforcement;
+	    }
+	    else{ 
+	      unew_value = datum.reinforcement + rifl.gamma*maxvalue;
+	    }
+	  }
+	  
+	  out[action] = unew_value;
+	  
 #pragma omp critical
-      {
-	data.add(0, in);
-	data.add(1, out);
+	  {
+	    data.add(0, in);
+	    data.add(1, out);
 
-	maxvalues.push_back(maxvalue);
-      }
+	    counter++;
+	    
+	    maxvalues.push_back(maxvalue);
+	  }
+	  
+	} // for i in episodes (OpenMP loop)
+	
+	
+      } // while loop
       
     }
+    else{
+    
+#pragma omp parallel for schedule(auto)
+      for(unsigned int i=0;i<NUMDATA;i++){
+	
+	if(running == false) // we don't do anything anymore..
+	  continue; // exits OpenMP loop..
+	
+	database_mutex.lock();
+	
+	const unsigned int index = rng.rand() % database.size();
+	
+	const unsigned int action = database[index].action;
+	const auto datum = database[index];
+	
+	database_mutex.unlock();
+	
+	whiteice::math::vertex<T> in;
+	
+	in.resize(rifl.numStates);
+	in.zero();
+	assert(in.write_subvertex(datum.state, 0) == true);
+	
+	whiteice::math::vertex<T> out(rifl.numActions);
+	whiteice::math::vertex<T> u;
+	out.zero();
+	
+	auto instate = datum.state;
+	
+	rifl.preprocess.preprocess(0, instate);
+	assert(rifl.model.calculate(instate, out, 1, 0) == true);
+	rifl.preprocess.invpreprocess(1, out);
+	
+	// calculates updated utility value
+	
+	T unew_value = T(0.0);
+	T maxvalue = T(-INFINITY);
+	
+	{
+	  whiteice::math::vertex<T> input(rifl.numStates);
+	  
+	  input.zero();
+	  input.write_subvertex(datum.newstate, 0);
+	  
+	  rifl.preprocess.preprocess(0, input);
+	  assert(rifl.model.calculate(input, u, 1, 0) == true);
+	  rifl.preprocess.invpreprocess(1, u);
+	  
+	  for(unsigned int i=0;i<u.size();i++)
+	    if(maxvalue < u[i])
+	      maxvalue = u[i];
+	  
+	  if(epoch <= 10 || datum.lastStep == true){
+	    // first iteration always uses pure reinforcement values
+	    unew_value = datum.reinforcement;
+	  }
+	  else{ 
+	    unew_value = datum.reinforcement + rifl.gamma*maxvalue;
+	  }
+	}
+	
+	out[action] = unew_value;
+	
+#pragma omp critical
+	{
+	  data.add(0, in);
+	  data.add(1, out);
+	  
+	  maxvalues.push_back(maxvalue);
+	}
+	
+      } // for-loop for datapoints (OpenMP)
+
+      
+    } // if(useEpisodes) {} else{..}
 
     if(running == false)
       return; // exit point

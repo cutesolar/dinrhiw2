@@ -4,9 +4,9 @@
 CC = @CC@
 CXX= @CXX@
 
-OBJECTS = RIFL_abstract.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o \
-	CreateRIFLdataset.o CreateRIFL2dataset.o CreatePolicyDataset.o RotationProblem.o \
-	AdditionProblem.o
+OBJECTS = RIFL_abstract.o RIFL_abstract3.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o \
+	CreateRIFLdataset.o CreateRIFL3dataset.o CreateRIFL2dataset.o CreatePolicyDataset.o \
+	RotationProblem.o AdditionProblem.o
 
 EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
@@ -15,6 +15,7 @@ EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../math/quaternion.o \
 	../neuralnetwork/nnetwork.o ../neuralnetwork/bayesian_nnetwork.o \
 	../conffile.o ../neuralnetwork/NNGradDescent.o \
+	../math/SGD.o ../neuralnetwork/SGD_recurrent_nnetwork.o \
 	../math/superresolution.o ../math/modular.o \
 	../neuralnetwork/deep_ica_network_priming.o ../math/linear_equations.o \
 	../Log.o ../math/norms.o ../neuralnetwork/stackedRBM_pretraining.o \
@@ -37,8 +38,8 @@ TEST5_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack.o MinihackRIFL2.o
 TEST6_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test_minihack2.o MinihackRIFL.o
 
 
-SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp \
-	CreateRIFLdataset.cpp CreateRIFL2dataset.cpp CreatePolicyDataset.cpp \
+SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp \
+	CreateRIFLdataset.cpp CreateRIFL3dataset.cpp CreateRIFL2dataset.cpp CreatePolicyDataset.cpp \
 	RotationProblem.cpp AdditionProblem.cpp MinihackRIFL2.cpp MinihackRIFL.cpp \
 	CartPole2.cpp tst/test.cpp tst/test2.cpp tst/test3.cpp tst/test4a.cpp \
 	tst/test_minihack.cpp tst/test_minihack2.cpp \
@@ -52,6 +53,7 @@ SOURCES = RIFL_abstract.cpp CartPole.cpp PolicyGradAscent.cpp RIFL_abstract2.cpp
 	../neuralnetwork/nnetwork.cpp ../neuralnetwork/bayesian_nnetwork.cpp \
 	../conffile.cpp ../neuralnetwork/NNGradDescent.cpp \
 	../neuralnetwork/deep_ica_network_priming.cpp \
+	../math/SGD.cpp ../neuralnetwork/SGD_recurrent_nnetwork.cpp \
 	../math/linear_equations.cpp ../math/norms.cpp ../math/eig.cpp \
 	../neuralnetwork/stackedRBM_pretraining.cpp ../neuralnetwork/DBN.cpp \
 	../neuralnetwork/GBRBM.cpp ../neuralnetwork/BBRBM.cpp ../math/outerproduct.cpp \

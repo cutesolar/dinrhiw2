@@ -34,11 +34,15 @@ namespace whiteice
       
       dtrain.clearData(0);
       dtrain.clearData(1);
+      dtrain.clearData(2);
+      
       dtest.clearData(0);
       dtest.clearData(1);
+      dtest.clearData(2);
       
-      for(unsigned int e=0;e<data.size(3);e++){
-	math::vertex<T> range = data.access(3, e);
+      
+      for(unsigned int e=0;e<data.size(2);e++){
+	math::vertex<T> range = data.access(2, e);
 
 	assert(range.size() == 2);
 	assert(range[0] < range[1] && range[0] < data.size(0) && range[1] <= data.size(0));
@@ -51,7 +55,7 @@ namespace whiteice
 	
 	const unsigned int r = (rng.rand() % 4);
 	
-	if(r != 0){ // training dataset 75% of cases go here
+	if(r != 0){ // training dataset 75% of cases go here (training set)
 
 	  const unsigned int start = dtrain.size(0);
 
@@ -68,7 +72,7 @@ namespace whiteice
 
 	  dtrain.add(2, range, true);
 	}
-	else{
+	else{ // testing dataset
 
 	  const unsigned int start = dtest.size(0);
 

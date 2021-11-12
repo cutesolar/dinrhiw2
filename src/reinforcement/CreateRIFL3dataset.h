@@ -1,8 +1,8 @@
 // helper class for RIFL_abstract to generate
 // (in the background) dataset for training reinforcement model
 
-#ifndef whiteice_CreateRIFLdataset_h
-#define whiteice_CreateRIFLdataset_h
+#ifndef whiteice_CreateRIFL3dataset_h
+#define whiteice_CreateRIFL3dataset_h
 
 #include <thread>
 #include <mutex>
@@ -10,26 +10,26 @@
 
 #include "dataset.h"
 #include "dinrhiw_blas.h"
-#include "RIFL_abstract.h"
+#include "RIFL_abstract3.h"
 
 namespace whiteice
 {
 
   template <typename T = math::blas_real<float> >
-  class CreateRIFLdataset
+  class CreateRIFL3dataset
   {
   public:
     
     // calculates reinforcement learning training dataset from database
     // using database_lock
-    CreateRIFLdataset(const RIFL_abstract<T> & rifl, 
-		      const std::vector< rifl_datapoint<T> > & database,
-		      const std::vector< std::vector< rifl_datapoint<T> > >& episodes,
-		      std::mutex & database_mutex,
-		      const unsigned int & epoch, 
-		      whiteice::dataset<T>& data);
+    CreateRIFL3dataset(const RIFL_abstract3<T> & rifl, 
+		       const std::vector< rifl_datapoint<T> > & database,
+		       const std::vector< std::vector< rifl_datapoint<T> > >& episodes,
+		       std::mutex & database_mutex,
+		       const unsigned int & epoch, 
+		       whiteice::dataset<T>& data);
     
-    virtual ~CreateRIFLdataset();
+    virtual ~CreateRIFL3dataset();
     
     // starts thread that creates NUMDATAPOINTS samples to dataset
     bool start(const unsigned int NUMDATAPOINTS, const bool useEpisodes = false);
@@ -48,7 +48,7 @@ namespace whiteice
 
   private:
     
-    RIFL_abstract<T> const & rifl;
+    RIFL_abstract3<T> const & rifl;
     
     const std::vector< rifl_datapoint<T> >& database;
     const std::vector< std::vector< rifl_datapoint<T> > >& episodes;
@@ -73,8 +73,8 @@ namespace whiteice
     };
 
 
-  extern template class CreateRIFLdataset< math::blas_real<float> >;
-  extern template class CreateRIFLdataset< math::blas_real<double> >;
+  extern template class CreateRIFL3dataset< math::blas_real<float> >;
+  extern template class CreateRIFL3dataset< math::blas_real<double> >;
 };
 
 #endif

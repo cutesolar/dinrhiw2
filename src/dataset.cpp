@@ -2425,8 +2425,8 @@ namespace whiteice
 	whiteice::math::convert(temp1, maxvalue);
 	whiteice::math::convert(temp2, minvalue);
 	
-	snprintf(buffer, BUFLEN, "Cluster %d (N=%d) max abs(value): %f min abs(value): %f\n",
-		 c, (int)clusters[c].data.size(), temp1, temp2);
+	snprintf(buffer, BUFLEN, "Cluster %d (DIM=%d N=%d) max abs(value): %f min abs(value): %f\n",
+		 c, (int)clusters[c].data_dimension, (int)clusters[c].data.size(), temp1, temp2);
 	if(verbose){
 	  printf("%s", buffer);
 	  fflush(stdout);

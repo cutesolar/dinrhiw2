@@ -95,8 +95,8 @@ namespace whiteice
     void setOneHotAction(bool isOneHotAction){ oneHotEncodedAction = isOneHotAction; }
     bool getOneHotAction() const{ return oneHotEncodedAction; }
 
-    // do we do smart episode calculations where reinforcement learning
-    // values are re-calculated to be R[k] = gamma*R[k+1] + reinforcement[k], R[N+1]=0
+    // do we sample episodes and not samples, needed for recurrent neural network learning
+    // FIXME: don't happen properly now
     void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
     bool getSmartEpisodes() const{ return useEpisodes; }
 

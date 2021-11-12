@@ -141,6 +141,18 @@ namespace whiteice
       
       return true;
     }
+
+
+    template <typename T>
+    bool SGD<T>::getSolutionStatistics(T& y, unsigned int& iterations) const
+    {
+      std::lock_guard<std::mutex> lock(solution_mutex);
+
+      y = besty;
+      iterations = this->iterations;
+
+      return true;
+    }
     
     
     // continues, pauses, stops computation
