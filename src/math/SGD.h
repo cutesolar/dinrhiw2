@@ -73,6 +73,8 @@ namespace whiteice
         bool getSolution(vertex<T>& x, T& y, unsigned int& iterations) const;
 
 	bool getSolutionStatistics(T& y, unsigned int& iterations) const;
+
+	T getLearningRate() const { return lrate; }
 	
 	// continues, pauses, stops computation
         bool continueComputation();

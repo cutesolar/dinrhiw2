@@ -30,7 +30,7 @@ int main(int argc, char** argv)
   whiteice::logging.setOutputFile("debug.log");
 
 #ifndef WINOS
-#if 0
+#if 1
   // enable floating point exceptions (for debugging)
   {
     // FE_UNDERFLOW | FE_OVERFLOW | FE_INEXACT
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
   
   
   if(useFlag == false){
-    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<double> > system(scriptFile);
 
     system.setEpsilon(0.80); // 20% of control choices are random
     system.setLearningMode(true);
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
   }
   else{
 
-    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<double> > system(scriptFile);
 
     system.setEpsilon(1.00); // 100% of examples are selected accoring to model
     system.setLearningMode(false);    

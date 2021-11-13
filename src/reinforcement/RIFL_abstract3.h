@@ -131,8 +131,6 @@ namespace whiteice
       unsigned int hasModel;
       bool learningMode;
       
-      const bool useEpisodes = true; // always use episodes for training.
-      
       T epsilon;
       T gamma;
       

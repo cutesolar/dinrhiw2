@@ -46,7 +46,8 @@ namespace whiteice
     private:
       const nnetwork<T> net;
       const dataset<T>& data;    
-    
+
+      const bool real_error = true; // do we report unprocessed error..
       bool negativefeedback;
     
       dataset<T> dtrain;

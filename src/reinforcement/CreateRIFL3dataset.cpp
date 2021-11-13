@@ -20,23 +20,21 @@ namespace whiteice
   // using database_lock
   template <typename T>
   CreateRIFL3dataset<T>::CreateRIFL3dataset(const RIFL_abstract3<T> & rifl_,
-					  const std::vector< rifl_datapoint<T> > & database_,
-					  const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
-					  std::mutex & database_mutex_,
-					  const unsigned int & epoch_,
-					  whiteice::dataset<T>& data_) :
+					    const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
+					    std::mutex & database_mutex_,
+					    std::mutex & model_mutex_,
+					    const unsigned int & epoch_,
+					    whiteice::dataset<T>& data_) :
     rifl(rifl_), 
-    database(database_),
     episodes(episodes_),
     database_mutex(database_mutex_),
+    model_mutex(model_mutex_),
     epoch(epoch_),
     data(data_)
   {
     worker_thread = nullptr;
     running = false;
     completed = false;
-
-    useEpisodes = false;
   }
 
   
@@ -53,11 +51,11 @@ namespace whiteice
     }
   }
   
-  // starts thread that creates NUMDATAPOINTS samples to dataset
+  // starts thread that creates NUM_EPISODES episode samples to dataset
   template <typename T>
-  bool CreateRIFL3dataset<T>::start(const unsigned int NUMDATAPOINTS, const bool useEpisodes)
+  bool CreateRIFL3dataset<T>::start(const unsigned int NUM_EPISODES)
   {
-    if(NUMDATAPOINTS == 0) return false;
+    if(NUM_EPISODES == 0) return false;
 
     std::lock_guard<std::mutex> lock(thread_mutex);
 
@@ -65,17 +63,12 @@ namespace whiteice
       return false;
 
     try{
-      NUMDATA = NUMDATAPOINTS;
-
-      this->useEpisodes = useEpisodes;
+      this->NUM_EPISODES = NUM_EPISODES;
       
       data.clear();
       data.createCluster("input-state", rifl.numStates);
       data.createCluster("output-action", rifl.numActions);
-
-      if(useEpisodes){
-	data.createCluster("episode-ranges", 2);
-      }
+      data.createCluster("episode-ranges", 2);
       
       completed = false;
       
@@ -163,14 +156,24 @@ namespace whiteice
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
 
-    if(useEpisodes){
+    whiteice::bayesian_nnetwork<T> model;
+    whiteice::dataset<T> preprocess;
+
+    {
+      std::lock_guard<std::mutex> lock(model_mutex);
+
+      model = rifl.model;
+      preprocess = rifl.preprocess;
+    }
+    
+    {
 
       unsigned int counter = 0;
 
-      while(counter < NUMDATA){
+      for(unsigned int e=0;e<NUM_EPISODES;e++){
 
 	if(running == false)
-	  break; // exits loop
+	  continue; // exits loop
 
 	database_mutex.lock();
 	
@@ -217,17 +220,17 @@ namespace whiteice
 	  whiteice::math::vertex<T> instate;
 	  instate.resize(rifl.numStates + rifl.RECURRENT_DIMENSIONS);
 	  
-	  rifl.preprocess.preprocess(0, state);
+	  preprocess.preprocess(0, state);
 
 	  instate.write_subvertex(state, 0);
 	  instate.write_subvertex(recurrent_data, rifl.numStates);
 	  
-	  assert(rifl.model.calculate(instate, out, 1, 0) == true);
+	  assert(model.calculate(instate, out, 1, 0) == true);
 
 	  out.subvertex(outaction, 0, rifl.numActions);
 	  out.subvertex(recurrent_data, rifl.numActions, recurrent_data.size());
 	  
-	  rifl.preprocess.invpreprocess(1, outaction);
+	  preprocess.invpreprocess(1, outaction);
 	  
 	  // calculates updated utility value
 	  
@@ -241,16 +244,16 @@ namespace whiteice
 	    
 	    input.write_subvertex(datum.newstate, 0);
 	    
-	    rifl.preprocess.preprocess(0, input);
+	    preprocess.preprocess(0, input);
 
 	    full_input.write_subvertex(input, 0);
 	    full_input.write_subvertex(recurrent_data, input.size());
 	    
-	    assert(rifl.model.calculate(full_input, u, 1, 0) == true);
+	    assert(model.calculate(full_input, u, 1, 0) == true);
 
 	    u.subvertex(output, 0, rifl.numActions);
 	    
-	    rifl.preprocess.invpreprocess(1, output);
+	    preprocess.invpreprocess(1, output);
 	    
 	    for(unsigned int i=0;i<output.size();i++)
 	      if(maxvalue < output[i])
@@ -280,84 +283,9 @@ namespace whiteice
 	} // for i in episodes (OpenMP loop)
 	
 	
-      } // while loop
+      } // for e in NUM_EPISODES
       
     }
-    else{
-    
-#pragma omp parallel for schedule(auto)
-      for(unsigned int i=0;i<NUMDATA;i++){
-	
-	if(running == false) // we don't do anything anymore..
-	  continue; // exits OpenMP loop..
-	
-	database_mutex.lock();
-	
-	const unsigned int index = rng.rand() % database.size();
-	
-	const unsigned int action = database[index].action;
-	const auto datum = database[index];
-	
-	database_mutex.unlock();
-	
-	whiteice::math::vertex<T> in;
-	
-	in.resize(rifl.numStates);
-	in.zero();
-	assert(in.write_subvertex(datum.state, 0) == true);
-	
-	whiteice::math::vertex<T> out(rifl.numActions);
-	whiteice::math::vertex<T> u;
-	out.zero();
-	
-	auto instate = datum.state;
-	
-	rifl.preprocess.preprocess(0, instate);
-	assert(rifl.model.calculate(instate, out, 1, 0) == true);
-	rifl.preprocess.invpreprocess(1, out);
-	
-	// calculates updated utility value
-	
-	T unew_value = T(0.0);
-	T maxvalue = T(-INFINITY);
-	
-	{
-	  whiteice::math::vertex<T> input(rifl.numStates);
-	  
-	  input.zero();
-	  input.write_subvertex(datum.newstate, 0);
-	  
-	  rifl.preprocess.preprocess(0, input);
-	  assert(rifl.model.calculate(input, u, 1, 0) == true);
-	  rifl.preprocess.invpreprocess(1, u);
-	  
-	  for(unsigned int i=0;i<u.size();i++)
-	    if(maxvalue < u[i])
-	      maxvalue = u[i];
-	  
-	  if(epoch <= 10 || datum.lastStep == true){
-	    // first iteration always uses pure reinforcement values
-	    unew_value = datum.reinforcement;
-	  }
-	  else{ 
-	    unew_value = datum.reinforcement + rifl.gamma*maxvalue;
-	  }
-	}
-	
-	out[action] = unew_value;
-	
-#pragma omp critical
-	{
-	  data.add(0, in);
-	  data.add(1, out);
-	  
-	  maxvalues.push_back(maxvalue);
-	}
-	
-      } // for-loop for datapoints (OpenMP)
-
-      
-    } // if(useEpisodes) {} else{..}
 
     if(running == false)
       return; // exit point

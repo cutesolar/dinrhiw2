@@ -15,10 +15,9 @@ namespace whiteice
   // observation space size is 51 (5x5 char environment + player stats) [and action is one-hot-encoded value: NOT]
   template <typename T>
   MinihackRIFL<T>::MinihackRIFL(const std::string& pythonScript) 
-    : // RIFL_abstract<T>(8, 51, {50,50,50,50})
-    //RIFL_abstract<T>(8, 51, {100,100,100,100})
-    RIFL_abstract3<T>(8, 51, {50,50,50,50})
-    //RIFL_abstract<T>(8, 51, {200,200,200,200})
+    : RIFL_abstract3<T>(8, 51, {100,100,100,100})
+    // : RIFL_abstract3<T>(8, 51, {50,50,50,50})
+    // : RIFL_abstract<T>(8, 51, {200,200,200,200})
   {
     // we inteprete action values as one hot encoded probabilistic values from which one-hot-encoded
     // vector is chosen: [0 0 1 0] means 3rd action is chosen.
@@ -28,8 +27,13 @@ namespace whiteice
     
     if(!Py_IsInitialized()){
       Py_Initialize();
-      //PyEval_InitThreads();
     }
+
+    // PyEval_InitThreads();
+    pystate = PyEval_SaveThread();
+
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
 
     errors = 0;
 
@@ -89,6 +93,8 @@ namespace whiteice
 
     //pystate = PyEval_SaveThread();
     //PyEval_RestoreThread(prestate);
+
+    PyGILState_Release(gstate);
   }
   
 
@@ -97,6 +103,9 @@ namespace whiteice
   {
     //PyThreadState* prestate = PyThreadState_Get();
     //PyEval_RestoreThread(pystate);
+
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
     
     Py_DECREF(getStateFunc);
     Py_DECREF(performActionFunc);
@@ -111,6 +120,13 @@ namespace whiteice
     //}
     //
     //pystate = NULL;
+
+    PyGILState_Release(gstate);
+
+    if(pystate){
+      PyEval_RestoreThread(pystate);
+      pystate = NULL;
+    }
 
     // don't finalize python state
     Py_Finalize();
@@ -131,6 +147,9 @@ namespace whiteice
   {
     if(errors > 0) return false;
 
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+
     //PyThreadState* prestate = PyThreadState_Get();
     //PyEval_RestoreThread(pystate);
     
@@ -143,6 +162,7 @@ namespace whiteice
       errors++;
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       return false;
     }
 
@@ -152,6 +172,7 @@ namespace whiteice
       Py_DECREF(result);
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       return false;
     }
 
@@ -163,6 +184,7 @@ namespace whiteice
       Py_DECREF(result);
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       return false;
     }
 
@@ -174,6 +196,7 @@ namespace whiteice
 	Py_DECREF(result);
 	//pystate = PyEval_SaveThread();
 	//PyEval_RestoreThread(prestate);
+	PyGILState_Release(gstate);
 	return false;
       }
 
@@ -187,6 +210,7 @@ namespace whiteice
 	  
 	  //pystate = PyEval_SaveThread();
 	  //PyEval_RestoreThread(prestate);
+	  PyGILState_Release(gstate);
 	  
 	  return false;	  
 	}
@@ -199,6 +223,7 @@ namespace whiteice
 	  
 	  //pystate = PyEval_SaveThread();
 	  //PyEval_RestoreThread(prestate);
+	  PyGILState_Release(gstate);
 	  
 	  return false;
 	}
@@ -213,6 +238,7 @@ namespace whiteice
 
     //pystate = PyEval_SaveThread();
     //PyEval_RestoreThread(prestate);
+    PyGILState_Release(gstate);
 
     return true;
   }
@@ -243,6 +269,9 @@ namespace whiteice
     //PyThreadState* prestate = PyThreadState_Get();
     //PyEval_RestoreThread(pystate);
     
+    PyGILState_STATE gstate;
+    gstate = PyGILState_Ensure();
+    
     PyObject *result = NULL;
 
     //printf("PyObject_CallFunction() = %p.\n", (void*)performActionFunc); fflush(stdout);
@@ -256,6 +285,8 @@ namespace whiteice
       errors++;
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
+      
       return false;
     }
 
@@ -273,6 +304,8 @@ namespace whiteice
       Py_DECREF(result);
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
+      
       return false;
     }
 
@@ -282,6 +315,8 @@ namespace whiteice
       Py_DECREF(result);
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
+      
       return false;
     }
 
@@ -303,6 +338,7 @@ namespace whiteice
       
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       
       return false;
     }
@@ -322,6 +358,7 @@ namespace whiteice
 
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       
       return false;
     }    
@@ -336,6 +373,7 @@ namespace whiteice
       
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       
       return false;
     }
@@ -356,6 +394,7 @@ namespace whiteice
 
 	//pystate = PyEval_SaveThread();
 	//PyEval_RestoreThread(prestate);
+	PyGILState_Release(gstate);
 	
 	return false;
       }
@@ -375,6 +414,7 @@ namespace whiteice
 
 	  //pystate = PyEval_SaveThread();
 	  //PyEval_RestoreThread(prestate);
+	  PyGILState_Release(gstate);
 
 	  return false;
 	}
@@ -393,6 +433,7 @@ namespace whiteice
 
 	  //pystate = PyEval_SaveThread();
 	  //PyEval_RestoreThread(prestate);
+	  PyGILState_Release(gstate);
 
 	  return false;
 	}
@@ -421,6 +462,7 @@ namespace whiteice
 
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       
       return false;
     }
@@ -443,6 +485,7 @@ namespace whiteice
 
       //pystate = PyEval_SaveThread();
       //PyEval_RestoreThread(prestate);
+      PyGILState_Release(gstate);
       
       return false;
     }
@@ -462,6 +505,7 @@ namespace whiteice
 
     //pystate = PyEval_SaveThread();
     //PyEval_RestoreThread(prestate);
+    PyGILState_Release(gstate);
 
     return true;
   }

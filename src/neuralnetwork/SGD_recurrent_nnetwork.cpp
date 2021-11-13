@@ -122,12 +122,15 @@ namespace whiteice
 	whiteice::nnetwork<T> nnet(this->net);
 	nnet.importdata(x);
 	
-	math::vertex<T> err;
+	math::vertex<T> err, correct;
 	T esum = T(0.0f);
 	
 	const unsigned int INPUT_DATA_DIM = dtest.dimension(0);
 	const unsigned int OUTPUT_DATA_DIM = dtest.dimension(1);
 	const unsigned int RDIM = nnet.output_size() - OUTPUT_DATA_DIM;
+	
+	const unsigned int RDIM2 = nnet.input_size() - INPUT_DATA_DIM;
+	assert(RDIM == RDIM2);
 
 	math::vertex<T> input, output;
 	input.resize(dtest.dimension(0)+RDIM);
@@ -140,28 +143,37 @@ namespace whiteice
 
 	  math::vertex<T> range = dtest.access(2,episode);
 
+	  assert(range.size() == 2);
+
 	  unsigned int start = 0; 
-	  unsigned int length = 0;
+	  unsigned int end = 0;
 
 	  whiteice::math::convert(start, range[0]);
-	  whiteice::math::convert(length, range[1]);
+	  whiteice::math::convert(end, range[1]);
 	  
 	  input.zero();
 	  
 	  // recurrency: feebacks output back to inputs and
 	  //             calculates error
-	  for(unsigned int i = start;i<length;i++){
-	    input.write_subvertex(dtest.access(0, i), 0);
+	  for(unsigned int i = start;i<end;i++){
+	    assert(input.write_subvertex(dtest.access(0, i), 0) == true);
 	    
 	    nnet.input() = input;
 	    nnet.calculate(false);
 
-	    nnet.output().subvertex(output, dtest.dimension(1), RDIM);
+	    assert(nnet.output().subvertex(output, dtest.dimension(1), RDIM) == true);
 	    assert(input.write_subvertex(output, INPUT_DATA_DIM));
 
-	    nnet.output().subvertex(err, 0, dtest.dimension(1));
+	    assert(nnet.output().subvertex(err, 0, dtest.dimension(1)) == true);
 
-	    err -= dtest.access(1, i);
+	    correct = dtest.access(1, i);
+
+	    if(real_error){
+	      assert(dtest.invpreprocess(1, err) == true);
+	      assert(dtest.invpreprocess(1, correct) == true);
+	    }
+
+	    err -= correct;
 
 	    esum += T(0.5f)*(err*err)[0];
 	  }
@@ -196,7 +208,7 @@ namespace whiteice
 	whiteice::nnetwork<T> nnet(this->net);
 	nnet.importdata(x);
 	
-	math::vertex<T> err;
+	math::vertex<T> err, correct;
 	T esum = T(0.0f);
 	
 	const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
@@ -235,7 +247,14 @@ namespace whiteice
 
 	    nnet.output().subvertex(err, 0, dtrain.dimension(1));
 
-	    err -= dtrain.access(1, i);
+	    correct = dtrain.access(1, i);
+
+	    if(real_error){
+	      dtest.invpreprocess(1, err);
+	      dtest.invpreprocess(1, correct);
+	    }
+
+	    err -= correct;
 
 	    esum += T(0.5f)*(err*err)[0];
 	  }

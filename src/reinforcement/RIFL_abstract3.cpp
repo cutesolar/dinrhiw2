@@ -53,7 +53,7 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
@@ -113,7 +113,7 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: rectifier
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
@@ -317,7 +317,6 @@ namespace whiteice
   template <typename T>
   void RIFL_abstract3<T>::loop()
   {
-    std::vector< rifl_datapoint<T> > database;
     std::mutex database_mutex;
 
     bool endFlag = false;
@@ -341,7 +340,8 @@ namespace whiteice
 
     whiteice::SGD_recurrent_nnetwork<T>* grad = nullptr;
 
-    const T lrate = T(1e-1); // was: 1e-4, WAS: 1e-6, waSS: 1e-2
+    const T lrate_orig = T(1e-1); // was: 1e-4, WAS: 1e-6, waSS: 1e-2
+    const T lrate = T(1e-2); // was: 1e-4, WAS: 1e-6, waSS: 1e-2
 
 
     whiteice::math::vertex<T> recurrent_data;
@@ -351,16 +351,14 @@ namespace whiteice
     // dataset for learning class
     whiteice::dataset<T> data;
 
-    // used to calculate dataset in background for NNGradDescent..
+    // used to calculate dataset in background for gradient descent..
     whiteice::CreateRIFL3dataset<T>* dataset_thread = nullptr;
 
     unsigned int epoch = 0;
     int old_grad_iterations = 0;
 
-    const unsigned int DATASIZE = 1000000;
-    const unsigned int SAMPLESIZE = 5000; // number of samples database must have before use
-    const unsigned int BATCHSIZE = 500;
-    const unsigned int ITERATIONS = 10; // was 250, WAS: 1
+    const unsigned int EPISODES_BATCHSIZE = 10; // was: 8
+    const unsigned int ITERATIONS = 1; // was 250, WAS: 1
     const unsigned int MINIMUM_EPISODE_SIZE = 50;
     const unsigned int EPISODES_MAX = 10000;
 
@@ -536,7 +534,7 @@ namespace whiteice
 	if(performAction(action, newstate, reinforcement, endFlag) == false){
 	  continue;
 	}
-
+	
 	if(endFlag){
 	  recurrent_data.zero(); // zeroes the memory/starting point of the model
 	}
@@ -559,7 +557,7 @@ namespace whiteice
 	datum.action = action;
 	datum.lastStep = endFlag;
 
-	episode.push_back(datum);
+	episode.push_back(datum);	
 
 	if(datum.lastStep){
 	  T total_reward = T(0.0f);
@@ -581,6 +579,8 @@ namespace whiteice
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
 	  fflush(episodesFile);
 
+	  std::lock_guard<std::mutex> lock(database_mutex);
+
 	  if(episodes.size() < EPISODES_MAX)
 	    episodes.push_back(episode);
 	  else{
@@ -590,18 +590,6 @@ namespace whiteice
 	  episode.clear();
 	  episodes_counter++;
 	}
-
-	// for synchronizing access to database datastructure
-	// (also used by CreateRIFLdataset class/thread)
-	std::lock_guard<std::mutex> lock(database_mutex);
-	
-	if(database.size() >= DATASIZE){
-	  const unsigned int index = rng.rand() % database.size();
-	  database[index] = datum;
-	}
-	else{
-	  database.push_back(datum);
-	}
 	
       }
 
@@ -610,8 +598,7 @@ namespace whiteice
       {
 	
 	
-	if(database.size() >= SAMPLESIZE &&
-	   (episodes.size() > MINIMUM_EPISODE_SIZE || useEpisodes == false))
+	if(episodes.size() > MINIMUM_EPISODE_SIZE)
 	{
 	  whiteice::nnetwork<T> nn;
 	  T error;
@@ -679,7 +666,7 @@ namespace whiteice
 		
 		grad->setKeepWorse(false);
 
-		grad->minimize(weights[0], lrate, 10);
+		grad->minimize(weights[0], lrate_orig, 20);
 	      }
 	    
 	      old_grad_iterations = -1;
@@ -703,9 +690,15 @@ namespace whiteice
 
 	      std::vector< whiteice::math::vertex<T> > w;
 
-	      model.exportSamples(nn, w);
+	      {
+		std::lock_guard<std::mutex> lock(model_mutex);
+		model.exportSamples(nn, w);
+	      }
+	      
 	      assert(w.size() >= 1);
 	      grad->getSolution(w[0], error, iters);
+	      // lrate = grad->getLearningRate();
+	      // lrate = sqrt(lrate);
 	      
 	      nn.importdata(w[0]);
 	      
@@ -749,12 +742,12 @@ namespace whiteice
 	    data.createCluster("episode-ranges", 2);
 	    
 	    dataset_thread = new CreateRIFL3dataset<T>(*this,
-						       database,
 						       episodes,
-						       database_mutex,		
+						       database_mutex,
+						       model_mutex,
 						       epoch,
 						       data);
-	    dataset_thread->start(BATCHSIZE, useEpisodes);
+	    dataset_thread->start(EPISODES_BATCHSIZE);
 	    
 	    whiteice::logging.info("RIFL_abstract3: new dataset_thread started");
 	    
