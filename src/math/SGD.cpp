@@ -264,7 +264,7 @@ namespace whiteice
       vertex<T> x(bestx);
       T real_besty = besty;
 
-      T current_lrate = lrate;
+      // T current_lrate = lrate;
       
       // stops if given number of iterations has passed or no improvements in N iters
       // or if instructed to stop. Additionally, in the loop there is convergence check
@@ -275,7 +275,7 @@ namespace whiteice
       {
 	grad = Ugrad(x);
 
-	x -= current_lrate*grad; // minimization
+	x -= lrate*grad; // minimization
 
 	heuristics(x);
 
@@ -301,17 +301,17 @@ namespace whiteice
 	  real_besty = ynew;
 	  
 	  if(adaptive_lrate)
-	    current_lrate *= T(1.25f);
+	    lrate *= T(1.25f);
 	}
 	else{ // result didn't improve
 	  if(adaptive_lrate)
-	    current_lrate *= T(0.5f);
+	    lrate *= T(0.5f);
 	}
 
-	if(current_lrate < T(1e-20))
-	  current_lrate = T(1e-20);
-	else if(current_lrate > T(1e20))
-	  current_lrate = T(1e20);
+	if(lrate < T(1e-20))
+	  lrate = T(1e-20);
+	else if(lrate > T(1e20))
+	  lrate = T(1e20);
 
 	iterations++;
 
