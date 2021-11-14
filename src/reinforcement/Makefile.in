@@ -20,7 +20,9 @@ EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../neuralnetwork/deep_ica_network_priming.o ../math/linear_equations.o \
 	../Log.o ../math/norms.o ../neuralnetwork/stackedRBM_pretraining.o \
 	../neuralnetwork/DBN.o ../neuralnetwork/GBRBM.o ../neuralnetwork/BBRBM.o \
-	../math/outerproduct.o ../math/LBFGS.o ../neuralnetwork/LBFGS_GBRBM.o \
+	../math/outerproduct.o \
+	../math/LBFGS.o ../neuralnetwork/rLBFGS_recurrent_nnetwork.o \
+	../neuralnetwork/LBFGS_GBRBM.o \
 	../neuralnetwork/LBFGS_BBRBM.o ../math/RNG.o
 
 TEST1_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test.o
@@ -57,7 +59,8 @@ SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp
 	../math/linear_equations.cpp ../math/norms.cpp ../math/eig.cpp \
 	../neuralnetwork/stackedRBM_pretraining.cpp ../neuralnetwork/DBN.cpp \
 	../neuralnetwork/GBRBM.cpp ../neuralnetwork/BBRBM.cpp ../math/outerproduct.cpp \
-	../math/LBFGS.cpp ../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
+	../math/LBFGS.cpp ../neuralnetwork/rLBFGS_recurrent_nnetwork.cpp \
+	../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
 	../math/RNG.cpp
 
 OPTIMIZE=@optimization_flags@

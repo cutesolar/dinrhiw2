@@ -156,15 +156,19 @@ namespace whiteice
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
 
-    whiteice::bayesian_nnetwork<T> model;
+    // needed??
+    whiteice::bayesian_nnetwork<T> model, lagged_Q;
     whiteice::dataset<T> preprocess;
 
+    // double DQN (lagged_Q network is used to select next action)
     {
       std::lock_guard<std::mutex> lock(model_mutex);
 
       model = rifl.model;
+      lagged_Q = rifl.lagged_Q;
       preprocess = rifl.preprocess;
     }
+
     
     {
 
@@ -191,11 +195,12 @@ namespace whiteice
 	  range.resize(2);
 	  range[0] = START;
 	  range[1] = START+LENGTH;
-	  data.add(2, range);
+	  
+	  assert(data.add(2, range) == true);
 	}
 
 	whiteice::math::vertex<T> recurrent_data;
-	recurrent_data.resize(rifl.RECURRENT_DIMENSIONS);
+	assert(recurrent_data.resize(rifl.RECURRENT_DIMENSIONS) == rifl.RECURRENT_DIMENSIONS);
 	recurrent_data.zero();
 
 //#pragma omp parallel for schedule(guided)
@@ -220,17 +225,17 @@ namespace whiteice
 	  whiteice::math::vertex<T> instate;
 	  instate.resize(rifl.numStates + rifl.RECURRENT_DIMENSIONS);
 	  
-	  preprocess.preprocess(0, state);
+	  assert(preprocess.preprocess(0, state) == true);
 
-	  instate.write_subvertex(state, 0);
-	  instate.write_subvertex(recurrent_data, rifl.numStates);
+	  assert(instate.write_subvertex(state, 0) == true);
+	  assert(instate.write_subvertex(recurrent_data, rifl.numStates) == true);
 	  
 	  assert(model.calculate(instate, out, 1, 0) == true);
 
-	  out.subvertex(outaction, 0, rifl.numActions);
-	  out.subvertex(recurrent_data, rifl.numActions, recurrent_data.size());
+	  assert(out.subvertex(outaction, 0, rifl.numActions) == true);
+	  assert(out.subvertex(recurrent_data, rifl.numActions, recurrent_data.size()) == true);
 	  
-	  preprocess.invpreprocess(1, outaction);
+	  assert(preprocess.invpreprocess(1, outaction) == true);
 	  
 	  // calculates updated utility value
 	  
@@ -242,22 +247,59 @@ namespace whiteice
 	    whiteice::math::vertex<T> full_input(rifl.numStates + rifl.RECURRENT_DIMENSIONS);
 	    whiteice::math::vertex<T> output(rifl.numActions);
 	    
-	    input.write_subvertex(datum.newstate, 0);
+	    assert(input.write_subvertex(datum.newstate, 0) == true);
 	    
-	    preprocess.preprocess(0, input);
+	    assert(preprocess.preprocess(0, input) == true);
 
-	    full_input.write_subvertex(input, 0);
-	    full_input.write_subvertex(recurrent_data, input.size());
-	    
+	    assert(full_input.write_subvertex(input, 0) == true);
+	    assert(full_input.write_subvertex(recurrent_data, input.size()) == true);
+
+#if 0
 	    assert(model.calculate(full_input, u, 1, 0) == true);
 
-	    u.subvertex(output, 0, rifl.numActions);
+	    assert(u.subvertex(output, 0, rifl.numActions) == true);
 	    
-	    preprocess.invpreprocess(1, output);
-	    
-	    for(unsigned int i=0;i<output.size();i++)
-	      if(maxvalue < output[i])
+	    assert(preprocess.invpreprocess(1, output) == true);
+
+	    unsigned int next_action = 0;
+
+	    for(unsigned int i=0;i<output.size();i++){
+	      if(maxvalue < output[i]){
 		maxvalue = output[i];
+		next_action = i;
+	      }
+	    }
+	    
+	    
+	    assert(lagged_Q.calculate(full_input, u, 1, 0) == true);
+
+	    assert(u.subvertex(output, 0, rifl.numActions) == true);
+	    
+	    assert(preprocess.invpreprocess(1, output) == true);
+	    
+	    maxvalue = output[next_action];
+#else
+
+	    assert(lagged_Q.calculate(full_input, u, 1, 0) == true);
+
+	    assert(u.subvertex(output, 0, rifl.numActions) == true);
+	    
+	    assert(preprocess.invpreprocess(1, output) == true);
+
+	    const T temperature = 0.10f;
+	    const unsigned int next_action = rifl.prob_action_select(output, temperature);
+	    maxvalue = output[next_action];
+
+#if 0
+	    for(unsigned int i=0;i<output.size();i++){
+	      if(maxvalue < output[i]){
+		maxvalue = output[i];
+		//next_action = i;
+	      }
+	    }
+#endif
+	    
+#endif
 	    
 	    if(epoch <= 10 || datum.lastStep == true){
 	      // first iteration always uses pure reinforcement values
@@ -272,8 +314,8 @@ namespace whiteice
 	  
 //#pragma omp critical
 	  {
-	    data.add(0, in);
-	    data.add(1, outaction);
+	    assert(data.add(0, in) == true);
+	    assert(data.add(1, outaction) == true);
 
 	    counter++;
 	    
@@ -293,11 +335,11 @@ namespace whiteice
 #if 1
     // add preprocessing to dataset
     {
-      data.preprocess
-	(0, whiteice::dataset<T>::dnMeanVarianceNormalization);
+      assert(data.preprocess
+	     (0, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
       
-      data.preprocess
-	(1, whiteice::dataset<T>::dnMeanVarianceNormalization);
+      assert(data.preprocess
+	     (1, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
     }
 #endif
 

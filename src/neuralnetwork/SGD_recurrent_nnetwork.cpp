@@ -250,8 +250,8 @@ namespace whiteice
 	    correct = dtrain.access(1, i);
 
 	    if(real_error){
-	      dtest.invpreprocess(1, err);
-	      dtest.invpreprocess(1, correct);
+	      dtrain.invpreprocess(1, err);
+	      dtrain.invpreprocess(1, correct);
 	    }
 
 	    err -= correct;

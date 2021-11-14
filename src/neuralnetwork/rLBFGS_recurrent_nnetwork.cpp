@@ -121,7 +121,7 @@ namespace whiteice
 	whiteice::nnetwork<T> nnet(this->net);
 	nnet.importdata(x);
 	
-	math::vertex<T> err;
+	math::vertex<T> err, correct;
 	T esum = T(0.0f);
 	
 	const unsigned int INPUT_DATA_DIM = dtest.dimension(0);
@@ -160,7 +160,14 @@ namespace whiteice
 
 	    nnet.output().subvertex(err, 0, dtest.dimension(1));
 
-	    err -= dtest.access(1, i);
+	    correct = dtest.access(1, i);
+
+	    if(real_error){
+	      assert(dtest.invpreprocess(1, err) == true);
+	      assert(dtest.invpreprocess(1, correct) == true);
+	    }
+
+	    err -= correct;
 
 	    esum += T(0.5f)*(err*err)[0];
 	  }
@@ -195,7 +202,7 @@ namespace whiteice
 	whiteice::nnetwork<T> nnet(this->net);
 	nnet.importdata(x);
 	
-	math::vertex<T> err;
+	math::vertex<T> err, correct;
 	T esum = T(0.0f);
 	
 	const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
@@ -234,7 +241,14 @@ namespace whiteice
 
 	    nnet.output().subvertex(err, 0, dtrain.dimension(1));
 
-	    err -= dtrain.access(1, i);
+	    correct = dtrain.access(1, i);
+
+	    if(real_error){
+	      dtrain.invpreprocess(1, err);
+	      dtrain.invpreprocess(1, correct);
+	    }
+
+	    err -= correct;
 
 	    esum += T(0.5f)*(err*err)[0];
 	  }

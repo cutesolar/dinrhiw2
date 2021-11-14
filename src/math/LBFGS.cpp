@@ -35,10 +35,11 @@ namespace whiteice
       this->overfit = overfit;
       this->onlygradient = false;
       this->use_wolfe = true; // results are not always good unless Wolfe conditions is not used
+      this->MAXITERS = 0;
     }
     
  
-    template <typename T>
+     template <typename T>
     LBFGS<T>::~LBFGS()
     {
     	thread_mutex.lock();
@@ -121,7 +122,16 @@ namespace whiteice
 
     	return true;
     }
-    
+
+    template <typename T>
+    bool LBFGS<T>::getSolutionStatistics(T& y, unsigned int& iterations) const
+    {
+      std::lock_guard<std::mutex> lock(solution_mutex);
+      y = besty;
+      iterations = this->iterations;
+
+      return true;
+    }
     
     // continues, pauses, stops computation
     template <typename T>
@@ -401,7 +411,7 @@ namespace whiteice
       
       thread_is_running_cond.notify_all();
       
-      while(thread_running){
+      while(thread_running && (MAXITERS == 0 || iterations < MAXITERS)){
 	try{
 	  // we keep iterating until we converge (later) or
 	  // the real error starts to increase

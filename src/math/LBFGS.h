@@ -53,9 +53,11 @@ namespace whiteice
 	// x0 is starting point
         bool minimize(vertex<T> x0);
 
-	// x is the best parameter found, y is training error and
+	// x is the best parameter found, y is training error (from getError()) and
 	// iterations is number of training iterations.
         bool getSolution(vertex<T>& x, T& y, unsigned int& iterations) const;
+
+	bool getSolutionStatistics(T& y, unsigned int& iterations) const;
 	
 	// continues, pauses, stops computation
         bool continueComputation();
@@ -78,6 +80,11 @@ namespace whiteice
 	void setUseWolfeConditions(bool useWolfe = true){
 	  this->use_wolfe = useWolfe; // SLOW but should guarantee convergence to grad == zero point.
 	}
+
+	// zero disable iterations check
+	void setMaxIterations(const unsigned int iters = 0){
+	  this->MAXITERS = iters;
+	}
 	
       private:
       
@@ -97,6 +104,8 @@ namespace whiteice
 	vertex<T> bestx; 
 	T besty;
         volatile unsigned int iterations;
+
+	unsigned int MAXITERS; // maximum number of iterations to run or zero if continue indefinitely
       
         bool overfit;
 	bool onlygradient; // only follow gradient (no 2nd order aprox)

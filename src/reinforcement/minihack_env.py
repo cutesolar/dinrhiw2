@@ -2,6 +2,8 @@
 
 import gym
 import minihack
+import random
+
 
 def flatten(x):
     flat_list = [it for sublist in x for it in sublist]
@@ -43,13 +45,15 @@ def convert_chars(ls):
 # action is number from 0-7 (1-8 values)
 #
 
+random.seed()
+
 env_name = "MiniHack-River-v0"
 env_name = "MiniHack-MazeWalk-45x19-v0"
 env_name = "MiniHack-MazeWalk-Mapped-15x15-v0"
 
 env = gym.make(env_name, observation_keys=("chars_crop", "blstats"), obs_crop_w=5, obs_crop_h=5)
 
-render = False
+render = False # False
 
 #########################################################
 
@@ -89,6 +93,9 @@ def minihack_performAction(action):
     global env, done, state,moves
 
     obs, reward, done, info = env.step(action)
+
+    if(reward < 0):
+        reward = 10*reward
     
     surroundings = convert_chars(flatten(obs["chars_crop"]))
     stats = obs["blstats"].tolist()

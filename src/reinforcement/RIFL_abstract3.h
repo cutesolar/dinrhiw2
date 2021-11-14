@@ -112,7 +112,19 @@ namespace whiteice
 				 whiteice::math::vertex<T>& newstate,
 				 T& reinforcement,
 				 bool& endFlag) = 0;
-            
+      
+      // helper function, returns minimum value in vec
+      unsigned int min(const std::vector<unsigned int>& vec) const ;
+
+      // helper functions, returns randomly chosen index from vector v
+      // where vector values are probability values p_i = exp(v[i]/temperature)
+      // first scales vector v to have Normal(0,I) distribution
+      unsigned int prob_action_select(const std::vector<T> v,
+				      const T temperature = T(0.1)) const;
+      
+      unsigned int prob_action_select(const whiteice::math::vertex<T> v,
+				      const T temperature = T(0.1)) const;
+
     private:
 
       unsigned int numActions, numStates;
@@ -120,11 +132,10 @@ namespace whiteice
       // number of dimensions to be used as recurrent dimensions
       const unsigned int RECURRENT_DIMENSIONS = 5;
       
-      // helper function, returns minimum value in vec
-      unsigned int min(const std::vector<unsigned int>& vec) const ;
-      
       // separate network for each action
       whiteice::bayesian_nnetwork<T> model;
+      whiteice::bayesian_nnetwork<T> lagged_Q;
+      
       whiteice::dataset<T> preprocess;
       mutable std::mutex model_mutex;
       
