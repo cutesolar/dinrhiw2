@@ -351,8 +351,8 @@ namespace whiteice
       assert(data.preprocess
 	     (0, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
       
-      assert(data.preprocess
-	     (1, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
+      // assert(data.preprocess
+      //(1, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
     }
 #endif
 

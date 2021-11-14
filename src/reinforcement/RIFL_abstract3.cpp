@@ -56,6 +56,8 @@ namespace whiteice
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
       nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: tanh
+
+      nn.setResidual(true);
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
@@ -122,6 +124,8 @@ namespace whiteice
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
       nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: tanh
+
+      nn.setResidual(true);
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
@@ -549,7 +553,7 @@ namespace whiteice
     int old_grad_iterations = 0;
 
     const unsigned int MAX_EPISODE_LENGTH = 10; // was: 25 for episode length in learning
-    const unsigned int EPISODES_BATCHSIZE = 256/MAX_EPISODE_LENGTH; // was: 500/10 = 50
+    const unsigned int EPISODES_BATCHSIZE = 512/MAX_EPISODE_LENGTH; // was: 500/10 = 50
     const unsigned int ITERATIONS = 1; // was 250, WAS: 1 // iterations in gradient descent
     const unsigned int MINIMUM_EPISODE_SIZE = 5000/MAX_EPISODE_LENGTH; // episodes to start learning
     const unsigned int EPISODES_MAX = 1000000/MAX_EPISODE_LENGTH; // max episodes stored (10^6 samples)
