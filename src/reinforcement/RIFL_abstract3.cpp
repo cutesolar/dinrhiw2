@@ -756,8 +756,8 @@ namespace whiteice
 
 	      if(grad) delete grad;
 
-	      //grad = new SGD_recurrent_nnetwork(nn, data, false);
-	      grad = new rLBFGS_recurrent_nnetwork(nn, data, false);
+	      //grad = new class whiteice::SGD_recurrent_nnetwork<T>(nn, data, false);
+	      grad = new whiteice::rLBFGS_recurrent_nnetwork<T>(nn, data, false);
 	      
 	      //grad.setOverfit(false);
 	      //grad.setUseMinibatch(true);

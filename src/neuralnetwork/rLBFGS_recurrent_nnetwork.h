@@ -55,7 +55,7 @@ namespace whiteice
       dataset<T> dtest;
 
       // regularizer
-      const T alpha = T(1e-4);
+      const T alpha = T(1e-6);
       
     };
 
