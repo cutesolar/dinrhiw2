@@ -20,6 +20,11 @@
 #endif
 
 
+#ifdef WINOS
+#include <windows.h>
+#endif
+
+
 namespace whiteice
 {
   namespace math
@@ -389,6 +394,31 @@ namespace whiteice
       }
 #endif
 #endif
+      
+      // sets optimizer thread priority to minimum background thread
+      
+      {
+	sched_param sch_params;
+	int policy = SCHED_FIFO; // SCHED_RR
+      
+	pthread_getschedparam(pthread_self(), &policy, &sch_params);
+	
+#ifdef linux
+	policy = SCHED_IDLE; // in linux we can set idle priority
+#endif
+	sch_params.sched_priority = sched_get_priority_min(policy);
+	
+	if(pthread_setschedparam(pthread_self(),
+				 policy, &sch_params) != 0){
+	}
+	
+#ifdef WINOS
+	SetThreadPriority(GetCurrentThread(),
+			  THREAD_PRIORITY_IDLE);
+#endif
+	
+      }
+      
       
       vertex<T> d, g; // gradient
       vertex<T> x(bestx), xn;

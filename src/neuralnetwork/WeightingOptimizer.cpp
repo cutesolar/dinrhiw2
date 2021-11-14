@@ -13,6 +13,10 @@
 #include <vector>
 #include <functional>
 
+#ifdef WINOS
+#include <windows.h>
+#endif
+
 
 namespace whiteice
 {
@@ -191,7 +195,7 @@ namespace whiteice
 #endif
       
     }
-
+    
     // 1. divides data to training and testing datasets
 
     whiteice::dataset<T> dtrain, dtest;
