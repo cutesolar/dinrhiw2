@@ -23,7 +23,8 @@ namespace whiteice
     // calculates reinforcement learning training dataset from database
     // using database_lock
     CreateRIFL3dataset(const RIFL_abstract3<T> & rifl, 
-		       const std::vector< std::vector< rifl_datapoint<T> > >& episodes,
+		       //const std::vector< std::vector< rifl_datapoint<T> > >& episodes,
+		       const std::multimap< T, std::vector< rifl_datapoint<T> > >& episodes,
 		       std::mutex & database_mutex,
 		       std::mutex & model_mutex,
 		       const unsigned int & epoch, 
@@ -50,7 +51,8 @@ namespace whiteice
     
     RIFL_abstract3<T> const & rifl;
     
-    const std::vector< std::vector< rifl_datapoint<T> > >& episodes;
+    // const std::vector< std::vector< rifl_datapoint<T> > >& episodes;
+    const std::multimap< T, std::vector< rifl_datapoint<T> > >& episodes;
     std::mutex & database_mutex;
     std::mutex & model_mutex;
 

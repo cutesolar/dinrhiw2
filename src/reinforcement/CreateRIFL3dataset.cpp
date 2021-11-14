@@ -20,7 +20,8 @@ namespace whiteice
   // using database_lock
   template <typename T>
   CreateRIFL3dataset<T>::CreateRIFL3dataset(const RIFL_abstract3<T> & rifl_,
-					    const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
+					    //const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
+					    const std::multimap< T, std::vector< rifl_datapoint<T> > >& episodes_,
 					    std::mutex & database_mutex_,
 					    std::mutex & model_mutex_,
 					    const unsigned int & epoch_,
@@ -180,9 +181,21 @@ namespace whiteice
 	  continue; // exits loop
 
 	database_mutex.lock();
+
+	// take random episode from top 50% reward elements if there are more than 500 elements
+	unsigned int index = 0;
+
+	if(episodes.size() >= 500)
+	  index = rng.rand() % (episodes.size()/2);
+	else
+	  index = rng.rand() % episodes.size();
+
+	auto iter = episodes.rbegin();
+
+	std::advance(iter, index); // for(unsigned int i=0;i<index;i++) iter++;
 	
-	const unsigned int  index = rng.rand() % episodes.size();
-	const auto episode = episodes[index];
+	// const auto episode = episodes[index];
+	const auto episode = iter->second;
 
 	database_mutex.unlock();
 	
@@ -286,7 +299,7 @@ namespace whiteice
 	    
 	    assert(preprocess.invpreprocess(1, output) == true);
 
-	    const T temperature = 0.10f;
+	    const T temperature = 1.00f;
 	    const unsigned int next_action = rifl.prob_action_select(output, temperature);
 	    maxvalue = output[next_action];
 

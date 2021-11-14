@@ -9,6 +9,8 @@
 #include <list>
 #include <functional>
 
+#include <map>
+
 
 namespace whiteice
 {
@@ -26,7 +28,7 @@ namespace whiteice
     
     // initializes parameters
     {
-      gamma = T(0.95);
+      gamma = T(0.99); // was: 0.95
       epsilon = T(0.80);
       
       learningMode = true;
@@ -61,10 +63,10 @@ namespace whiteice
 	nn.randomize(2, T(0.10));
 	model.importNetwork(nn);
 
-	math::vertex<T> w;
-	nn.exportdata(w);
-	w.zero();
-	nn.importdata(w);
+	//math::vertex<T> w;
+	//nn.exportdata(w);
+	//w.zero();
+	//nn.importdata(w);
 	lagged_Q.importNetwork(nn);
 	
 	// creates empty preprocessing
@@ -95,7 +97,7 @@ namespace whiteice
     
     // initializes parameters
     {
-      gamma = T(0.95);
+      gamma = T(0.99); // was: 0.95
       epsilon = T(0.80);
 
       learningMode = true;
@@ -127,10 +129,10 @@ namespace whiteice
 	nn.randomize(2, T(0.10));
 	model.importNetwork(nn);
 
-	math::vertex<T> w;
-	nn.exportdata(w);
-	w.zero();
-	nn.importdata(w);
+	//math::vertex<T> w;
+	//nn.exportdata(w);
+	//w.zero();
+	//nn.importdata(w);
 	lagged_Q.importNetwork(nn);
 	
 	// creates empty preprocessing
@@ -338,7 +340,7 @@ namespace whiteice
   unsigned int RIFL_abstract3<T>::prob_action_select(std::vector<T> v,
 						     const T temperature) const
   {
-    // normalizs v values (mean-variance normalization)
+    // normalizes v values (mean-variance normalization)
     {
       T m = T(0.0f), s = T(0.0f);
 
@@ -392,13 +394,25 @@ namespace whiteice
     
     while(r > p[index]){
       index++;
-      if(index >= numActions){
-	index = numActions-1;
+      if(index >= p.size()){
+	index = p.size()-1;
 	break;
       }
     }
-    
-    return index;
+
+    std::vector<unsigned int> same_values;
+  
+    for(unsigned int i=0;i<v.size();i++){
+      if(v[index] == v[i]) same_values.push_back(i);
+    }
+
+    if(same_values.size() > 1){
+      unsigned int r = rng.rand() % same_values.size();
+      return same_values[r];
+    }
+    else{
+      return index;
+    }
   }
   
 
@@ -406,7 +420,7 @@ namespace whiteice
   unsigned int RIFL_abstract3<T>::prob_action_select(whiteice::math::vertex<T> v,
 						     const T temperature) const
   {
-        // normalizs v values (mean-variance normalization)
+    // normalizes v values (mean-variance normalization)
     {
       T m = T(0.0f), s = T(0.0f);
 
@@ -460,13 +474,27 @@ namespace whiteice
     
     while(r > p[index]){
       index++;
-      if(index >= numActions){
-	index = numActions-1;
+      if(index >= p.size()){
+	index = p.size()-1;
 	break;
       }
     }
+
     
-    return index;
+    std::vector<unsigned int> same_values;
+  
+    for(unsigned int i=0;i<v.size();i++){
+      if(v[index] == v[i]) same_values.push_back(i);
+    }
+
+    if(same_values.size() > 1){
+      unsigned int r = rng.rand() % same_values.size();
+      return same_values[r];
+    }
+    else{
+      return index;
+    }
+    
   }
 
   
@@ -478,7 +506,8 @@ namespace whiteice
     bool endFlag = false;
 
     std::vector< rifl_datapoint<T> > episode, full_episode;
-    std::vector< std::vector< rifl_datapoint<T> > > episodes;
+    //std::vector< std::vector< rifl_datapoint<T> > > episodes;
+    std::multimap< T, std::vector< rifl_datapoint<T> > > episodes;
     
     FILE* episodesFile = fopen("episodes-result.txt", "w");
     
@@ -499,6 +528,8 @@ namespace whiteice
     whiteice::rLBFGS_recurrent_nnetwork<T>* grad = nullptr;
 
     const T tau = T(0.01); // lagged network update weights
+    unsigned int tau_counter = 0;
+    const unsigned int TAU_DELAY_BETWEEN_SYNC = 100;
 
     const T lrate_orig = T(1e-6); // was: 1e-4, WAS: 1e-6, was: 1e-2
     const T lrate = T(1e-6); // was: 1e-4, WAS: 1e-6, was: 1e-2
@@ -517,11 +548,11 @@ namespace whiteice
     unsigned int epoch = 0;
     int old_grad_iterations = 0;
 
-    const unsigned int MAX_EPISODE_LENGTH = 25;
-    const unsigned int EPISODES_BATCHSIZE = 500/MAX_EPISODE_LENGTH; // was: 8, 10
-    const unsigned int ITERATIONS = 1; // was 250, WAS: 1
-    const unsigned int MINIMUM_EPISODE_SIZE = 50;
-    const unsigned int EPISODES_MAX = 1000000/MAX_EPISODE_LENGTH;
+    const unsigned int MAX_EPISODE_LENGTH = 10; // was: 25 for episode length in learning
+    const unsigned int EPISODES_BATCHSIZE = 256/MAX_EPISODE_LENGTH; // was: 500/10 = 50
+    const unsigned int ITERATIONS = 1; // was 250, WAS: 1 // iterations in gradient descent
+    const unsigned int MINIMUM_EPISODE_SIZE = 5000/MAX_EPISODE_LENGTH; // episodes to start learning
+    const unsigned int EPISODES_MAX = 1000000/MAX_EPISODE_LENGTH; // max episodes stored (10^6 samples)
 
     bool first_time = true;
     whiteice::math::vertex<T> state;
@@ -581,7 +612,7 @@ namespace whiteice
 
       {
 #if 1	
-	const T temperature = 0.10f;
+	const T temperature = 1.00f;
 	action = prob_action_select(U, temperature);
 #else
 	
@@ -657,51 +688,77 @@ namespace whiteice
 	datum.action = action;
 	datum.lastStep = endFlag;
 
-	episode.push_back(datum);
+	//episode.push_back(datum);
 	full_episode.push_back(datum);
 
-	if(datum.lastStep || episode.size() >= MAX_EPISODE_LENGTH){
+	//if(datum.lastStep || episode.size() >= MAX_EPISODE_LENGTH){
+	if(datum.lastStep){
 
-	  if(datum.lastStep){
-	    // only reset and calculate full episode statistics
-	    // when sequence really ends
-	    
-	    T total_reward = T(0.0f);
-	    
-	    for(const auto& e : full_episode)
-	      total_reward += e.reinforcement;
-	    
-	    total_reward /= T(full_episode.size());
-	    
-	    char buffer[80];
-	    
-	    snprintf(buffer, 80, "Episode %d avg reward: %f (%d moves) [%d models]",
-		     (int)full_episodes_counter, total_reward.c[0], (int)full_episode.size(),
-		     hasModel);
-	    
-	    whiteice::logging.info(buffer);
+	  // only reset and calculate full episode statistics
+	  // when sequence really ends
+	  
+	  T total_reward = T(0.0f);
+	  
+	  for(const auto& e : full_episode)
+	    total_reward += e.reinforcement;
+	  
+	  total_reward /= T(full_episode.size());
+	  
+	  char buffer[80];
+	  
+	  snprintf(buffer, 80, "Episode %d avg reward: %f (%d moves) [%d models]",
+		   (int)full_episodes_counter, total_reward.c[0], (int)full_episode.size(),
+		   hasModel);
+	  
+	  whiteice::logging.info(buffer);
+	  
+	  
+	  if(episodesFile){
+	    fprintf(episodesFile, "%f\n", total_reward.c[0]);
+	    fflush(episodesFile);
+	  }
 
-	    
-	    if(episodesFile){
-	      fprintf(episodesFile, "%f\n", total_reward.c[0]);
-	      fflush(episodesFile);
+	  
+	  for(unsigned int j=0;j<full_episode.size();j+=MAX_EPISODE_LENGTH){
+
+	    const unsigned int END =
+	      ((j+MAX_EPISODE_LENGTH) > full_episode.size()) ?
+	      full_episode.size() : (j+MAX_EPISODE_LENGTH);
+
+	    episode.clear();
+
+	    for(unsigned int i=j;i<END;i++)
+	      episode.push_back(full_episode[i]);
+
+	    std::pair< T, std::vector< rifl_datapoint<T> > > p;
+	    p.first = total_reward;
+	    p.second = episode;
+
+	    {
+	      std::lock_guard<std::mutex> lock(database_mutex);
+	      
+	      episodes.insert(p);
+	      
+	      while(episodes.size() > EPISODES_MAX){
+		episodes.erase(episodes.begin()); // removes the smallest reward elements
+	      }
+	      
+	      episodes_counter++;
 	    }
-
-	    full_episode.clear();
-
-	    full_episodes_counter++;
+	    
 	  }
 
-	  std::lock_guard<std::mutex> lock(database_mutex);
+	  //if(episodes.size() < EPISODES_MAX)
+	  //  episodes.push_back(episode);
+	  //else{
+	  //  episodes[((episodes_counter)%EPISODES_MAX)] = episode;
+	  //}
 
-	  if(episodes.size() < EPISODES_MAX)
-	    episodes.push_back(episode);
-	  else{
-	    episodes[((episodes_counter)%EPISODES_MAX)] = episode;
-	  }
-
+	  //episode.clear();	  
+	  
 	  episode.clear();
-	  episodes_counter++;
+	  full_episode.clear();
+	  full_episodes_counter++;
 	}
 	
       }
@@ -809,19 +866,20 @@ namespace whiteice
 	      // we do not have proper dataset/model yet so we fetch params
 	      //grad.getSolution(nn);
 
-	      std::vector< whiteice::math::vertex<T> > w, lagged_w;
+	      std::vector< whiteice::math::vertex<T> > w;
+	      // std::vector< whiteice::math::vertex<T> > lagged_w;
 
 	      {
 		std::lock_guard<std::mutex> lock(model_mutex);
 
-		lagged_Q.exportSamples(nn, lagged_w);
+		//lagged_Q.exportSamples(nn, lagged_w);
 		model.exportSamples(nn, w);
 	      }
 	      
 	      assert(w.size() >= 1);
 	      grad->getSolution(w[0], error, iters);
 
-	      lagged_w[0] = tau*w[0] + (T(1.0f)-tau)*lagged_w[0];
+	      // lagged_w[0] = tau*w[0] + (T(1.0f)-tau)*lagged_w[0];
 	      
 	      char buffer[128];
 	      double tmp = 0.0;
@@ -834,10 +892,16 @@ namespace whiteice
 	      {
 		std::lock_guard<std::mutex> lock(model_mutex);
 
-		nn.importdata(lagged_w[0]);
-		lagged_Q.importNetwork(nn);
-
 		nn.importdata(w[0]);
+
+		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < 10){
+		  lagged_Q.importNetwork(nn); // update lagged_Q between evey N steps
+		  whiteice::logging.info("Update lagged Q network");
+		  tau_counter = 0;
+		}
+		else tau_counter++;
+
+		
 		model.importNetwork(nn);
 		
 		nn.diagnosticsInfo();
