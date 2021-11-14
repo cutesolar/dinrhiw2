@@ -116,11 +116,11 @@ namespace whiteice
 
     { // recurrent neural network structure, we assume episode start/end is given in the 3rd cluster
       
+      whiteice::nnetwork<T> nnet(this->net);
+      nnet.importdata(x);
+
 #pragma omp parallel shared(e)
       {
-	whiteice::nnetwork<T> nnet(this->net);
-	nnet.importdata(x);
-	
 	math::vertex<T> err, correct;
 	T esum = T(0.0f);
 	
@@ -128,9 +128,10 @@ namespace whiteice
 	const unsigned int OUTPUT_DATA_DIM = dtest.dimension(1);
 	const unsigned int RDIM = nnet.output_size() - OUTPUT_DATA_DIM;
 
-	math::vertex<T> input, output;
+	math::vertex<T> input, output, output_r;
 	input.resize(dtest.dimension(0)+RDIM);
-	output.resize(RDIM);
+	output.resize(dtest.dimension(1)+RDIM);
+	output_r.resize(RDIM);
 	err.resize(dtest.dimension(1));
 	
 	// E = SUM 0.5*e(i)^2
@@ -152,13 +153,14 @@ namespace whiteice
 	  for(unsigned int i = start;i<length;i++){
 	    input.write_subvertex(dtest.access(0, i), 0);
 	    
-	    nnet.input() = input;
-	    nnet.calculate(false);
+	    //nnet.input() = input;
+	    //nnet.calculate(false);
+	    nnet.calculate(input, output);
 
-	    nnet.output().subvertex(output, dtest.dimension(1), RDIM);
-	    assert(input.write_subvertex(output, INPUT_DATA_DIM));
+	    output.subvertex(output_r, dtest.dimension(1), RDIM);
+	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 
-	    nnet.output().subvertex(err, 0, dtest.dimension(1));
+	    output.subvertex(err, 0, dtest.dimension(1));
 
 	    correct = dtest.access(1, i);
 
@@ -196,11 +198,14 @@ namespace whiteice
     T e = T(0.0f);
 
     { // recurrent neural network
+
+      whiteice::nnetwork<T> nnet(this->net);
+      nnet.importdata(x);
       
 #pragma omp parallel shared(e)
       {
-	whiteice::nnetwork<T> nnet(this->net);
-	nnet.importdata(x);
+	//whiteice::nnetwork<T> nnet(this->net);
+	//nnet.importdata(x);
 	
 	math::vertex<T> err, correct;
 	T esum = T(0.0f);
@@ -209,9 +214,10 @@ namespace whiteice
 	const unsigned int OUTPUT_DATA_DIM = dtrain.dimension(1);
 	const unsigned int RDIM = nnet.output_size() - OUTPUT_DATA_DIM;
 
-	math::vertex<T> input, output;
+	math::vertex<T> input, output, output_r;
 	input.resize(dtrain.dimension(0)+RDIM);
-	output.resize(RDIM);
+	output.resize(dtrain.dimension(1)+RDIM);
+	output_r.resize(RDIM);
 	err.resize(dtrain.dimension(1));
 	
 	// E = SUM 0.5*e(i)^2
@@ -233,13 +239,14 @@ namespace whiteice
 	  for(unsigned int i = start;i<length;i++){
 	    input.write_subvertex(dtrain.access(0, i), 0);
 	    
-	    nnet.input() = input;
-	    nnet.calculate(false);
+	    //nnet.input() = input;
+	    //nnet.calculate(false);
+	    nnet.calculate(input, output);
 
-	    nnet.output().subvertex(output, dtrain.dimension(1), RDIM);
-	    assert(input.write_subvertex(output, INPUT_DATA_DIM));
+	    output.subvertex(output_r, dtrain.dimension(1), RDIM);
+	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 
-	    nnet.output().subvertex(err, 0, dtrain.dimension(1));
+	    output.subvertex(err, 0, dtrain.dimension(1));
 
 	    correct = dtrain.access(1, i);
 
@@ -293,11 +300,14 @@ namespace whiteice
       const unsigned int RDIM = net.output_size() - OUTPUT_DATA_DIM;
       const unsigned int RDIM2 = net.input_size() - INPUT_DATA_DIM;
       assert(RDIM == RDIM2);
+
+      whiteice::nnetwork<T> nnet(this->net);
+      nnet.importdata(x);
       
 #pragma omp parallel shared(sumgrad)
       {
-	whiteice::nnetwork<T> nnet(this->net);
-	nnet.importdata(x);
+	// whiteice::nnetwork<T> nnet(this->net);
+	// nnet.importdata(x);
 	
 	math::vertex<T> grad, err;
 	math::vertex<T> sgrad;
@@ -305,9 +315,9 @@ namespace whiteice
 	sgrad.zero();
 	grad = x;
 
-	math::vertex<T> input, output;
+	math::vertex<T> input, output, output_r;
 	input.resize(dtrain.dimension(0)+RDIM);
-	output.resize(RDIM);
+	output_r.resize(RDIM);
 
 	math::matrix<T> UGRAD;
 	UGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
@@ -371,12 +381,13 @@ namespace whiteice
 	    // dU(n+1)/dw = df/dw + df/dr * KAPPA_r * dU(n)/dw
 	    UGRAD = FGRAD + FRGRAD*URGRAD;
 
-	    nnet.input() = input;
-	    nnet.calculate(false);
+	    //nnet.input() = input;
+	    //nnet.calculate(false);
+	    nnet.calculate(input, output);
 	    
 	    { // calculate error gradient value for E(i=0)..E(N) terms
 	      
-	      nnet.output().subvertex(err, 0, dtrain.dimension(1));
+	      output.subvertex(err, 0, dtrain.dimension(1));
 	      err -= dtrain.access(1,i);
 
 	      // selects only Y terms from UGRAD
@@ -390,8 +401,8 @@ namespace whiteice
 	      sgrad += grad;
 	    }
 
-	    nnet.output().subvertex(output, dtrain.dimension(1), RDIM);
-	    assert(input.write_subvertex(output, INPUT_DATA_DIM));
+	    assert(output.subvertex(output_r, dtrain.dimension(1), RDIM));
+	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 	  }
 
 	}
