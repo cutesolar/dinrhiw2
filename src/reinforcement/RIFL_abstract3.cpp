@@ -680,10 +680,12 @@ namespace whiteice
 		     hasModel);
 	    
 	    whiteice::logging.info(buffer);
+
 	    
-	    
-	    fprintf(episodesFile, "%f\n", total_reward.c[0]);
-	    fflush(episodesFile);
+	    if(episodesFile){
+	      fprintf(episodesFile, "%f\n", total_reward.c[0]);
+	      fflush(episodesFile);
+	    }
 
 	    full_episode.clear();
 
@@ -755,6 +757,8 @@ namespace whiteice
 	      //const bool useInitialNN = true;
 
 	      if(grad) delete grad;
+
+	      whiteice::logging.info("RIFL_abstract3: about to create gradient descent optimizer");
 
 	      //grad = new class whiteice::SGD_recurrent_nnetwork<T>(nn, data, false);
 	      grad = new whiteice::rLBFGS_recurrent_nnetwork<T>(nn, data, false);
@@ -861,6 +865,8 @@ namespace whiteice
 	    data.createCluster("input-state", numStates);
 	    data.createCluster("output-action-q", numActions);
 	    data.createCluster("episode-ranges", 2);
+
+	    whiteice::logging.info("RIFL_abstract3: about to create dataset_thread");
 	    
 	    dataset_thread = new CreateRIFL3dataset<T>(*this,
 						       episodes,
@@ -911,7 +917,10 @@ namespace whiteice
       
     }
 
-    if(episodesFile) fclose(episodesFile);
+    if(episodesFile){
+      fclose(episodesFile);
+      episodesFile = NULL;
+    }
     
     if(dataset_thread){
       dataset_thread->stop();
