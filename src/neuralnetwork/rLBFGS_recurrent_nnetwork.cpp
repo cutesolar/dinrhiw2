@@ -11,8 +11,8 @@ namespace whiteice
 
   template <typename T>
   rLBFGS_recurrent_nnetwork<T>::rLBFGS_recurrent_nnetwork(const nnetwork<T>& nn,
-						const dataset<T>& d,
-						bool overfit):
+							  const dataset<T>& d,
+							  bool overfit):
     whiteice::math::LBFGS<T>(overfit),
     net(nn), data(d)
   {
@@ -37,8 +37,11 @@ namespace whiteice
       
       dtrain.clearData(0);
       dtrain.clearData(1);
+      dtrain.clearData(2);
+      
       dtest.clearData(0);
       dtest.clearData(1);
+      dtest.clearData(2);
       
       for(unsigned int e=0;e<data.size(3);e++){
 	math::vertex<T> range = data.access(3, e);
