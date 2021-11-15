@@ -1,6 +1,5 @@
-// TODO: 
-//   convert to use matrix<> and vertex<> classes instead of memory areas.
-// 
+// TODO  optimize, nnetwork takes the most of the time in computations
+// FIXED jacobian() routines again use OpenMP for loops which should give 2% performance increase(??)
 
 #include <stdio.h>
 #include <stdlib.h>
