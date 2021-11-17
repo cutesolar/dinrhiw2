@@ -14,6 +14,7 @@
 
 #include "RNG.h"
 
+
 namespace whiteice
 {
   template <typename T=math::blas_real<float> >

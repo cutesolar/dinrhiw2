@@ -47,23 +47,23 @@ namespace whiteice
      template <typename T>
     LBFGS<T>::~LBFGS()
     {
-    	thread_mutex.lock();
+      thread_mutex.lock();
+      
+      if(thread_running){
+	thread_running = false;
+	
+	// waits for thread to stop running
+	// std::unique_lock<std::mutex> lock(thread_is_running_mutex);
+	// thread_is_running_cond.wait_for(lock, std::chrono::milliseconds(1000)); // 1 second
+      }
 
-    	if(thread_running){
-    		thread_running = false;
-
-    		// waits for thread to stop running
-    		// std::unique_lock<std::mutex> lock(thread_is_running_mutex);
-    		// thread_is_running_cond.wait_for(lock, std::chrono::milliseconds(1000)); // 1 second
-    	}
-
-    	if(optimizer_thread){
-	        optimizer_thread->join();
-		delete optimizer_thread;
-	}
-    	optimizer_thread = nullptr;
-
-    	thread_mutex.unlock();
+      if(optimizer_thread){
+	optimizer_thread->join();
+	delete optimizer_thread;
+      }
+      optimizer_thread = nullptr;
+      
+      thread_mutex.unlock();
     }
     
     
@@ -433,7 +433,7 @@ namespace whiteice
       const unsigned int RESET = 5;
 
       // history size is large (15) should try value 5 and change to it if results do not become worse.
-      const unsigned int M = 10;  // M = MEMORY SIZE (10 could be a good compromise)
+      const unsigned int M = LBFGS_MEMORY;  // M = MEMORY SIZE (10 could be a good compromise)
       
       std::list< vertex<T> > yk;
       std::list< vertex<T> > sk;
