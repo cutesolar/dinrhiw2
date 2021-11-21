@@ -108,6 +108,9 @@ void recurrent_nnetwork_test();
 
 void kmboosting_test();
 
+void nnetwork_entropy_test();
+void nnetwork_kl_divergence_test();
+
 void nnetwork_test();
 void nnetwork_complex_test();
 
@@ -173,6 +176,9 @@ int main()
   srand(seed);
   
   try{
+    //nnetwork_entropy_test();
+    nnetwork_kl_divergence_test();
+    
     // nnetwork_test();
     
     // simple_vae_test();
@@ -181,7 +187,7 @@ int main()
 
     // kmboosting_test();
 
-    recurrent_nnetwork_test();
+    /// recurrent_nnetwork_test();
     
     // simple_tsne_test(); // FIXME: has bugs
 
@@ -329,6 +335,267 @@ private:
   char* reason;
   
 };
+
+/************************************************************/
+
+void nnetwork_kl_divergence_test()
+{
+  std::cout << "nnetwork KL divergence minimization test" << std::endl;
+
+  // NOTE: it's better to use KL-divergence than REVERSE KL-divergence which matches
+  // output to largest MODE of the target distribution [no multiple choices]
+  
+  // generates training data
+  
+  whiteice::nnetwork<> net;
+  
+  whiteice::dataset<> data;
+  const unsigned int INPUT_DIM = 5;
+  const unsigned int OUTPUT_DIM = INPUT_DIM;
+  
+  data.createCluster("input", INPUT_DIM);
+  data.createCluster("output", OUTPUT_DIM);
+
+  for(unsigned int i=0;i<200;i++){ // only 200 elements for faster results..
+    math::vertex<> datum(INPUT_DIM);
+    rng.normal(datum);
+    data.add(0, datum);
+
+    // gives 50% probability to first and second largest elements
+    unsigned int selected1_index = 0, selected2_index = 1;
+    whiteice::math::blas_real<float> selected1_value = datum[0];
+    whiteice::math::blas_real<float> selected2_value = datum[1];
+
+    if(selected1_value < selected2_value){
+      std::swap(selected1_index, selected2_index);
+      std::swap(selected1_value, selected2_value);
+    }
+
+    for(unsigned int a=2;a<datum.size();a++){
+      if(datum[a] > selected1_value){
+	selected2_value = selected1_value;
+	selected2_index = selected1_index;
+
+	selected1_value = datum[a];
+	selected1_index = a;
+      }
+      else if(datum[a] > selected2_value){
+	selected2_value = datum[a];
+	selected2_index = a;
+      }
+    }
+
+    datum.zero();
+    
+    datum[selected1_index] = 0.50f;
+    datum[selected2_index] = 0.50f;
+
+    data.add(1, datum);
+  }
+
+  const unsigned int NUMLAYERS = 5; // 5 layer neural network..
+  std::vector<unsigned int> arch;
+  arch.push_back(INPUT_DIM);
+  for(unsigned int l=0;l<(NUMLAYERS-1);l++)
+    arch.push_back(100);
+  arch.push_back(OUTPUT_DIM);
+
+  net.setArchitecture(arch);
+  net.randomize();
+
+  const whiteice::math::blas_real<float> min_divergence = 0.0f;
+
+  unsigned int no_improvements_counter = 0;
+
+  linear_ETA<> eta;
+  eta.start(0, 1000);
+
+  for(unsigned int counter=0;counter<1000 && no_improvements_counter < 10;counter++){
+    eta.update(counter);
+
+    // calculates average entropy of output and reports it
+    math::vertex<> input, output, correct;
+    whiteice::math::blas_real<float> H = 0.0f;
+
+    for(unsigned int i=0;i<data.size(0);i++){
+      input = data.access(0, i);
+      correct = data.access(1, i);
+
+      net.calculate(input, output);
+      H += net.kl_divergence(output, 0, output.size(), correct);
+    }
+
+    H /= data.size(0);
+
+    std::cout << "ITER " << counter
+	      <<  ". Current output KL-divergence = " << H
+	      << " (min KL divergence = " << min_divergence << ")"
+	      << " [ETA: " << eta.estimate()/60.0f << " minute(s)]"
+	      << std::endl;
+
+    // calculates gradient
+    std::vector< math::vertex<> > bpdata;
+    math::vertex<> grad, tmp_grad;
+    grad.resize(net.gradient_size());
+    grad.zero();
+
+    for(unsigned int i=0;i<data.size(0);i++){
+      input = data.access(0, i);
+      correct = data.access(1, i);
+
+      net.calculate(input, output, bpdata);
+
+      net.kl_divergence_gradient(output, 0 , output.size(), correct, bpdata, tmp_grad);
+
+      grad += tmp_grad;
+    }
+
+    grad /= data.size(0);
+
+    // updates weights
+    whiteice::math::blas_real<float> LRATE = 1.00f;
+
+    whiteice::math::vertex<> weights, w0;
+    
+    net.exportdata(w0);
+    
+    while(LRATE > 1e-10){
+      weights = w0;
+      
+      weights -= LRATE*grad; // minimizes KL-divergence
+      
+      net.importdata(weights);
+
+      {
+	whiteice::math::blas_real<float> KL = 0.0f;
+	
+	for(unsigned int i=0;i<data.size(0);i++){
+	  input = data.access(0, i);
+	  correct = data.access(1, i);
+	  
+	  net.calculate(input, output);
+	  KL += net.kl_divergence(output, 0, output.size(), correct);
+	}
+	
+	KL /= data.size(0);
+
+	if(KL < H){
+	  no_improvements_counter = 0;
+	  break;
+	}
+	else{
+	  LRATE /= 2.0f;
+	}
+      }
+      
+    }
+
+    if(LRATE <= 1e-10)
+      no_improvements_counter++;
+
+  }
+
+  // print 5 first examples and their solutions vs. returned values
+  for(unsigned int i=0;i<5;i++){
+    math::vertex<> input, output, correct;
+    input = data.access(0, i);
+    correct = data.access(1, i);
+
+    net.calculate(input, output);
+    net.softmax_output(output, 0, output.size());
+
+    std::cout << "CASE " << i << " CORRECT : " << correct << std::endl;
+    std::cout << "CASE " << i << " PREDICT : " << output << std::endl;
+    
+  }
+  
+}
+
+/************************************************************/
+
+void nnetwork_entropy_test()
+{
+  std::cout << "nnetwork entropy maximization test" << std::endl;
+
+  // generates training data
+
+  whiteice::dataset<> data;
+  const unsigned int INPUT_DIM = 5+(rng.rand() % 10);
+  const unsigned int OUTPUT_DIM = 10+(rng.rand() % 5);
+  
+  data.createCluster("input", INPUT_DIM);
+
+  for(unsigned int i=0;i<1000;i++){
+    math::vertex<> datum(INPUT_DIM);
+    rng.normal(datum);
+    data.add(0, datum);
+  }
+
+  whiteice::nnetwork<> net;
+  std::vector<unsigned int> arch;
+  arch.push_back(INPUT_DIM);
+  for(unsigned int l=0;l<(2-1);l++) // minimal two layer neural network..
+    arch.push_back((INPUT_DIM+OUTPUT_DIM)/2);
+  arch.push_back(OUTPUT_DIM);
+
+  net.setArchitecture(arch);
+  net.randomize();
+
+  const whiteice::math::blas_real<float> max_entropy = math::log((float)OUTPUT_DIM);
+
+  for(unsigned int counter=0;counter<1000;counter++){
+
+    // calculates average entropy of output and reports it
+    math::vertex<> input, output;
+    whiteice::math::blas_real<float> H = 0.0f;
+
+    for(unsigned int i=0;i<data.size(0);i++){
+      input = data.access(0, i);
+
+      net.calculate(input, output);
+      H += net.entropy(output, 0, output.size());
+    }
+
+    H /= data.size(0);
+
+    std::cout << "ITER " << counter
+	      <<  ". Current output entropy H = " << H
+	      << " (max entropy = " << max_entropy << ")"
+	      << std::endl;
+
+    // calculates gradient
+    std::vector< math::vertex<> > bpdata;
+    math::vertex<> grad, tmp_grad;
+    grad.resize(net.gradient_size());
+    grad.zero();
+
+    for(unsigned int i=0;i<data.size(0);i++){
+      input = data.access(0, i);
+
+      net.calculate(input, output, bpdata);
+
+      net.entropy_gradient(output, 0 , output.size(), bpdata, tmp_grad);
+
+      grad += tmp_grad;
+    }
+
+    grad /= data.size(0);
+
+    // updates weights
+    const whiteice::math::blas_real<float> LRATE = 0.10f;
+
+    whiteice::math::vertex<> weights;
+
+    net.exportdata(weights);
+
+    weights += LRATE*grad;
+
+    net.importdata(weights);
+
+  }
+  
+}
+
 
 /************************************************************/
 

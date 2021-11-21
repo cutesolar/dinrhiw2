@@ -161,6 +161,72 @@ namespace whiteice
     bool gradient_value(const math::vertex<T>& input, math::matrix<T>& grad,
 			const std::vector< std::vector<bool> >& dropout) const;
 
+    // NOTE: when matching probability distribution of neural network output (softmax)
+    // it is better to use KL-divergence than REVERSE KL-divergence. The first one
+    // matches output distribution to example distribution and REVERSE matches output
+    // distribution to the largest mode of the example distribution [single choice] which
+    // is typically NOT what you want. You can then sample the actual action from the
+    // output's full output distribution (similar to examples)
+    
+    // calculates softmax values (p-values) of output elements (output(START)..output(END-1))
+    // this is needed to probabilistically select a single action from outputs
+    bool softmax_output(math::vertex<T>& output,
+			const unsigned int START, const unsigned int END) const;
+
+    // calculates softmax of output vertex dimensions [output(start)..output(end-1)] elements
+    // and calculates their entropy [used by entropy regularization code in reinforcement learning]
+    T entropy(const math::vertex<T>& output,
+	      const unsigned int START, const unsigned int END) const;
+
+    // calculates entropy gradient given output and backpropagation data
+    bool entropy_gradient(const math::vertex<T>& output,
+			  const unsigned int START, const unsigned int END,
+			  const std::vector< math::vertex<T> >& bpdata,
+			  math::vertex<T>& entropy_gradient) const;
+
+    // calculates entropy output gradient given jacobian matrix of neural network.
+    // calculates softmax values from output values and use they as probabilities for entropy
+    // [used by entropy regularization code in reinforcement learning]
+    bool entropy_gradient_j(const math::vertex<T>& output,
+			    const unsigned int START, const unsigned int END,
+			    const math::matrix<T>& grad, // jacobian matrix
+			    math::vertex<T>& entropy_gradient) const;
+
+    // calculates Kullback-Leibler divergence between output and correct values
+    // assumes output must be converted using softmax and only elements START..END-1 are used
+    // assumes correct_pvalues is END-START long p-values vector which sums to one.
+    T kl_divergence(const math::vertex<T>& output,
+		    const unsigned int START, const unsigned int END,
+		    const math::vertex<T>& correct_pvalues) const;
+		    
+    
+    // calculates Kullback-Leibler divergence gradient
+    // given output (raw outputs) and backpropagation data
+    // assumes correct_pvalues is END-START long p-values vector which sums to one.
+    bool kl_divergence_gradient(const math::vertex<T>& output,
+				const unsigned int START, const unsigned int END,
+				const math::vertex<T>& correct_pvalues,
+				const std::vector< math::vertex<T> >& bpdata,
+				math::vertex<T>& entropy_gradient) const;
+
+
+    // calculates REVERSE Kullback-Leibler divergence between output and correct values
+    // assumes output must be converted using softmax and only elements START..END-1 are used
+    // assume_s correct_pvalues is END-START long p-values vector which sums to one.
+    T reverse_kl_divergence(const math::vertex<T>& output,
+			    const unsigned int START, const unsigned int END,
+			    const math::vertex<T>& correct_pvalues) const;
+		    
+    
+    // calculates REVERSE Kullback-Leibler divergence gradient
+    // given output (raw outputs) and backpropagation data
+    // assumes correct_pvalues is END-START long p-values vector which sums to one.
+    bool reverse_kl_divergence_gradient(const math::vertex<T>& output,
+					const unsigned int START, const unsigned int END,
+					const math::vertex<T>& correct_pvalues,
+					const std::vector< math::vertex<T> >& bpdata,
+					math::vertex<T>& entropy_gradient) const;
+
      ////////////////////////////////////////////////////////////
     
     // load & saves neuralnetwork data from file

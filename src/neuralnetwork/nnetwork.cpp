@@ -2823,6 +2823,410 @@ namespace whiteice
     
     return true;
   }
+
+
+  // calculates softmax values (p-values) of output elements (output(START)..output(END-1))
+  // this is needed to probabilistically select a single action from outputs
+  template <typename T>
+  bool nnetwork<T>::softmax_output(math::vertex<T>& output,
+				   const unsigned int START, const unsigned int END) const
+  {
+    // no proper error handling
+    if(START >= END) return false;
+    if(START > output.size() || END > output.size()) return false;
+
+    T total_sum = T(0.0f);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      output[i] = math::exp(value);
+      
+      total_sum += output[i];
+    }
+
+    for(unsigned int i=START;i<END;i++){
+      output[i] /= total_sum;
+    }
+
+    return true;
+  }
+  
+  
+  // calculates softmax of output vertex dimensions [output(start)..output(end-1)] elements
+  // and calculates their entropy [used by entropy regularization code]
+  template <typename T>
+  T nnetwork<T>::entropy(const math::vertex<T>& output,
+			 const unsigned int START, const unsigned int END) const
+  {
+    // no proper error handling
+    if(START >= END) return T(0.0f);
+    if(START > output.size() || END > output.size()) return T(0.0f);
+
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    T H = T(0.0f), p; // entropy
+    const T epsilon = T(1e-20); // avoid div by zero values and add small epsilon to p-values
+
+    for(const auto& h : softmax_values){
+      p = h/total_sum;
+      H += -p*math::log(p + epsilon);
+    }
+
+    return H;
+  }
+
+
+  // calculates entropy gradient given output and backpropagation data
+  // [so no need for large and slow jacobian matrix]
+  template <typename T>
+  bool nnetwork<T>::entropy_gradient(const math::vertex<T>& output,
+				     const unsigned int START, const unsigned int END,
+				     const std::vector< math::vertex<T> >& bpdata,
+				     math::vertex<T>& entropy_gradient) const
+  {
+    if(START >= END) return false;
+    if(START >= output.size() || END > output.size()) return false;
+    if(output.size() != output_size()) return false;
+
+    // calculates softmax probabilities
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    // entropy error term is e = S*h, calculates h first
+    math::vertex<T> h;
+    h.resize(END - START);
+    
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      h[i] = -(T(1.0f) + math::log(softmax_values[i]/total_sum));
+    }
+
+    // calculates S^t matrix
+    math::matrix<T> St;
+    St.resize(softmax_values.size(), output.size());
+    St.zero();
+
+    for(unsigned int i=START;i<END;i++){
+      const T scaling = softmax_values[i-START]/(total_sum*total_sum);
+
+      for(unsigned int j=START;j<END;j++){
+	if(i==j) St(i,j) = scaling*(total_sum - softmax_values[j]);
+	else St(i,j) = scaling*(-softmax_values[j]);
+      }
+      
+    }
+
+    // calculates error vector e used for a backpropagation input
+
+    const math::vertex<T> e = h*St;
+    
+    return mse_gradient(e, bpdata, entropy_gradient);
+  }
+  
+  
+  // calculates entropy output gradient given jacobian matrix of neural network.
+  // calculates softmax values from output values and use they as probabilities for entropy
+  // [used by entropy regularization code]
+  template <typename T>
+  bool nnetwork<T>::entropy_gradient_j(const math::vertex<T>& output,
+				       const unsigned int START, const unsigned int END,
+				       const math::matrix<T>& grad, // jacobian matrix
+				       math::vertex<T>& entropy_gradient) const
+  {
+    if(START >= END) return false;
+    if(START >= output.size() || END > output.size()) return false;
+    if(START >= grad.ysize() || END > grad.ysize()) return false;
+    
+    // 1. first calculates exp(output) values (unscaled probabilities) q_i
+
+    std::vector<T> qvalues;
+    T total_sum = T(0.0f);
+    
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+      
+      value = math::exp(value);
+      
+      qvalues.push_back(value);
+      total_sum += value;
+    }
+
+    // 2. next calculates grad p_i values
+
+    std::vector< math::vertex<T> > grad_p;
+    math::vertex<T> tmp;
+    math::vertex<T> grad_y_j;
+    
+    grad_p.resize(END - START);
+    tmp.resize(grad.xsize());
+    tmp.zero();
+
+    // calculates constant for each row
+    for(unsigned int j=0;j<(END-START);j++){
+      grad.rowcopyto(grad_y_j, START+j);
+      
+      tmp += qvalues[j]*grad_y_j;
+    }
+
+    
+    for(unsigned int i=0;i<(END-START);i++){
+      grad_p[i].resize(grad.xsize());
+      
+      grad.rowcopyto(grad_p[i], START+i);
+      grad_p[i] *= total_sum;
+      grad_p[i] -= tmp;
+      grad_p[i] *= qvalues[i]/(total_sum*total_sum);
+    }
+
+    // 3. then calculates entropy gradient
+    entropy_gradient.resize(grad.xsize());
+    entropy_gradient.zero();
+
+    const T epsilon = T(1e-20); // avoid div by zero values and add small epsilon to p-values
+
+    for(unsigned int i=0;i<(END-START);i++){
+      const auto pvalue = (qvalues[i]/total_sum) + epsilon;
+      entropy_gradient -= grad_p[i]*(T(1.0f) + math::log(pvalue));
+    }
+
+    return true;
+  }
+  
+  
+  // calculates Kullback-Leibler divergence between output and correct values
+  // assumes output must be converted using softmax and only elements START..END-1 are used
+  // assumes correct_pvalues is END-START long p-values vector which sums to one.
+  template <typename T>
+  T nnetwork<T>::kl_divergence(const math::vertex<T>& output,
+			       const unsigned int START, const unsigned int END,
+			       const math::vertex<T>& correct_pvalues) const
+  {
+    // no proper error handling
+    if(START >= END) return T(0.0f);
+    if(START > output.size() || END > output.size()) return T(0.0f);
+    if(END-START != correct_pvalues.size()) return T(0.0f);
+
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    T KL = T(0.0f), p; // K-L divergence
+    const T epsilon = T(1e-20); // avoid div by zero values and add small epsilon to p-values
+
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      p = softmax_values[i]/total_sum;
+      
+      if(correct_pvalues[i] > T(0.0f)){
+	KL -= correct_pvalues[i]*whiteice::math::log((p+epsilon)/correct_pvalues[i]);
+      }
+    }
+
+    return KL;
+  }
+
+  
+  // calculates Kullback-Leibler divergence gradient
+  // given output (raw outputs) and backpropagation data
+  // assumes correct_pvalues is END-START long p-values vector which sums to one.
+  template <typename T>
+  bool nnetwork<T>::kl_divergence_gradient(const math::vertex<T>& output,
+					   const unsigned int START, const unsigned int END,
+					   const math::vertex<T>& correct_pvalues,
+					   const std::vector< math::vertex<T> >& bpdata,
+					   math::vertex<T>& entropy_gradient) const
+  {
+    if(START >= END) return false;
+    if(START >= output.size() || END > output.size()) return false;
+    if(output.size() != output_size()) return false;
+
+    // calculates softmax probabilities
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+    const T epsilon = T(1e-20);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    // entropy error term is e = S*h, calculates h first
+    math::vertex<T> h;
+    h.resize(END - START);
+    
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      h[i] = -correct_pvalues[i]/((softmax_values[i]/total_sum) + epsilon);
+    }
+
+    // calculates S^t matrix
+    math::matrix<T> St;
+    St.resize(softmax_values.size(), output.size());
+    St.zero();
+
+    for(unsigned int i=START;i<END;i++){
+      const T scaling = softmax_values[i-START]/(total_sum*total_sum);
+
+      for(unsigned int j=START;j<END;j++){
+	if(i==j) St(i,j) = scaling*(total_sum - softmax_values[j]);
+	else St(i,j) = scaling*(-softmax_values[j]);
+      }
+      
+    }
+
+    // calculates error vector e used for a backpropagation input
+
+    const math::vertex<T> e = h*St;
+    
+    return mse_gradient(e, bpdata, entropy_gradient);
+  }
+
+
+
+  // calculates REVERSE Kullback-Leibler divergence between output and correct values
+  // assumes output must be converted using softmax and only elements START..END-1 are used
+  // assumes correct_pvalues is END-START long p-values vector which sums to one.
+  template <typename T>
+  T nnetwork<T>::reverse_kl_divergence(const math::vertex<T>& output,
+				       const unsigned int START, const unsigned int END,
+				       const math::vertex<T>& correct_pvalues) const
+  {
+    // no proper error handling
+    if(START >= END) return T(0.0f);
+    if(START > output.size() || END > output.size()) return T(0.0f);
+    if(END-START != correct_pvalues.size()) return T(0.0f);
+
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    T KL = T(0.0f), p; // K-L divergence
+    const T epsilon = T(1e-20); // avoid div by zero values and add small epsilon to p-values
+
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      p = softmax_values[i]/total_sum;
+      
+      if(p > T(0.0f)){
+	KL -= p*whiteice::math::log((epsilon+correct_pvalues[i])/p);
+      }
+    }
+
+    return KL;
+  }
+
+  
+  // calculates REVERSE Kullback-Leibler divergence gradient
+  // given output (raw outputs) and backpropagation data
+  // assumes correct_pvalues is END-START long p-values vector which sums to one.
+  template <typename T>
+  bool nnetwork<T>::reverse_kl_divergence_gradient(const math::vertex<T>& output,
+						   const unsigned int START, const unsigned int END,
+						   const math::vertex<T>& correct_pvalues,
+						   const std::vector< math::vertex<T> >& bpdata,
+						   math::vertex<T>& entropy_gradient) const
+  {
+    if(START >= END) return false;
+    if(START >= output.size() || END > output.size()) return false;
+    if(output.size() != output_size()) return false;
+
+    // calculates softmax probabilities
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+    const T epsilon = T(1e-20);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    // entropy error term is e = S*h, calculates h first
+    math::vertex<T> h;
+    h.resize(END - START);
+    
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      h[i] = T(1.0) + math::log(softmax_values[i]/total_sum + epsilon) - math::log(correct_pvalues[i] + epsilon);
+    }
+
+    // calculates S^t matrix
+    math::matrix<T> St;
+    St.resize(softmax_values.size(), output.size());
+    St.zero();
+
+    for(unsigned int i=START;i<END;i++){
+      const T scaling = softmax_values[i-START]/(total_sum*total_sum);
+
+      for(unsigned int j=START;j<END;j++){
+	if(i==j) St(i,j) = scaling*(total_sum - softmax_values[j]);
+	else St(i,j) = scaling*(-softmax_values[j]);
+      }
+      
+    }
+
+    // calculates error vector e used for a backpropagation input
+
+    const math::vertex<T> e = h*St;
+    
+    return mse_gradient(e, bpdata, entropy_gradient);
+  }
+
   
   
   //////////////////////////////////////////////////////////////////////
