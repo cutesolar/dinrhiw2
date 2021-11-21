@@ -389,15 +389,15 @@ namespace whiteice
 		      0,0,
 		      nnet.gradient_size(), dtrain.dimension(1)));
 
-	      nnet.kl_divergence_gradient_j(err, 0, err.size(),
-					    dtrain.access(1,i),
-					    UYGRAD,
-					    grad1);
+	      assert(nnet.kl_divergence_gradient_j(err, 0, err.size(),
+						   dtrain.access(1,i),
+						   UYGRAD,
+						   grad1));
 
-	      nnet.entropy_gradient_j(err, 0, err.size(),
-				      UYGRAD,
-				      grad2);
-
+	      assert(nnet.entropy_gradient_j(err, 0, err.size(),
+					     UYGRAD,
+					     grad2));
+		     
 	      // grad = err*UYGRAD;
 
 	      sgrad += grad1 - entropy_regularizer*grad2;

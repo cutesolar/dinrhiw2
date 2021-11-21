@@ -55,7 +55,7 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: tanh
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
 
       nn.setResidual(true);
       
@@ -123,7 +123,7 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // was: tanh
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
 
       nn.setResidual(true);
       
@@ -341,54 +341,22 @@ namespace whiteice
 
 
   template <typename T>
-  unsigned int RIFL_abstract3<T>::prob_action_select(std::vector<T> v,
-						     const T temperature) const
+  unsigned int RIFL_abstract3<T>::prob_action_select(std::vector<T> v) const
   {
-    // normalizes v values (mean-variance normalization)
-    {
-      T m = T(0.0f), s = T(0.0f);
-
-      for(unsigned int i=0;i<v.size();i++){
-	m += v[i];
-	s += v[i]*v[i];
-      }
-      
-      m /= v.size();
-      s /= v.size();
-      
-      s -= m*m;
-      s = sqrt(abs(s));
-      
-      if(s == T(0.0f)) s = T(1.0f);
-
-      for(unsigned int i=0;i<v.size();i++){
-	v[i] = (v[i] - m)/s;
-      }
-    }
-    
-	
     T psum = T(0.0);
     
-    std::vector<T> p;
-    
     for(unsigned int i=0;i<v.size();i++){
-      auto value = v[i];
-      if(value < T(-6.0)) value = T(-6.0);
-      else if(value > T(+6.0)) value = T(+6.0);
-      
-      auto q = exp(value/temperature);
-      psum += q;
-      p.push_back(q);
+      psum += v[i];
     }
     
     for(unsigned int i=0;i<v.size();i++){
-      p[i] /= psum;
+      v[i] /= psum;
     }
     
     psum = T(0.0f);
-    for(unsigned int i=0;i<p.size();i++){
-      auto more = p[i];
-      p[i] += psum;
+    for(unsigned int i=0;i<v.size();i++){
+      auto more = v[i];
+      v[i] += psum;
       psum += more;
     }
     
@@ -396,10 +364,10 @@ namespace whiteice
     
     unsigned int index = 0;
     
-    while(r > p[index]){
+    while(r > v[index]){
       index++;
-      if(index >= p.size()){
-	index = p.size()-1;
+      if(index >= v.size()){
+	index = v.size()-1;
 	break;
       }
     }
@@ -421,54 +389,22 @@ namespace whiteice
   
 
   template <typename T>
-  unsigned int RIFL_abstract3<T>::prob_action_select(whiteice::math::vertex<T> v,
-						     const T temperature) const
+  unsigned int RIFL_abstract3<T>::prob_action_select(whiteice::math::vertex<T> v) const
   {
-    // normalizes v values (mean-variance normalization)
-    {
-      T m = T(0.0f), s = T(0.0f);
-
-      for(unsigned int i=0;i<v.size();i++){
-	m += v[i];
-	s += v[i]*v[i];
-      }
-      
-      m /= v.size();
-      s /= v.size();
-      
-      s -= m*m;
-      s = sqrt(abs(s));
-      
-      if(s == T(0.0f)) s = T(1.0f);
-
-      for(unsigned int i=0;i<v.size();i++){
-	v[i] = (v[i] - m)/s;
-      }
-    }
-    
-	
     T psum = T(0.0);
     
-    std::vector<T> p;
-    
     for(unsigned int i=0;i<v.size();i++){
-      auto value = v[i];
-      if(value < T(-6.0)) value = T(-6.0);
-      else if(value > T(+6.0)) value = T(+6.0);
-      
-      auto q = exp(value/temperature);
-      psum += q;
-      p.push_back(q);
+      psum += v[i];
     }
     
     for(unsigned int i=0;i<v.size();i++){
-      p[i] /= psum;
+      v[i] /= psum;
     }
     
     psum = T(0.0f);
-    for(unsigned int i=0;i<p.size();i++){
-      auto more = p[i];
-      p[i] += psum;
+    for(unsigned int i=0;i<v.size();i++){
+      auto more = v[i];
+      v[i] += psum;
       psum += more;
     }
     
@@ -476,10 +412,10 @@ namespace whiteice
     
     unsigned int index = 0;
     
-    while(r > p[index]){
+    while(r > v[index]){
       index++;
-      if(index >= p.size()){
-	index = p.size()-1;
+      if(index >= v.size()){
+	index = v.size()-1;
 	break;
       }
     }
@@ -510,8 +446,8 @@ namespace whiteice
     bool endFlag = false;
 
     std::vector< rifl_datapoint<T> > episode, full_episode;
-    //std::vector< std::vector< rifl_datapoint<T> > > episodes;
-    std::multimap< T, std::vector< rifl_datapoint<T> > > episodes;
+    std::vector< std::vector< rifl_datapoint<T> > > episodes;
+    //std::multimap< T, std::vector< rifl_datapoint<T> > > episodes;
     
     FILE* episodesFile = fopen("episodes-result.txt", "w");
     
@@ -558,7 +494,7 @@ namespace whiteice
     const unsigned int MINIMUM_EPISODE_SIZE = 5000/MAX_EPISODE_LENGTH; // episodes to start learning
     const unsigned int EPISODES_MAX = 1000000/MAX_EPISODE_LENGTH; // max episodes stored (10^6 samples)
 
-    bool first_time = true;
+    //bool first_time = true;
     whiteice::math::vertex<T> state;
     state.resize(numStates);
     state.zero();
@@ -601,7 +537,11 @@ namespace whiteice
 
 	    u.subvertex(output, 0, numActions);
 	    
+	    model.getNetwork().softmax_output(output, 0, output.size());
+	    
 	    preprocess.invpreprocess(1, output);
+	    
+	    
 	    u.subvertex(recurrent_data, numActions, RECURRENT_DIMENSIONS);
 	  }
 
@@ -616,8 +556,7 @@ namespace whiteice
 
       {
 #if 1	
-	const T temperature = 1.00f;
-	action = prob_action_select(U, temperature);
+	action = prob_action_select(U);
 #else
 	
 
@@ -734,6 +673,17 @@ namespace whiteice
 	    for(unsigned int i=j;i<END;i++)
 	      episode.push_back(full_episode[i]);
 
+	    if(episodes.size() >= EPISODES_MAX){
+	      const unsigned int index = rng.rand() % episodes.size();
+	      episodes[index] = episode;
+	    }
+	    else{
+	      episodes.push_back(episode);
+	    }
+
+	    episodes_counter++;
+
+#if 0
 	    std::pair< T, std::vector< rifl_datapoint<T> > > p;
 	    p.first = total_reward;
 	    p.second = episode;
@@ -744,11 +694,34 @@ namespace whiteice
 	      episodes.insert(p);
 	      
 	      while(episodes.size() > EPISODES_MAX){
-		episodes.erase(episodes.begin()); // removes the smallest reward elements
+
+		// removes the smallest reward elements (which we have trained)
+		episodes.erase(episodes.begin()); 
+
+#if 0
+		// removes cases in the middle (keep low and large reward values)
+		const unsigned int index = (rng.rand() % (episodes.size()/2)) + episodes.size()/4;
+
+		auto iter = episodes.begin();
+		std::advance(iter, index);
+		episodes.erase(iter);
+
+#if 0
+		if(rng.rand() & 1){
+		  episodes.erase(episodes.begin()); // removes the smallest reward elements
+		}
+		else{
+		  auto iter = episodes.end();
+		  iter--;
+		  episodes.erase(iter); // removes the largest reward elements
+		}
+#endif
+#endif
 	      }
 	      
 	      episodes_counter++;
 	    }
+#endif
 	    
 	  }
 
@@ -817,9 +790,7 @@ namespace whiteice
 	      //const bool dropout = false;
 	      //const bool useInitialNN = true;
 
-	      if(grad) delete grad;
-
-	      whiteice::logging.info("RIFL_abstract3: about to create gradient descent optimizer");
+	      if(grad){ delete grad; grad = nullptr; }
 
 	      //grad = new class whiteice::SGD_recurrent_nnetwork<T>(nn, data, false);
 	      grad = new whiteice::rLBFGS_recurrent_nnetwork<T>(nn, data, false);
@@ -829,7 +800,7 @@ namespace whiteice
 	      //grad.setNormalizeError(false);
 	      //grad.setSGD(lrate);
 	      
-	      if(hasModel >= 10){
+	      if(hasModel >= WARMUP_ITERS){
 		// grad.startOptimize(data, nn, 1, ITERATIONS, dropout, useInitialNN);
 		
 		//grad->setKeepWorse(true);
@@ -846,7 +817,7 @@ namespace whiteice
 		//grad->setKeepWorse(false);
 		//grad->minimize(weights[0], lrate_orig, 20);
 
-		grad->setMaxIterations(20);
+		grad->setMaxIterations(30);
 		grad->minimize(weights[0]);
 
 	      }
@@ -864,7 +835,7 @@ namespace whiteice
 	  // dataset_thread not running
 	  ///if(grad.isRunning() == false){
 	  if(grad_is_running == false){
-	    if(first_time == false){
+	    if(grad){
 	      // gradient descent has completed, fetch results and start dataset_thread again here
 	      
 	      // we do not have proper dataset/model yet so we fetch params
@@ -898,8 +869,9 @@ namespace whiteice
 
 		nn.importdata(w[0]);
 
-		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < 10){
-		  lagged_Q.importNetwork(nn); // update lagged_Q between evey N steps
+		// MODIFIED TO KEEP LAGGED_Q IN TIGHT SYNC..
+		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS){
+		  lagged_Q.importNetwork(nn); // update lagged_Q between every N steps
 		  whiteice::logging.info("Update lagged Q network");
 		  tau_counter = 0;
 		}
@@ -924,7 +896,7 @@ namespace whiteice
 	     
 	      hasModel++;
 	      epoch++;
-	      first_time = false;
+	      //first_time = false;
 	    }
 	    
 	    // start dataset_thread
@@ -934,8 +906,6 @@ namespace whiteice
 	    data.createCluster("output-action-q", numActions);
 	    data.createCluster("episode-ranges", 2);
 
-	    whiteice::logging.info("RIFL_abstract3: about to create dataset_thread");
-	    
 	    dataset_thread = new CreateRIFL3dataset<T>(*this,
 						       episodes,
 						       database_mutex,
@@ -946,7 +916,7 @@ namespace whiteice
 	    
 	    whiteice::logging.info("RIFL_abstract3: new dataset_thread started");
 	    
-	    first_time = false;
+	    //first_time = false;
 
 	    continue;
 	  }

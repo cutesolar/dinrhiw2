@@ -209,6 +209,15 @@ namespace whiteice
 				const std::vector< math::vertex<T> >& bpdata,
 				math::vertex<T>& entropy_gradient) const;
 
+    // calculates Kullback-Leibler divergence gradient
+    // given output (raw outputs) and backpropagation data
+    // assumes correct_pvalues is END-START long p-values vector which sums to one.
+    bool kl_divergence_gradient_j(const math::vertex<T>& output,
+				  const unsigned int START, const unsigned int END,
+				  const math::vertex<T>& correct_pvalues,
+				  const math::matrix<T>& grad, // jacobian matrix
+				  math::vertex<T>& entropy_gradient) const;
+
 
     // calculates REVERSE Kullback-Leibler divergence between output and correct values
     // assumes output must be converted using softmax and only elements START..END-1 are used
