@@ -444,33 +444,29 @@ namespace whiteice
       while(thread_running && (MAXITERS == 0 || iterations < MAXITERS)){
 	try{
 	  // we keep iterating until we converge (later) or
-	  // the real error starts to increase
+	  // the real error starts to increase (FIXME: NOT DONE NOW!!!)
 	  
 	  if(overfit == false){
 	    ratios.push_back(besty);
 	    
 	    while(ratios.size() > 20)
 	      ratios.pop_front();
+
+	    // make all values to be positive
+	    T min_value = *ratios.begin();
+
+	    for(const auto& r : ratios)
+	      if(r < min_value) min_value = r;
+
+	    if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
+	    else min_value = T(-0.01f);
 	    
 	    T mean_ratio = 0.0f;
 	    T inv = 1.0f/ratios.size();
 	    
 	    for(auto r : ratios){
-	      mean_ratio += (r/besty)*inv;
+	      mean_ratio += ((r-min_value)/(besty-min_value))*inv;
 	    }
-	    
-	    // mean_ratio = math::pow(mean_ratio, inv);
-	    // std::cout << "ratio = " << mean_ratio << std::endl;
-	    // std::cout << "ratio = " << mean_ratio << std::endl;
-	    
-	    
-	    // 50% increase from the minimum found
-	    //if(mean_ratio > T(1.50f) && iterations > 25){
-	    //  break;
-	    //}
-	    
-	    // std::cout << "mean ratio: " << mean_ratio << std::endl;
-	    
 	    
 	    if(mean_ratio < T(1.005f) && iterations > 20){
 	      solution_converged = true; // last 20 iterations showed less than 0.5% change..
