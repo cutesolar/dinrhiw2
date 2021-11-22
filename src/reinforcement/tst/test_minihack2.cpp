@@ -53,9 +53,9 @@ int main(int argc, char** argv)
   
   
   if(useFlag == false){
-    whiteice::MinihackRIFL< whiteice::math::blas_real<double> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
 
-    system.setEpsilon(0.80); // 20% of control choices are random
+    system.setEpsilon(0.95); // 5% of control choices are random
     system.setLearningMode(true);
 
     if(loadFlag){
@@ -101,7 +101,7 @@ int main(int argc, char** argv)
   }
   else{
 
-    whiteice::MinihackRIFL< whiteice::math::blas_real<double> > system(scriptFile);
+    whiteice::MinihackRIFL< whiteice::math::blas_real<float> > system(scriptFile);
 
     system.setEpsilon(1.00); // 100% of examples are selected accoring to model
     system.setLearningMode(false);    

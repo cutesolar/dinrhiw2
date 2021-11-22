@@ -131,7 +131,7 @@ namespace whiteice
       const unsigned int RECURRENT_DIMENSIONS = 5;
 
       // number of iterations at the start to optimize for single step
-      const unsigned int WARMUP_ITERS = 20;
+      const unsigned int WARMUP_ITERS = 0; // was 20
       
       // separate network for each action
       whiteice::bayesian_nnetwork<T> model;

@@ -161,7 +161,7 @@ namespace whiteice
     whiteice::bayesian_nnetwork<T> model, lagged_Q;
     whiteice::dataset<T> preprocess;
 
-    const T delta = T(0.50f); // amount% of new Q value to be added as new Q value
+    const T delta = T(1.00f); // amount% of new Q value to be added as new Q value
 
     // double DQN (lagged_Q network is used to select next action)
     {

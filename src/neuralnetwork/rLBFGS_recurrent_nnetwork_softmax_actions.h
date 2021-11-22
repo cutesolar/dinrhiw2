@@ -57,7 +57,7 @@ namespace whiteice
       // regularizers
       const T alpha = T(1e-6f); // log(exp(-0.5*||w||^2)) regularizer term to minimize
 
-      const T entropy_regularizer = T(0.001f); // negative entropy term to maximize entropy of selection
+      const T entropy_regularizer = T(0.10f); // negative entropy term to maximize entropy of selection
       
     };
 

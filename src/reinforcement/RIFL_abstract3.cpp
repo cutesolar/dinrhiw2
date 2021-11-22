@@ -65,10 +65,10 @@ namespace whiteice
 	nn.randomize(2, T(0.10));
 	model.importNetwork(nn);
 
-	//math::vertex<T> w;
-	//nn.exportdata(w);
-	//w.zero();
-	//nn.importdata(w);
+	math::vertex<T> w;
+	nn.exportdata(w);
+	w.zero();
+	nn.importdata(w);
 	lagged_Q.importNetwork(nn);
 	
 	// creates empty preprocessing
@@ -133,12 +133,12 @@ namespace whiteice
 	nn.randomize(2, T(0.10));
 	model.importNetwork(nn);
 
-	//math::vertex<T> w;
-	//nn.exportdata(w);
-	//w.zero();
-	//nn.importdata(w);
+	math::vertex<T> w;
+	nn.exportdata(w);
+	w.zero();
+	nn.importdata(w);
 	lagged_Q.importNetwork(nn);
-	
+
 	// creates empty preprocessing
 	preprocess.createCluster("input-state", numStates);
 	preprocess.createCluster("output-action-qs", numActions);
@@ -870,7 +870,7 @@ namespace whiteice
 		nn.importdata(w[0]);
 
 		// MODIFIED TO KEEP LAGGED_Q IN TIGHT SYNC..
-		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS){
+		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS || true){
 		  lagged_Q.importNetwork(nn); // update lagged_Q between every N steps
 		  whiteice::logging.info("Update lagged Q network");
 		  tau_counter = 0;

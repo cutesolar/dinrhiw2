@@ -3287,6 +3287,66 @@ namespace whiteice
   }
 
   
+  // calculates REVERSE Kullback-Leibler divergence gradient
+  // given output (raw outputs) and backpropagation data
+  // assumes correct_pvalues is END-START long p-values vector which sums to one.
+  template <typename T>
+  bool nnetwork<T>::reverse_kl_divergence_gradient_j(const math::vertex<T>& output,
+						     const unsigned int START, const unsigned int END,
+						     const math::vertex<T>& correct_pvalues,
+						     const math::matrix<T>& grad, // jacobian matrix
+						     math::vertex<T>& entropy_gradient) const
+  {
+    if(START >= END) return false;
+    if(START >= output.size() || END > output.size()) return false;
+    if(output.size() != output_size()) return false;
+
+    // calculates softmax probabilities
+    std::vector<T> softmax_values;
+    T total_sum = T(0.0f);
+    const T epsilon = T(1e-20);
+
+    for(unsigned int i=START;i<END;i++){
+      T value = output[i];
+      if(value >= T(+50.0f)) value = T(+50.0f);
+      else if(value <= T(-50.0f)) value = T(-50.0f);
+
+      value = math::exp(value);
+
+      softmax_values.push_back(value);
+      total_sum += value;
+    }
+
+    // entropy error term is e = S*h, calculates h first
+    math::vertex<T> h;
+    h.resize(END - START);
+    
+    for(unsigned int i=0;i<softmax_values.size();i++){
+      h[i] = T(1.0) + math::log(softmax_values[i]/total_sum + epsilon) - math::log(correct_pvalues[i] + epsilon);
+    }
+
+    // calculates S^t matrix
+    math::matrix<T> St;
+    St.resize(softmax_values.size(), output.size());
+    St.zero();
+
+    for(unsigned int i=START;i<END;i++){
+      const T scaling = softmax_values[i-START]/(total_sum*total_sum);
+
+      for(unsigned int j=START;j<END;j++){
+	if(i==j) St(i,j) = scaling*(total_sum - softmax_values[j]);
+	else St(i,j) = scaling*(-softmax_values[j]);
+      }
+      
+    }
+
+    // calculates error vector e used for a backpropagation input
+
+    entropy_gradient = (h*St)*grad;
+    
+    return true;
+  }
+  
   
   //////////////////////////////////////////////////////////////////////
   
