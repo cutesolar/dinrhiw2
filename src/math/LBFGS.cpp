@@ -359,10 +359,10 @@ namespace whiteice
     template <typename T>
     bool LBFGS<T>::box_values(vertex<T>& x) const
     {
-      // don't allow values larger than 10^4
+      // don't allow values larger than 10^5 (100.000 is a large value)
       for(unsigned int i=0;i<x.size();i++)
-	if(x[i] > T(1e4)) x[i] = T(1e4);
-	else if(x[i] < T(-1e4)) x[i] = T(-1e4);
+	if(x[i] > T(1e5)) x[i] = T(1e5);
+	else if(x[i] < T(-1e5)) x[i] = T(-1e5);
 
       return true;
     }
@@ -375,9 +375,18 @@ namespace whiteice
     {
       T c1 = T(0.0001f);
       T c2 = T(0.9f);
+
+      vertex<T> t = x0 + alpha*p;
+      vertex<T> x0t = x0;
+
+      box_values(t);
+      box_values(x0t);
+
+      bool cond1 = (U(t) <= (U(x0t) + c1*alpha*(p*Ugrad(x0t))[0]));
+      bool cond2 = ((p*Ugrad(t))[0] >= c2*(p*Ugrad(x0t))[0]);
       
-      bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
-      bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
+      //bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
+      //bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
 
       return (cond1 && cond2);
     }
