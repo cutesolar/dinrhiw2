@@ -44,6 +44,10 @@ namespace whiteice
       T getError(const math::vertex<T>& x) const;
 
     private:
+      // clipped gradient values which otherwise cause exploding gradients in LBFGS optimization
+      void box_values(math::matrix<T>& GRAD) const;
+      
+      
       const nnetwork<T> net;
       const dataset<T>& data;
 
@@ -55,9 +59,11 @@ namespace whiteice
       dataset<T> dtest;
 
       // regularizers
-      const T alpha = T(1e-6f); // log(exp(-0.5*||w||^2)) regularizer term to minimize
+      // [minimizes large w values if they happen]
+      const T alpha = T(1e-10f); // log(exp(-0.5*||w||^2)) regularizer term to minimize (was: 1e-6)
 
-      const T entropy_regularizer = T(0.10f); // negative entropy term to maximize entropy of selection
+      // was: 0.001 => now: 0.00001 (1e-5) (entropy value dominates when values are small??)
+      const T entropy_regularizer = T(1e-6f); // negative entropy term to maximize entropy of selection
       
     };
 

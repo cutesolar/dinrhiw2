@@ -349,12 +349,12 @@ namespace whiteice
     template <typename T>
     bool LBFGS<T>::box_values(vertex<T>& x) const
     {
-      // don't allow values larger than 10^5 (100.000 is a large value)
+      // don't allow values larger than 10^4 (10.000 is a large value)
       // without this function line search causes floating point exceptions..
 #pragma omp parallel for schedule(static)
       for(unsigned int i=0;i<x.size();i++)
-	if(x[i] > T(1e5f)) x[i] = T(1e5f);
-	else if(x[i] < T(-1e5f)) x[i] = T(-1e5f);
+	if(x[i] > T(1e4f)) x[i] = T(1e4f);
+	else if(x[i] < T(-1e4f)) x[i] = T(-1e4f);
 
       return true;
     }

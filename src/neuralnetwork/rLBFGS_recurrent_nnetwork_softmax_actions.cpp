@@ -276,7 +276,19 @@ namespace whiteice
     return (e);    
   }
 
-  
+
+  // clipped gradient values which otherwise cause exploding gradients in LBFGS optimization
+  template <typename T>
+  void rLBFGS_recurrent_nnetwork_softmax_actions<T>::box_values(math::matrix<T>& GRAD) const
+  {
+#pragma omp parallel for schedule(static)
+    for(unsigned int i=0;i<GRAD.size();i++){
+      if(GRAD[i] > T(1e4f)) GRAD[i] = T(1e4f);
+      else if(GRAD[i] < T(-1e4f)) GRAD[i] = T(-1e4);
+    }
+  }
+
+    
   template <typename T>
   math::vertex<T> rLBFGS_recurrent_nnetwork_softmax_actions<T>::Ugrad(const math::vertex<T>& x) const
   {
@@ -292,16 +304,14 @@ namespace whiteice
       const unsigned int RDIM = net.output_size() - OUTPUT_DATA_DIM;
       const unsigned int RDIM2 = net.input_size() - INPUT_DATA_DIM;
       assert(RDIM == RDIM2);
+      assert(dtrain.size(0) == dtrain.size(1));
 
       whiteice::nnetwork<T> nnet(this->net);
       nnet.importdata(x);
       
 #pragma omp parallel shared(sumgrad)
       {
-	// whiteice::nnetwork<T> nnet(this->net);
-	// nnet.importdata(x);
-	
-	math::vertex<T> grad1, grad2, err;
+	math::vertex<T> grad1, grad2;
 	math::vertex<T> sgrad;
 	sgrad = x;
 	sgrad.zero();
@@ -318,8 +328,8 @@ namespace whiteice
 	math::matrix<T> URGRAD;
 	URGRAD.resize(RDIM, nnet.gradient_size());
 
-	math::matrix<T> UYGRAD;
-	UYGRAD.resize(dtrain.dimension(1), nnet.gradient_size());
+	//math::matrix<T> UYGRAD;
+	//UYGRAD.resize(dtrain.dimension(1), nnet.gradient_size());
 
 	math::matrix<T> FGRAD;
 	FGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
@@ -335,11 +345,15 @@ namespace whiteice
 	  
 	  math::vertex<T> range = dtrain.access(2,episode);
 
-	  unsigned int start = 0; 
-	  unsigned int length = 0;
+	  unsigned int START = 0; 
+	  unsigned int END = 0;
 
-	  whiteice::math::convert(start, range[0]);
-	  whiteice::math::convert(length, range[1]);
+	  whiteice::math::convert(START, range[0]);
+	  whiteice::math::convert(END, range[1]);
+
+	  assert(START < dtrain.size(0) && START < dtrain.size(1));
+	  assert(START < END);
+	  assert(END <= dtrain.size(0) && END <= dtrain.size(1));
 	  
 	  UGRAD.zero();
 	  grad1.zero();
@@ -347,8 +361,8 @@ namespace whiteice
 	  
 	  input.zero();
 	  
-	  for(unsigned int i=start;i<length;i++){
-	    input.write_subvertex(dtrain.access(0,i), 0);
+	  for(unsigned int i=START;i<END;i++){
+	    assert(input.write_subvertex(dtrain.access(0,i), 0) == true);
 	      
 	    assert(nnet.jacobian(input, FGRAD) == true);
 	    // df/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
@@ -376,29 +390,22 @@ namespace whiteice
 	    // dU(n+1)/dw = df/dw + df/dr * KAPPA_r * dU(n)/dw
 	    UGRAD = FGRAD + FRGRAD*URGRAD;
 
-	    nnet.calculate(input, output);
+	    // clipped gradients!!
+	    box_values(UGRAD);
+
+	    assert(nnet.calculate(input, output) == true);
 	    
 	    { // calculate error gradient value for E(i=0)..E(N) terms
 	      
-	      output.subvertex(err, 0, dtrain.dimension(1));
-	      //err -= dtrain.access(1,i);
-
-	      // selects only Y terms from UGRAD
-	      assert(UGRAD.submatrix
-		     (UYGRAD,
-		      0,0,
-		      nnet.gradient_size(), dtrain.dimension(1)));
-
-	      assert(nnet.kl_divergence_gradient_j(err, 0, err.size(),
+	      assert(nnet.kl_divergence_gradient_j(output, 0, dtrain.dimension(1),
 						   dtrain.access(1,i),
-						   UYGRAD,
+						   UGRAD,
 						   grad1));
 
-	      assert(nnet.entropy_gradient_j(err, 0, err.size(),
-					     UYGRAD,
+	      assert(nnet.entropy_gradient_j(output, 0, dtrain.dimension(1),
+					     UGRAD,
 					     grad2));
 		     
-	      // grad = err*UYGRAD;
 
 	      sgrad += grad1 - entropy_regularizer*grad2;
 	    }
