@@ -81,7 +81,7 @@ namespace whiteice
 	  this->use_wolfe = useWolfe; // SLOW but should guarantee convergence to grad == zero point.
 	}
 
-	// zero disable iterations check
+	// zero disables iterations check
 	void setMaxIterations(const unsigned int iters = 0){
 	  this->MAXITERS = iters;
 	}
@@ -97,6 +97,14 @@ namespace whiteice
             
 
         bool wolfe_conditions(const vertex<T>& x0,
+			      const T& alpha,
+			      const vertex<T>& p) const;
+
+	// optimized wolfe conditions checker
+	bool wolfe_conditions(const vertex<T>& x0t,
+			      const T& Ux0t,
+			      const vertex<T>& t,
+			      const T& Ut,
 			      const T& alpha,
 			      const vertex<T>& p) const;
 

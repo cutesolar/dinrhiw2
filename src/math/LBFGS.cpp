@@ -228,7 +228,10 @@ namespace whiteice
       T localbest  = T(10e20);
       unsigned int found = 0;
       
-      vertex<T> t;
+      vertex<T> t, x0t(x);
+
+      box_values(x0t);
+      const T Ux0t = U(x0t);
       
       T best_alpha = scale * T(::pow(2.0f, -30)); // minimum possible step length
       localbestx = x;
@@ -247,7 +250,7 @@ namespace whiteice
 	tvalue = U(t);
 
 	if(use_wolfe == true){
-	  if(wolfe_conditions(x, alpha, d)){
+	  if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	    {
 	      best_alpha = alpha;
 	      localbest = tvalue;
@@ -283,7 +286,7 @@ namespace whiteice
 
 
 	  if(use_wolfe == true){
-	    if(wolfe_conditions(x, alpha, d)){
+	    if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	      {
 		best_alpha = alpha;
 		localbest = tvalue;
@@ -312,7 +315,7 @@ namespace whiteice
 	tvalue = U(t);
 	
 	if(use_wolfe == true){
-	  if(wolfe_conditions(x, alpha, d)){
+	  if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	    {
 	      best_alpha = alpha;
 	      localbest = tvalue;
@@ -332,19 +335,6 @@ namespace whiteice
 	  }
 	}
 	
-#if 0
-	// HACK: (DISABLED)
-	// heuristics: allows going to worse solution with 20% prob
-	// (small step length values to gradient direction)
-	if((rng.rand() % 5) == 0 && tvalue < T(10.0)){
-	  best_alpha = alpha;
-	  localbest = tvalue;
-	  localbestx = t;
-	  found++;
-	  break;
-	}
-#endif
-	
 	k++;
       }
       
@@ -360,9 +350,11 @@ namespace whiteice
     bool LBFGS<T>::box_values(vertex<T>& x) const
     {
       // don't allow values larger than 10^5 (100.000 is a large value)
+      // without this function line search causes floating point exceptions..
+#pragma omp parallel for schedule(static)
       for(unsigned int i=0;i<x.size();i++)
-	if(x[i] > T(1e5)) x[i] = T(1e5);
-	else if(x[i] < T(-1e5)) x[i] = T(-1e5);
+	if(x[i] > T(1e5f)) x[i] = T(1e5f);
+	else if(x[i] < T(-1e5f)) x[i] = T(-1e5f);
 
       return true;
     }
@@ -373,6 +365,9 @@ namespace whiteice
 				    const T& alpha,
 				    const vertex<T>& p) const
     {
+      // TODO: optimize this, we call box_values() for vectors which we have
+      // already boxed in the main loop.
+      
       T c1 = T(0.0001f);
       T c2 = T(0.9f);
 
@@ -384,6 +379,36 @@ namespace whiteice
 
       bool cond1 = (U(t) <= (U(x0t) + c1*alpha*(p*Ugrad(x0t))[0]));
       bool cond2 = ((p*Ugrad(t))[0] >= c2*(p*Ugrad(x0t))[0]);
+      
+      //bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
+      //bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
+
+      return (cond1 && cond2);
+    }
+
+
+    // optimized wolfe conditions
+    template <typename T>
+    bool LBFGS<T>::wolfe_conditions(const vertex<T>& x0t,
+				    const T& Ux0t,
+				    const vertex<T>& t,
+				    const T& Ut,
+				    const T& alpha,
+				    const vertex<T>& p) const
+    {
+      const T c1 = T(0.0001f);
+      const T c2 = T(0.9f);
+
+      //vertex<T> t = x0 + alpha*p;
+      //vertex<T> x0t = x0;
+
+      //box_values(t);
+      //box_values(x0t);
+
+      const auto Ugrad_value = Ugrad(x0t);
+
+      const bool cond1 = (Ut <= (Ux0t + c1*alpha*(p*Ugrad_value)[0]));
+      const bool cond2 = ((p*Ugrad(t))[0] >= c2*(p*Ugrad_value)[0]);
       
       //bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
       //bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
