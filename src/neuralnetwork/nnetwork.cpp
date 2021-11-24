@@ -1997,6 +1997,21 @@ namespace whiteice
 
       return output;
     }
+    else if(nonlinearity[layer] == tanh10){
+
+      const T a = T(10.0f);
+      const T b = T(2.0f/3.0f);
+      
+      T in = input;
+      
+      if(abs(in) > abs(T(+10.0f))) in = abs(T(+10.0))*in/abs(in);
+      
+      const T e2x = whiteice::math::exp(T(2.0f)*b*in);
+      const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
+      const T output = a*tanhbx;
+
+      return output;
+    }
     else if(nonlinearity[layer] == halfLinear){
       // tanh(x) + 0.5x: from a research paper statistically
       // better gradiets for deep neural networks
@@ -2124,6 +2139,26 @@ namespace whiteice
     else if(nonlinearity[layer] == tanh){
 
       const T a = T(1.7159f);
+      const T b = T(2.0f/3.0f);
+      
+      T in = input;
+
+      if(abs(in) > abs(T(+10.0f))) in = abs(T(+10.0))*in/abs(in);
+
+      // for real valued data:
+      //if(in > T(+10.0f)) in = T(+10.0);
+      //else if(in < T(-10.0f)) in = T(-10.0f);
+      
+      const T e2x = whiteice::math::exp(T(2.0f)*b*in);
+      const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
+
+      T output = a*b*(T(1.0f) - tanhbx*tanhbx);
+      
+      return output;
+    }
+    else if(nonlinearity[layer] == tanh10){
+
+      const T a = T(10.0f);
       const T b = T(2.0f/3.0f);
       
       T in = input;
@@ -2360,6 +2395,21 @@ namespace whiteice
 
       return output;
     }
+    else if(nonlinearity[layer] == tanh10){
+
+      const T a = T(10.0f);
+      const T b = T(2.0f/3.0f);
+      
+      T in = input;
+      
+      if(abs(in) > abs(T(+10.0f))) in = abs(T(+10.0))*in/abs(in);
+      
+      const T e2x = whiteice::math::exp(T(2.0f)*b*in);
+      const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
+      const T output = a*tanhbx;
+
+      return output;
+    }
     else if(nonlinearity[layer] == halfLinear){
       // tanh(x) + 0.5x: from a research paper statistically
       // better gradiets for deep neural networks
@@ -2480,6 +2530,27 @@ namespace whiteice
     else if(nonlinearity[layer] == tanh){
 
       const T a = T(1.7159f);
+      const T b = T(2.0f/3.0f);
+      
+      T in = input;
+
+      if(abs(in) > abs(T(+10.0f)))
+	in = abs(T(+10.0))*in/abs(in);
+
+      // for real valued data:
+      //if(in > T(+10.0f)) in = T(+10.0);
+      //else if(in < T(-10.0f)) in = T(-10.0f);
+      
+      const T e2x = whiteice::math::exp(T(2.0f)*b*in);
+      const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
+
+      T output = a*b*(T(1.0f) - tanhbx*tanhbx);
+      
+      return output;
+    }
+    else if(nonlinearity[layer] == tanh10){
+
+      const T a = T(10.0f);
       const T b = T(2.0f/3.0f);
       
       T in = input;
@@ -2839,8 +2910,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       output[i] = math::exp(value);
       
@@ -2870,8 +2941,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -2909,8 +2980,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -2970,8 +3041,8 @@ namespace whiteice
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
       
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
       
       value = math::exp(value);
       
@@ -3001,6 +3072,7 @@ namespace whiteice
       grad_p[i].resize(grad.xsize());
       
       grad.rowcopyto(grad_p[i], START+i);
+      
       grad_p[i] *= total_sum;
       grad_p[i] -= tmp;
       grad_p[i] *= qvalues[i]/(total_sum*total_sum);
@@ -3039,8 +3111,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3084,8 +3156,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3138,6 +3210,7 @@ namespace whiteice
     if(START >= END) return false;
     if(START >= output.size() || END > output.size()) return false;
     if(output.size() != output_size()) return false;
+    if(output.size() != grad.ysize()) return false;
 
     // calculates softmax probabilities
     std::vector<T> softmax_values;
@@ -3146,8 +3219,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3202,8 +3275,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3247,8 +3320,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3308,8 +3381,8 @@ namespace whiteice
 
     for(unsigned int i=START;i<END;i++){
       T value = output[i];
-      if(value >= T(+50.0f)) value = T(+50.0f);
-      else if(value <= T(-50.0f)) value = T(-50.0f);
+      if(value >= T(+25.0f)) value = T(+25.0f);
+      else if(value <= T(-25.0f)) value = T(-25.0f);
 
       value = math::exp(value);
 
@@ -3431,6 +3504,9 @@ namespace whiteice
 	  }
 	  else if(nonlinearity[l] == softmax){
 	    data[l] = T(6.0);
+	  }
+	  else if(nonlinearity[l] == tanh10){
+	    data[l] = T(7.0);
 	  }
 	  else return false; // error!
 	}
@@ -3597,6 +3673,7 @@ namespace whiteice
 	  else if(conf_data[l] == T(4.0)) conf_nonlins[l] = tanh;
 	  else if(conf_data[l] == T(5.0)) conf_nonlins[l] = rectifier;
 	  else if(conf_data[l] == T(6.0)) conf_nonlins[l] = softmax;
+	  else if(conf_data[l] == T(7.0)) conf_nonlins[l] = tanh10;
 	  else return false; // unknown non-linearity
 	}
       }

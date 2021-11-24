@@ -43,7 +43,8 @@ namespace whiteice
        pureLinear = 3, // for last-layer and comparing nnetworks (linear f(x)=x) (3)
        tanh = 4, // tanh non-linearity (output: [-1,+1] (input: [-1,1])
        rectifier = 5, // leaky ReLU f(x) = max(0.1x,x) - deep networks [biologically motivated]
-       softmax = 6 // for complex neural networks: this derivates ok and is similar to ReLU rectifier
+       softmax = 6, // for complex neural networks: this derivates ok and is similar to ReLU rectifier
+       tanh10 = 7 // for limiting output to [-10,+10] interval
       };
     
     

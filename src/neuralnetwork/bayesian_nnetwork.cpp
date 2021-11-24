@@ -655,6 +655,8 @@ namespace whiteice
 	    nl[l] = whiteice::nnetwork<T>::rectifier;
 	  else if(ints[l] == 6)
 	    nl[l] = whiteice::nnetwork<T>::softmax;
+	  else if(ints[l] == 7)
+	    nl[l] = whiteice::nnetwork<T>::tanh10;
 	  else
 	    return false; // bad data
 	}
@@ -864,6 +866,8 @@ namespace whiteice
 	      ints.push_back(5);
 	    else if(nl[l] == whiteice::nnetwork<T>::softmax)
 	      ints.push_back(6);
+	    else if(nl[l] == whiteice::nnetwork<T>::tanh10)
+	      ints.push_back(7);
 	    else
 	      return false;
 	  }
