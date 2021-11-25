@@ -3,13 +3,39 @@
 #include "NNGradDescent.h"
 
 #include "SGD_recurrent_nnetwork.h"
-#include "rLBFGS_recurrent_nnetwork.h"
+#include "rLBFGS_recurrent_nnetwork_softmax_actions.h"
 
 #include <assert.h>
 #include <list>
 #include <functional>
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
+
 #include <map>
+
+
+#include <unistd.h>
+
+#ifdef _GLIBCXX_DEBUG
+
+#ifndef _WIN32
+
+#undef __STRICT_ANSI__
+#include <float.h>
+#include <fenv.h>
+
+#endif
+
+#endif
+
+
+#ifdef WINOS
+#include <windows.h>
+#endif
+
 
 
 namespace whiteice
@@ -55,14 +81,14 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh10); // was: tanh
 
       nn.setResidual(true);
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
 	
-	nn.randomize(2, T(0.10));
+	nn.randomize(2, T(0.50f)); // was: 0.10
 	model.importNetwork(nn);
 
 	math::vertex<T> w;
@@ -123,14 +149,14 @@ namespace whiteice
       whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::halfLinear);
       // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear); // was: tanh
+      nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh10); // was: tanh
 
       nn.setResidual(true);
       
       {
 	std::lock_guard<std::mutex> lock(model_mutex);
 	
-	nn.randomize(2, T(0.10));
+	nn.randomize(2, T(0.50f)); // was: 0.10
 	model.importNetwork(nn);
 
 	math::vertex<T> w;
@@ -441,6 +467,41 @@ namespace whiteice
   template <typename T>
   void RIFL_abstract3<T>::loop()
   {
+#ifdef _GLIBCXX_DEBUG  
+#ifndef _WIN32    
+    {
+      // enables FPU exceptions
+      feenableexcept(FE_INVALID | FE_DIVBYZERO);
+    }
+#endif
+#endif
+    
+    // sets optimizer thread priority to minimum background thread
+    
+    {
+      sched_param sch_params;
+      int policy = SCHED_FIFO; // SCHED_RR
+      
+      pthread_getschedparam(pthread_self(), &policy, &sch_params);
+      
+#ifdef linux
+      policy = SCHED_IDLE; // in linux we can set idle priority
+#endif
+      sch_params.sched_priority = sched_get_priority_min(policy);
+      
+      if(pthread_setschedparam(pthread_self(),
+			       policy, &sch_params) != 0){
+      }
+      
+#ifdef WINOS
+      SetThreadPriority(GetCurrentThread(),
+			THREAD_PRIORITY_IDLE);
+#endif
+      
+    }
+    
+
+    
     std::mutex database_mutex;
 
     bool endFlag = false;
@@ -465,7 +526,7 @@ namespace whiteice
     //
 
     // whiteice::SGD_recurrent_nnetwork<T>* grad = nullptr;
-    whiteice::rLBFGS_recurrent_nnetwork<T>* grad = nullptr;
+    whiteice::rLBFGS_recurrent_nnetwork_softmax_actions<T>* grad = nullptr;
 
     const T tau = T(0.01); // lagged network update weights
     unsigned int tau_counter = 0;
@@ -793,7 +854,7 @@ namespace whiteice
 	      if(grad){ delete grad; grad = nullptr; }
 
 	      //grad = new class whiteice::SGD_recurrent_nnetwork<T>(nn, data, false);
-	      grad = new whiteice::rLBFGS_recurrent_nnetwork<T>(nn, data, false);
+	      grad = new whiteice::rLBFGS_recurrent_nnetwork_softmax_actions<T>(nn, data, false);
 	      
 	      //grad.setOverfit(false);
 	      //grad.setUseMinibatch(true);
@@ -870,7 +931,7 @@ namespace whiteice
 		nn.importdata(w[0]);
 
 		// MODIFIED TO KEEP LAGGED_Q IN TIGHT SYNC..
-		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS || true){
+		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS){
 		  lagged_Q.importNetwork(nn); // update lagged_Q between every N steps
 		  whiteice::logging.info("Update lagged Q network");
 		  tau_counter = 0;

@@ -156,12 +156,13 @@ namespace whiteice
     // used to calculate avg max abs(Q)-value
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
+    std::vector<T> recurrent_norms;
 
     // needed??
     whiteice::bayesian_nnetwork<T> model, lagged_Q;
     whiteice::dataset<T> preprocess;
 
-    const T delta = T(1.00f); // amount% of new Q value to be added as new Q value
+    const T delta = T(0.66f); // amount% of new Q value to be added as new Q value
 
     // double DQN (lagged_Q network is used to select next action)
     {
@@ -236,7 +237,7 @@ namespace whiteice
 
 	whiteice::math::vertex<T> recurrent_data;
 	assert(recurrent_data.resize(rifl.RECURRENT_DIMENSIONS) == rifl.RECURRENT_DIMENSIONS);
-	recurrent_data.zero();
+	recurrent_data.zero();	
 
 //#pragma omp parallel for schedule(guided)
 	for(unsigned i=0;i<episode.size();i++){
@@ -362,6 +363,7 @@ namespace whiteice
 	    counter++;
 	    
 	    maxvalues.push_back(maxvalue);
+	    recurrent_norms.push_back(recurrent_data.norm());
 	  }
 	  
 	} // for i in episodes (OpenMP loop)
@@ -379,9 +381,9 @@ namespace whiteice
     {
       // TODO: ENABLE INPUT DATASET PREPROCESSING LATER BUT USE WHOLE DATASETS:
       
-      // batch dataset used for training is so small that we don't normalize input(??)
-      //assert(data.preprocess
-      //     (0, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
+      //// batch dataset used for training is so small that we don't normalize input(??)
+      assert(data.preprocess
+	     (0, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
       
       
       // assert(data.preprocess
@@ -393,8 +395,8 @@ namespace whiteice
     // for debugging purposes (reports average max Q-value)
     if(maxvalues.size() > 0)
     {
-      T sum = T(0.0);
-      for(auto& m : maxvalues)
+      T sum = T(0.0f);
+      for(const auto& m : maxvalues)
 	sum += m;
 
       sum /= T(maxvalues.size());
@@ -402,9 +404,19 @@ namespace whiteice
       double tmp = 0.0;
       whiteice::math::convert(tmp, sum);
 
+      sum = T(0.0f);
+
+      for(const auto& m : recurrent_norms)
+	sum += m;
+
+      sum /= T(recurrent_norms.size());
+
+      double tmp2 = 0.0;
+      whiteice::math::convert(tmp2, sum);
+
       char buffer[80];
-      snprintf(buffer, 80, "CreateRIFL3dataset: avg max(Q)-value %f",
-	       tmp);
+      snprintf(buffer, 80, "CreateRIFL3dataset: avg max(Q)-value %f, avg(|recurrent_data|) %f",
+	       tmp, tmp2);
 
       whiteice::logging.info(buffer);
     }

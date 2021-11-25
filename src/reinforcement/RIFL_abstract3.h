@@ -127,13 +127,14 @@ namespace whiteice
 
       unsigned int numActions, numStates;
 
-      // number of dimensions to be used as recurrent dimensions
+      // number of dimensions to be used as recurrency of neural network
       const unsigned int RECURRENT_DIMENSIONS = 5;
 
       // number of iterations at the start to optimize for single step
-      const unsigned int WARMUP_ITERS = 0; // was 20
+      const unsigned int WARMUP_ITERS = 10; // was 20
       
-      // separate network for each action
+      // one Q network for all actions, output is log(p_i)
+      // values of probabilities to select action i, inputs are current state
       whiteice::bayesian_nnetwork<T> model;
       whiteice::bayesian_nnetwork<T> lagged_Q;
       
