@@ -931,7 +931,7 @@ namespace whiteice
 		nn.importdata(w[0]);
 
 		// MODIFIED TO KEEP LAGGED_Q IN TIGHT SYNC..
-		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC || hasModel < WARMUP_ITERS){
+		if(tau_counter >= TAU_DELAY_BETWEEN_SYNC){
 		  lagged_Q.importNetwork(nn); // update lagged_Q between every N steps
 		  whiteice::logging.info("Update lagged Q network");
 		  tau_counter = 0;

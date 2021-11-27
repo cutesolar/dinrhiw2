@@ -317,6 +317,7 @@ namespace whiteice
 	    
 	    maxvalue = output[next_action];
 #else
+	    // SELECTS max value for now and not probabilistic selection..
 
 	    assert(lagged_Q.calculate(full_input, u, 1, 0) == true);
 
@@ -324,21 +325,22 @@ namespace whiteice
 	    
 	    assert(preprocess.invpreprocess(1, output) == true);
 
-	    auto tmp_logits = output; // TODO: optimize to be outside of loop, not recreated everytime
-
-	    lagged_Q.getNetwork().softmax_output(tmp_logits, 0, tmp_logits.size());
+	    //auto tmp_logits = output; // TODO: optimize to be outside of loop, not recreated everytime
 	    
-	    const unsigned int next_action = rifl.prob_action_select(tmp_logits);
-	    maxvalue = output[next_action];
+	    //lagged_Q.getNetwork().softmax_output(tmp_logits, 0, tmp_logits.size());
+	    
+	    //const unsigned int next_action = rifl.prob_action_select(tmp_logits);
+	    //maxvalue = output[next_action];
 
-#if 0
+	    maxvalue = output[0];
+	    //unsigned int next_action = 0;
+
 	    for(unsigned int i=0;i<output.size();i++){
 	      if(maxvalue < output[i]){
 		maxvalue = output[i];
 		//next_action = i;
 	      }
 	    }
-#endif
 	    
 #endif
 	    
@@ -363,7 +365,7 @@ namespace whiteice
 	    counter++;
 	    
 	    maxvalues.push_back(maxvalue);
-	    recurrent_norms.push_back(recurrent_data.norm());
+	    recurrent_norms.push_back(recurrent_data.norm()/T(recurrent_data.size()));
 	  }
 	  
 	} // for i in episodes (OpenMP loop)
@@ -414,8 +416,8 @@ namespace whiteice
       double tmp2 = 0.0;
       whiteice::math::convert(tmp2, sum);
 
-      char buffer[80];
-      snprintf(buffer, 80, "CreateRIFL3dataset: avg max(Q)-value %f, avg(|recurrent_data|) %f",
+      char buffer[256];
+      snprintf(buffer, 256, "CreateRIFL3dataset: avg max(Q)-value=%f, avg(|recurrent_data|)/DIM(r)=%f",
 	       tmp, tmp2);
 
       whiteice::logging.info(buffer);

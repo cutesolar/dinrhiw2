@@ -17,6 +17,7 @@ namespace whiteice
   template <typename T>
   MinihackRIFL<T>::MinihackRIFL(const std::string& pythonScript) 
     // : RIFL_abstract3<T>(8, 51, {100,100,100,100,100})
+    // : RIFL_abstract3<T>(8, 51, {75,75,75,75,75})
     // : RIFL_abstract3<T>(8, 51, {50,50,50})
     : RIFL_abstract3<T>(8, 51, {50,50,50,50,50})
     // : RIFL_abstract<T>(8, 51, {200,200,200,200})
