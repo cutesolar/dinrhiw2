@@ -106,7 +106,7 @@ namespace whiteice
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
       
-      whiteice::math::vertex< whiteice::math::blas_complex<float> > b1, b2;
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1, b2;
       b1.resize(this->size());
       b2.resize(this->size());
 
@@ -121,8 +121,8 @@ namespace whiteice
       const unsigned int K = DEFAULT_MODULAR_EXP;
 
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, float >(b1) == false ||
-	 whiteice::math::fft<K, float >(b2) == false)
+      if(whiteice::math::fft<K, double >(b1) == false ||
+	 whiteice::math::fft<K, double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -131,14 +131,14 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, float >(b1) == false)
+      if(whiteice::math::ifft<K, double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       superresolution<T,U> result(T(0));
       
       for(unsigned int i=0;i<b1.size();i++){
 	whiteice::math::convert(result.basis[i], b1[i]);
-	// result.basis[i] = T(b1[i]);
+	//result.basis[i] = T(b1[i]);
       }
 
       return result;
@@ -164,7 +164,7 @@ namespace whiteice
       // z = convolution(x, (1/y))
       // z = InvFFT(FFT(x)/FFT(y))
       
-      whiteice::math::vertex< whiteice::math::blas_complex<float> > b1, b2;
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1, b2;
       b1.resize(this->size());
       b2.resize(this->size());
 
@@ -179,26 +179,26 @@ namespace whiteice
       const unsigned int K = DEFAULT_MODULAR_EXP;
 
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, float >(b1) == false ||
-	 whiteice::math::fft<K, float >(b2) == false)
+      if(whiteice::math::fft<K, double >(b1) == false ||
+	 whiteice::math::fft<K, double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
       for(unsigned int i=0;i<b1.size();i++){
-	if(b2[i] != whiteice::math::blas_complex<float>(0.0f)){
+	if(b2[i] != whiteice::math::blas_complex<double>(0.0f)){
 	  b1[i] = b1[i] / b2[i];
 	}
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, float >(b1) == false)
+      if(whiteice::math::ifft<K, double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       superresolution<T,U> result(T(0));
       
       for(unsigned int i=0;i<b1.size();i++){
 	whiteice::math::convert(result.basis[i], b1[i]);
-	// result.basis[i] = T(b1[i]);
+	//result.basis[i] = T(b1[i]);
       }
 
       return result;
@@ -318,7 +318,7 @@ namespace whiteice
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
       
-      whiteice::math::vertex< whiteice::math::blas_complex<float> > b1, b2;
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1, b2;
       b1.resize(this->size());
       b2.resize(this->size());
 
@@ -333,8 +333,8 @@ namespace whiteice
       const unsigned int K = DEFAULT_MODULAR_EXP;
 
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, float >(b1) == false ||
-	 whiteice::math::fft<K, float >(b2) == false)
+      if(whiteice::math::fft<K, double >(b1) == false ||
+	 whiteice::math::fft<K, double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -343,12 +343,12 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, float >(b1) == false)
+      if(whiteice::math::ifft<K, double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){
 	whiteice::math::convert(this->basis[i], b1[i]);
-	// result.basis[i] = T(b1[i]);
+	//this->basis[i] = T(b1[i]);
       }
 
       return (*this);
@@ -374,7 +374,7 @@ namespace whiteice
       // z = convolution(x, (1/y))
       // z = InvFFT(FFT(x)/FFT(y))
       
-      whiteice::math::vertex< whiteice::math::blas_complex<float> > b1, b2;
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1, b2;
       b1.resize(this->size());
       b2.resize(this->size());
 
@@ -385,26 +385,27 @@ namespace whiteice
 	whiteice::math::convert(b1[i], this->basis[i]);
 	whiteice::math::convert(b2[i], s.basis[i]);
       }
-
+      
       const unsigned int K = DEFAULT_MODULAR_EXP;
 
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, float >(b1) == false ||
-	 whiteice::math::fft<K, float >(b2) == false)
+      if(whiteice::math::fft<K, double >(b1) == false ||
+	 whiteice::math::fft<K, double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
       for(unsigned int i=0;i<b1.size();i++){
-	if(b2[i] != whiteice::math::blas_complex<float>(0))
+	if(b2[i] != whiteice::math::blas_complex<double>(0))
 	  b1[i] /= b2[i];
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, float >(b1) == false)
+      if(whiteice::math::ifft<K, double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){
 	whiteice::math::convert(this->basis[i], b1[i]);
+	//this->basis[i] = b1[i];
       }
 
       return (*this);

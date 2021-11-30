@@ -456,6 +456,8 @@ namespace whiteice
     bool convert(blas_real<float>& B, const complex<double> A)      { B = (float)A.real(); return true; }
     bool convert(blas_complex<float>& B, const blas_real<float> A)  { B = (float)A.c[0]; return true; }
     bool convert(blas_complex<double>& B, const blas_real<float> A) { B = (double)A.c[0]; return true; }
+    //bool convert(blas_complex<float>& B, const blas_real<double> A)  { B = (float)A.c[0]; return true; }
+    //bool convert(blas_complex<double>& B, const blas_real<double> A) { B = (double)A.c[0]; return true; }
     bool convert(complex<float>& B, const blas_real<float> A)       { B = (float)A.c[0]; return true; }
     bool convert(complex<float>& B, const blas_real<double> A)      { B = (float)A.c[0]; return true; }
     bool convert(complex<double>& B, const blas_real<float> A)       { B = (double)A.c[0]; return true; }
@@ -503,7 +505,7 @@ namespace whiteice
     bool convert(blas_complex<double>& B, const complex< blas_real<double> > A)
     {
       B.c[0] = A.real().c[0];
-      B.c[0] = A.imag().c[0];
+      B.c[1] = A.imag().c[0];
       return true;
     }
     

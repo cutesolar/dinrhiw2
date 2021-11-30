@@ -331,6 +331,7 @@ int main()
 				  math::modular<unsigned int> > alpha(1e-3f); // was: 1e-3f
       const double alphaf = 1e-3f;      
 
+#if 0
       math::vertex< math::superresolution<math::blas_real<double>,
 					  math::modular<unsigned int> > > regularizer;
 
@@ -341,6 +342,7 @@ int main()
 	  regularizer[j][k] *= alphaf;
 	}
       }
+#endif
 
       for(unsigned int j=0;j<sumgrad.size();j++){
 	for(unsigned int k=0;k<sumgrad[0].size();k++){
@@ -348,7 +350,9 @@ int main()
 	}
       }
 
-      weights -= sumgrad + regularizer;
+      weights -= sumgrad;
+
+      // weights -= sumgrad + regularizer;
       
       // weights -= lrate * sumgrad + regularizer; // (alpha*weights);
       
