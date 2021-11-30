@@ -78,12 +78,12 @@ int main()
   math::vertex< math::superresolution< math::blas_real<double>,
 				       math::modular<unsigned int> > > sweights;
 
-  // 4-10-10-4 network
+  // 4-10-10-10-4 network
   std::vector<unsigned int> arch;  
   arch.push_back(4);
-  arch.push_back(10);
-  arch.push_back(10);
-  //arch.push_back(10);  
+  arch.push_back(50);
+  arch.push_back(50);
+  arch.push_back(50);
   arch.push_back(4);
 
 
@@ -117,7 +117,7 @@ int main()
     for(unsigned int i=0;i<sweights.size();i++)
     {
       for(unsigned int k=0;k<sweights[i].size();k++){
-	sweights[i][k] = rng.normal();
+	sweights[i][k] = whiteice::math::blas_real<double>(0.01f)*rng.normal();
       }
       
     }
@@ -167,7 +167,7 @@ int main()
     // std::cout << "x = " << x << std::endl;
     //std::cout << "y = " << y << std::endl;
 
-    // net.calculate(x, y); // USE nnetwork as a target function (easier)
+    //net.calculate(x, y); // USE nnetwork as a target function (easier)
 
     inputs2.push_back(x);
     outputs2.push_back(y);
@@ -201,8 +201,8 @@ int main()
   data2.add(0, inputs2);
   data2.add(1, outputs2);
 
-  //data2.preprocess(0);
-  //data2.preprocess(1);
+  data2.preprocess(0);
+  data2.preprocess(1);
 
   if(data2.save("simpleproblem.ds") == false){
     printf("ERROR: saving data to file failed!\n");
@@ -224,6 +224,8 @@ int main()
 			  math::modular<unsigned int> > error(1000.0f), min_error(1000.0f), latest_error(1000.0f);
     math::superresolution<math::blas_real<double>,
 			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.05
+    
+    double lratef = 0.01;
     
     while(abs(error)[0].real() > math::blas_real<double>(0.001f) && counter < 100000){
       error = math::superresolution<math::blas_real<double>,
@@ -301,7 +303,7 @@ int main()
 	  // grad = delta*DF; // [THIS DOESN'T WORK]
 #else
 	  auto delta = err;
-	  
+  
 	  for(unsigned int n=0;n<delta.size();n++)
 	    for(unsigned int l=0;l<delta[0].size();l++)
 	      if(l != n) delta[n][l] = 0.0f;
@@ -318,7 +320,7 @@ int main()
 	  sumgrad += ninv*grad;
       }
 
-      // sumgrad.normalize(); // normalizes gradient length
+      // sumgrad.normalize(); // normalizes gradient length [disable normalization]
 
       snet.importdata(weights);
 
@@ -326,10 +328,29 @@ int main()
 	std::cout << "export failed." << std::endl;
 
       const math::superresolution<math::blas_real<double>,
-				  math::modular<unsigned int> > alpha(1e-3f);
+				  math::modular<unsigned int> > alpha(1e-3f); // was: 1e-3f
+      const double alphaf = 1e-3f;      
 
+      math::vertex< math::superresolution<math::blas_real<double>,
+					  math::modular<unsigned int> > > regularizer;
+
+      regularizer = weights;
+
+      for(unsigned int j=0;j<regularizer.size();j++){
+	for(unsigned int k=0;k<regularizer[0].size();k++){
+	  regularizer[j][k] *= alphaf;
+	}
+      }
+
+      for(unsigned int j=0;j<sumgrad.size();j++){
+	for(unsigned int k=0;k<sumgrad[0].size();k++){
+	  sumgrad[j][k] *= lratef;
+	}
+      }
+
+      weights -= sumgrad + regularizer;
       
-      weights -= lrate * sumgrad + (alpha*weights);/*+ (alpha*weights)*/;
+      // weights -= lrate * sumgrad + regularizer; // (alpha*weights);
       
       if(snet.importdata(weights) == false)
 	std::cout << "import failed." << std::endl;
@@ -345,20 +366,20 @@ int main()
 	min_error = abserror;
       }
 
-#if 0
+#if 1
       if(latest_error[0].real() > abserror[0].real()){
 	// error decreased so increase learning rate a bit
-	lrate *= 1.05f;
+	lratef *= 2.0;
       }
       else{ // error increased so decrease learning rate
-	lrate *= 0.50f;
+	lratef *= 0.5;
       }
 #endif
 
       latest_error = abserror;
       
       std::cout << counter << " : " << abserror
-		<< " (lrate: " << lrate[0].real() << ")" 
+		<< " (lrate: " << lratef << ")" 
 		<< std::endl;
       
       counter++;

@@ -2064,17 +2064,11 @@ namespace whiteice
 
 	return T(out);
       }
-      else{ // superresolution class
+      else{ // superresolution class [almost linear because superresolution numbers are non-linear already]
 	T output(input);
 
-	for(unsigned int i=0;i<input.size();i++){
-	  if(output[i].real() < 0.0f){
-	    output[i].real(RELUcoef*output[i].real());
-	  }
-	  if(output[i].imag() < 0.0f){
-	    output[i].imag(RELUcoef*output[i].imag());
-	  }
-	}
+	if(output[0].real() < 0.0f)
+	  output[0].real(RELUcoef*output[0].real());
 
 	return output;
       }
@@ -2239,6 +2233,21 @@ namespace whiteice
       }
       else{ // superresolution
 
+	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
+	// this should mean that derivate exists because we are only non-linear in real line
+
+	auto output = input;
+
+	for(unsigned int i=0;i<output.size();i++){
+	  output[i].real(1.0f);
+	  output[i].imag(1.0f);
+	}
+
+	if(output[0].real() < 0.0f)
+	  output[0].real(RELUcoef);
+       
+	
+#if 0
 	auto fx = input, fxh = input;
 	auto h  = input;
 
@@ -2267,7 +2276,7 @@ namespace whiteice
 	}
 
 	auto output = (fxh - fx)/delta;
-	
+#endif	
 
 #if 0
 	auto output = input;
@@ -2464,14 +2473,8 @@ namespace whiteice
       else{ // superresolution class
 	T output(input);
 
-	for(unsigned int i=0;i<input.size();i++){
-	  if(output[i].real() < 0.0f){
-	    output[i].real(RELUcoef*output[i].real());
-	  }
-	  if(output[i].imag() < 0.0f){
-	    output[i].imag(RELUcoef*output[i].imag());
-	  }
-	}
+	if(output[0].real() < 0.0f)
+	  output[0].real(RELUcoef*output[0].real());
 
 	return output;
       }
@@ -2630,9 +2633,21 @@ namespace whiteice
 	return T(out);
       }
       else{ // superresolution
-	// IMPLEMENT ME!
-	assert(0);
-	return input;
+
+	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
+	// this should mean that derivate exists because we are only non-linear in real line
+
+	auto output = input;
+
+	for(unsigned int i=0;i<output.size();i++){
+	  output[i].real(1.0f);
+	  output[i].imag(1.0f);
+	}
+
+	if(output[0].real() < 0.0f)
+	  output[0].real(RELUcoef);
+
+	return output;
       }
       
     }
