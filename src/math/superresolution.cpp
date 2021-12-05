@@ -18,7 +18,7 @@ namespace whiteice
       // initializes one dimensional scaling basis with zero value
       
       for(unsigned int i=0;i<this->size();i++)
-	basis[i] = T(0);
+	basis[i] = T(0.0f);
     }
     
     
@@ -26,7 +26,7 @@ namespace whiteice
     superresolution<T,U>::superresolution(const T value)
     {
       for(unsigned int i=1;i<this->size();i++)
-	basis[i] = T(0);
+	basis[i] = T(0.0f);
 
       basis[0] = value;
     }
@@ -57,8 +57,25 @@ namespace whiteice
     {
       
     }
+
+
+    // sets superresolution componenets to be all zero
+    template <typename T, typename U>
+    void superresolution<T,U>::zeros()
+    {
+      for(unsigned int i=0;i<size();i++)
+	basis[i] = T(0.0f);
+    }
     
-    
+    // sets supperresolution components to be all ones
+    template <typename T, typename U>
+    void superresolution<T,U>::ones()
+    {
+      for(unsigned int i=0;i<size();i++)
+	basis[i] = T(1.0f);
+    }
+
+
     // operators
     template <typename T, typename U>
     superresolution<T,U> superresolution<T,U>::operator+(const superresolution<T,U>& s)

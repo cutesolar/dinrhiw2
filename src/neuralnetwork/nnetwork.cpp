@@ -2065,12 +2065,12 @@ namespace whiteice
 	return T(out);
       }
       else{ // superresolution class [almost linear because superresolution numbers are non-linear already]
-	T output(input);
-
-	if(output[0].real() < 0.0f)
-	  output[0].real(RELUcoef*output[0].real());
-
-	return output;
+	if(input[0].real() < 0.0f){
+	  T output = T(RELUcoef)*input;
+	  return output;
+	}
+	else return input;
+	
       }
     }
     else{
@@ -2238,13 +2238,10 @@ namespace whiteice
 
 	auto output = input;
 
-	for(unsigned int i=0;i<output.size();i++){
-	  output[i].real(1.0f);
-	  output[i].imag(1.0f);
-	}
-
-	if(output[0].real() < 0.0f)
-	  output[0].real(RELUcoef);
+	if(input[0].real() < 0.0f)
+	  output = T(RELUcoef);
+	else
+	  output = T(1.0f);
        
 	
 #if 0
@@ -2471,12 +2468,16 @@ namespace whiteice
 	return T(out);
       }
       else{ // superresolution class
-	T output(input);
 
-	if(output[0].real() < 0.0f)
-	  output[0].real(RELUcoef*output[0].real());
+	if(input[0].real() < 0.0f){
+	  const T output = T(RELUcoef)*input;
+	  return output;
+	}
+	else{
+	  return input;
+	}
 
-	return output;
+	
       }
     }
     else{
@@ -2637,16 +2638,15 @@ namespace whiteice
 	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
 	// this should mean that derivate exists because we are only non-linear in real line
 
-	auto output = input;
+	T output;
 
-	for(unsigned int i=0;i<output.size();i++){
-	  output[i].real(1.0f);
-	  output[i].imag(1.0f);
+	if(input[0].real() < 0.0f){
+	  output = T(RELUcoef);
 	}
-
-	if(output[0].real() < 0.0f)
-	  output[0].real(RELUcoef);
-
+	else{
+	  output = T(1.0f);
+	}
+	
 	return output;
       }
       
