@@ -16,9 +16,9 @@
 #include "dinrhiw_blas.h"
 #include "vertex.h"
 #include "conffile.h"
-#include "compressable.h"
+//#include "compressable.h"
 #include "dataset.h"
-#include "MemoryCompressor.h"
+//#include "MemoryCompressor.h"
 #include "RNG.h"
 
 #include <vector>

@@ -49,7 +49,6 @@ namespace whiteice
     template <typename T>
     vertex<T>::vertex()
     {
-      this->compressor = nullptr;
       this->dataSize = 0;      
       this->data = nullptr;
 
@@ -84,7 +83,6 @@ namespace whiteice
     template <typename T>
     vertex<T>::vertex(unsigned int i)
     {
-      this->compressor = nullptr;
       this->dataSize = 0;
       this->data = nullptr;
 
@@ -135,15 +133,9 @@ namespace whiteice
     template <typename T>
     vertex<T>::vertex(const vertex<T>& v)
     {
-      this->compressor = 0;
       this->dataSize = 0;
       this->data = 0;
       
-      if(v.compressor != 0){
-	assert(0);
-	throw illegal_operation("vertex ctor: to be copied vertex is compressed");
-      }
-
 #ifdef CUBLAS
 
       if(v.data){
@@ -279,12 +271,9 @@ namespace whiteice
     {
       this->data = NULL;
       this->dataSize = 0;
-      this->compressor = NULL;
       
       std::swap(this->data, t.data);
       std::swap(this->dataSize, t.dataSize);
-      std::swap(this->compressor, t.compressor);
-      
     }
     
     
@@ -292,7 +281,6 @@ namespace whiteice
     template <typename T>
     vertex<T>::vertex(const std::vector<T>& v)
     {
-      this->compressor = 0;
       this->dataSize = 0;
       this->data = 0;
 
@@ -406,8 +394,6 @@ namespace whiteice
     template <typename T>
     vertex<T>::~vertex()
     {
-      if(this->compressor) delete (this->compressor);
-
 #ifdef CUBLAS
 
       if(this->data){
@@ -1922,11 +1908,6 @@ namespace whiteice
     vertex<T>& vertex<T>::operator=(const vertex<T>& v)
       
     {
-      if(v.compressor != 0 || this->compressor != 0){
-	whiteice::logging.error("vertex::operator=(): compressed vector data.");
-	assert(0);
-	throw illegal_operation("vertex '='-operator: compressed vertex data");
-      }
       
       if(v.data == this->data) // self-assignment
 	return (*this);
@@ -2026,7 +2007,6 @@ namespace whiteice
 
       std::swap(this->data, t.data);
       std::swap(this->dataSize, t.dataSize);
-      std::swap(this->compressor, t.compressor);
       
       return *this;
     }
@@ -2035,11 +2015,6 @@ namespace whiteice
     template <typename T>
     vertex<T>& vertex<T>::operator=(const matrix<T>& M)
     {
-      if(M.compressor != 0 || this->compressor != 0){
-	whiteice::logging.error("vertex::operator=(): compressed vector/matrix data.");
-	assert(0);
-	throw illegal_operation("vertex '='-operator: compressed vertex/matrix data.");
-      }
 
       if(M.numRows != 1 && M.numCols != 1){
 	whiteice::logging.error("vertex::operator=(): wrong dimension matrix M data.");
@@ -3706,88 +3681,6 @@ namespace whiteice
       
       fclose(fp);
       return true;
-    }
-    
-
-    ////////////////////////////////////////////////////////////
-    // matrix data compression
-    // note: compressor destroys possible memory
-    // aligmentations
-    
-    
-    template <typename T>
-    bool vertex<T>::compress() 
-    {
-      if(compressor != 0) return false; // already compressed
-
-#ifdef CUBLAS
-      whiteice::logging.error("FIXME Memory compression is not supported with GPU memory.");
-      return false;
-#else
-      
-      compressor = new MemoryCompressor();
-      
-      compressor->setMemory(data, sizeof(T)*dataSize);
-      // let compressor allocate the memory
-      
-      if(compressor->compress()){ // compression ok.
-	free(data); data = 0; // free's memory
-	compressor->setMemory(data, 0);
-	return true;
-      }
-      else{
-	if(compressor->getTarget() != 0)
-	  free(compressor->getTarget());
-	
-	delete compressor;
-	compressor = 0;
-	return false;
-      }
-#endif
-    }
-    
-    
-    template <typename T>
-    bool vertex<T>::decompress() 
-    {
-      if(compressor == 0) return false; // not compressed
-
-#ifdef CUBLAS
-      whiteice::logging.error("FIXME Memory compression is not supported with GPU memory.");
-      return false;
-#else
-      
-      if(compressor->decompress()){ // decompression ok.
-	data = (T*)( compressor->getMemory() );
-	
-	free(compressor->getTarget());
-	
-	delete compressor;
-	compressor = 0;
-	
-	return true;
-      }
-      else{
-	return false;
-      }
-#endif
-      
-    }
-
-    
-    
-    template <typename T>
-    bool vertex<T>::iscompressed() const 
-    {
-      return (compressor != 0);
-    }
-    
-
-    template <typename T>
-    float vertex<T>::ratio() const 
-    {
-      if(compressor == 0) return 1.0f;
-      return compressor->ratio();
     }
     
     

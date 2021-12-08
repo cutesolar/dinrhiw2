@@ -35,7 +35,7 @@
 #include "unique_id.h"
 #include "conffile.h"
 #include "list_source.h"
-#include "MemoryCompressor.h"
+//#include "MemoryCompressor.h"
 
 #else
 // eclipse has different build process we test with ready compiled library
@@ -69,7 +69,7 @@ void test_dataset_complex();
 void test_dataset_ica();
 void test_uniqueid();
 void test_conffile();
-void test_compression();
+//void test_compression();
 void test_list_source();
 
 
@@ -125,7 +125,7 @@ int main()
   
   // test_uniqueid(); // FIXME fix this testcase
   test_conffile();
-  test_compression();
+  //test_compression();
   test_list_source();
   
   
@@ -4885,7 +4885,7 @@ void test_conffile()
 
 
 
-
+#if 0
 void test_compression()
 {
   try{
@@ -5056,7 +5056,7 @@ void test_compression()
 	      << e.what() << std::endl;
   }
 }
-
+#endif
 
 
 

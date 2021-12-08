@@ -6,7 +6,7 @@ CXX= @CXX@
 
 OBJECTS = HMM.o
 
-EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
+EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../math/quaternion.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
 	../math/integer.o ../math/correlation.o ../math/matrix_rotations.o \
@@ -31,7 +31,7 @@ CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-
 TARGET= testsuite
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork $(OPTIMIZE)
 
-LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@
+LIBS= @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@
 
 CD = cd
 

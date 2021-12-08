@@ -244,7 +244,7 @@ int main()
 	(1.0f/(data.size(0)*data.access(1,0).size()));
 
       math::superresolution<math::blas_real<double>,
-			    math::modular<unsigned int> > h, s0(1.0), epsilon(1e-20);
+			    math::modular<unsigned int> > h, s0(1.0), epsilon(1e-30);
 
       h.ones(); // differential operation difference
       h = epsilon*h;

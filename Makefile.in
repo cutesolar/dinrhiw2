@@ -104,10 +104,10 @@ makelib:
 	./make_lib_dir.sh
 	$(RM) *.a
 	$(AR) rc $(LIBNAME) $(LIBOBJECTS)
-##	$(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@ -fopenmp
-	$(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@ -fopenmp
+##	$(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@ -fopenmp
+	$(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@ -fopenmp
 
-	## $(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) -L/usr/local/lib -lz -lgmp -L/usr/lib/ -L/opt/intel/compilers_and_libraries/linux/mkl/ -Wl,--start-group /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lgomp -lpthread -lm -ldl -fopenmp
+	## $(CXX) -shared -Wl,-soname,$(BASESOLIBNAME) -o $(SOLIBNAME) $(LIBOBJECTS) -L/usr/local/lib -lgmp -L/usr/lib/ -L/opt/intel/compilers_and_libraries/linux/mkl/ -Wl,--start-group /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/compilers_and_libraries/linux/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lgomp -lpthread -lm -ldl -fopenmp
 
 	$(MV) $(LIBNAME) lib/
 	$(MV) $(SOLIBNAME) lib/

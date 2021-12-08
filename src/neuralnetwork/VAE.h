@@ -19,7 +19,7 @@
 #include "dinrhiw_blas.h"
 #include "vertex.h"
 #include "conffile.h"
-#include "compressable.h"
+//#include "compressable.h"
 #include "dataset.h"
 #include "LoggingInterface.h"
 #include "VisualizationInterface.h"

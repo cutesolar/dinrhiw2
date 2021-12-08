@@ -13,8 +13,8 @@
 
 #include "Log.h"
 
-#include "compressable.h"
-#include "MemoryCompressor.h"
+//#include "compressable.h"
+//#include "MemoryCompressor.h"
 
 #include <stdexcept>
 #include <exception>
@@ -227,15 +227,6 @@ namespace whiteice
       bool saveAscii(const std::string& filename) const ;
 
       void toString(std::string& line) const ;
-
-      
-      //////////////////////////////////////////////////
-      // vertex data compression
-      
-      bool compress() ;
-      bool decompress() ;
-      bool iscompressed() const ;
-      float ratio() const ;
       
       //////////////////////////////////////////////////
       // direct memory access
@@ -285,9 +276,6 @@ namespace whiteice
       
       T* data;      
       unsigned int dataSize;
-      
-      MemoryCompressor* compressor;
-      
     };
     
     

@@ -33,7 +33,6 @@ namespace whiteice
       numRows = 0;
       numCols = 0;
       data = NULL;
-      compressor = NULL;
 
 #ifdef CUBLAS
       
@@ -70,7 +69,6 @@ namespace whiteice
       
       numRows = ysize;
       numCols = xsize;
-      compressor = 0;
 #endif
       
     }
@@ -80,13 +78,7 @@ namespace whiteice
     matrix<T>::matrix(const matrix<T>& M)
     {
       data = NULL;
-      compressor = NULL;
 
-      if(M.compressor != 0){
-	assert(0);
-	throw illegal_operation("matrix ctor: to be copied matrix is compressed");
-      }
-      
 #if CUBLAS
       
       if(M.data){
@@ -204,7 +196,6 @@ namespace whiteice
       numRows = M.numRows;
       numCols = M.numCols;
       
-      compressor = M.compressor;
 #endif
     }
     
@@ -214,19 +205,16 @@ namespace whiteice
       this->data = NULL;
       this->numRows = 0;
       this->numCols = 0;
-      this->compressor = NULL;
       
       std::swap(this->data, t.data);
       std::swap(this->numRows, t.numRows);
       std::swap(this->numCols, t.numCols);
-      std::swap(this->compressor, t.compressor);
     }
     
     template <typename T>
     matrix<T>::matrix(const vertex<T>& diagonal)
     {
       data = NULL;
-      compressor = NULL;
 
 #ifdef CUBLAS
       
@@ -281,8 +269,6 @@ namespace whiteice
     template <typename T>
     matrix<T>::~matrix()
     {
-      if(compressor) delete compressor;
-
 #ifdef CUBLAS
       
       if(data)
@@ -1301,11 +1287,6 @@ namespace whiteice
     {
       if(this == &M) return (*this); // self-assignment
       
-      if(M.compressor != 0){
-	assert(0);
-	throw illegal_operation("matrix ctor: to be copied matrix is compressed");
-      }
-      
       if(M.numCols != numCols) resize_x(M.numCols);
       if(M.numRows != numRows) resize_y(M.numRows);
       
@@ -1435,7 +1416,6 @@ namespace whiteice
       std::swap(this->data, t.data);
       std::swap(this->numRows, t.numRows);
       std::swap(this->numCols, t.numCols);
-      std::swap(this->compressor, t.compressor);
       
       return *this;
     }
@@ -1445,11 +1425,6 @@ namespace whiteice
     matrix<T>& matrix<T>::operator=(const vertex<T>& v)
     {
       
-      if(v.compressor != NULL || this->compressor != NULL){
-	assert(0);
-	throw illegal_operation("matrix::operator=(): to be copied matrix/vertex is compressed");
-      }
-
       if(this->resize_x(1) == false){
 	whiteice::logging.error("matrix::operator=(): matrix resize_x() failed.");
 	assert(0);
@@ -4142,9 +4117,7 @@ namespace whiteice
 
       if(y == 0 || x == 0){
 	if(data) cudaFree(data);
-	if(compressor) delete compressor;
 	data = NULL;
-	compressor = NULL;
 	numRows = y;
 	numCols = x;
 	
@@ -4160,9 +4133,6 @@ namespace whiteice
 	  whiteice::logging.error("matrix::resize(): cudaMemset() failed.");
 	  throw CUDAException("CUBLAS cudaMemset() failed");
 	}
-
-	if(compressor) delete compressor;
-	compressor = NULL;
 
 	return true;
       }
@@ -4189,8 +4159,6 @@ namespace whiteice
 	numRows = y;
 	numCols = x;
 	data = (T*)cudaptr;
-	if(compressor) delete compressor;
-	compressor = NULL;
 
 	return true;
       }
@@ -4198,9 +4166,7 @@ namespace whiteice
 #else
       if(y == 0 || x == 0){
 	if(data) free(data);
-	if(compressor) delete compressor;
 	data = NULL;
-	compressor = NULL;
 	numRows = y;
 	numCols = x;
 	return true;
@@ -4209,8 +4175,6 @@ namespace whiteice
 	numRows = y;
 	numCols = x;
 	memset(data, 0, numRows*numCols*sizeof(T)); // resets values to zero [remove]
-	if(compressor) delete compressor;
-	compressor = NULL;
 	return true;
       }
       else{
@@ -4220,9 +4184,6 @@ namespace whiteice
 	if(new_area == NULL) return false;
 	data = new_area;
 
-	if(compressor) delete compressor;
-	compressor = NULL;
-	
 	numRows = y;
 	numCols = x;
 	
@@ -4242,9 +4203,7 @@ namespace whiteice
       if(d == numCols) return true;
       else if(d == 0){
 	if(data) cudaFree(data);
-	if(compressor) delete compressor;
 	data = NULL;
-	compressor = NULL;
 	numCols = d;
 	
 	return true;
@@ -4272,9 +4231,7 @@ namespace whiteice
 
 	numCols = d;
 	data = (T*)cudaptr;
-	if(compressor) delete compressor;
-	compressor = NULL;
-
+	
 	return true;
 	
       }
@@ -4284,10 +4241,8 @@ namespace whiteice
       }
       else if(d == 0){
 	if(data) free(data);
-	if(compressor) delete compressor;
 	
 	data = NULL;
-	compressor = NULL;
 	
 	numCols = d; 
 	
@@ -4301,9 +4256,6 @@ namespace whiteice
 	
 	if(data) free(data);
 	data = new_area;
-	
-	if(compressor) delete compressor;
-	compressor = NULL;
 	
 	numCols = d;
 	
@@ -4323,9 +4275,7 @@ namespace whiteice
       if(d == numRows) return true; // nothing to do
       else if(d == 0){
 	if(data) cudaFree(data);
-	if(compressor) delete compressor;
 	data = NULL;
-	compressor = NULL;
 	numRows = d;
 	
 	return true;
@@ -4353,9 +4303,7 @@ namespace whiteice
 
 	numRows = d;
 	data = (T*)cudaptr;
-	if(compressor) delete compressor;
-	compressor = NULL;
-
+	
 	return true;
 	
       }
@@ -4365,10 +4313,8 @@ namespace whiteice
       }
       else if(d == 0){
 	if(data) free(data);
-	if(compressor) delete compressor;
 	
 	data = NULL;
-	compressor = NULL;
 	
 	numRows = d;
 	
@@ -4383,9 +4329,6 @@ namespace whiteice
 	if(data) free(data);
 	data = new_area;
 
-	if(compressor) delete compressor;
-	compressor = NULL;
-	
 	numRows = d;
 	
 	memset(data, 0, numRows*numCols*sizeof(T));
@@ -5695,92 +5638,6 @@ namespace whiteice
 	return;
       }
     }
-    
-    ////////////////////////////////////////////////////////////
-    // matrix data compression
-    // note: compressor destroys possible memory
-    // aligmentations
-    
-    
-    template <typename T>
-    bool matrix<T>::compress() 
-    {
-      if(compressor != 0) return false; // already compressed
-
-#ifdef CUBLAS
-      whiteice::logging.error("FIXME Memory compression is not supported with GPU memory.");
-      return false;
-#else
-      compressor = new MemoryCompressor();
-      
-      compressor->setMemory(data, sizeof(T)*numRows*numCols);
-      // let compressor allocate the memory
-      
-      if(compressor->compress()){ // compression ok.
-	free(data); data = 0; // free's memory
-	compressor->setMemory(data, 0);
-	return true;
-      }
-      else{
-	if(compressor->getTarget() != 0)
-	  free(compressor->getTarget());
-	
-	delete compressor;
-	compressor = 0;
-	return false;
-      }
-#endif
-    }
-    
-    
-    template <typename T>
-    bool matrix<T>::decompress() 
-    {
-      if(compressor == 0) return false; // not compressed
-
-#ifdef CUBLAS
-      whiteice::logging.error("FIXME Memory compression is not supported with GPU memory.");
-      return false;
-#else
-      if(compressor->decompress()){ // decompression ok.
-	data = (T*)( compressor->getMemory() );
-	
-	free(compressor->getTarget());
-	
-	delete compressor;
-	compressor = 0;
-	
-	return true;
-      }
-      else{
-	return false;
-      }
-#endif
-    }
-    
-    
-    template <typename T>
-    bool matrix<T>::iscompressed() const 
-    {
-      return (compressor != 0);
-    }
-    
-    
-    template <typename T>
-    float matrix<T>::ratio() const 
-    {
-      if(compressor == 0) return 1.0f;
-
-#ifdef CUBLAS
-      whiteice::logging.error("FIXME Memory compression is not supported with GPU memory.");
-      return 1.0f;
-#else
-      return ( ((float)compressor->getTargetSize()) / ((float)(numRows*numCols*sizeof(T))) );
-#endif
-    }
-    
-    
-    ////////////////////////////////////////////////////////////
     
     /***************************************************/
     

@@ -8,8 +8,8 @@
 #include "ownexception.h"
 #include "number.h"
 
-#include "compressable.h"
-#include "MemoryCompressor.h"
+//#include "compressable.h"
+//#include "MemoryCompressor.h"
 
 #include "blade_math.h"
 
@@ -287,14 +287,6 @@ namespace whiteice
       void toString(std::string& line) const ;
       
       //////////////////////////////////////////////////
-      // matrix data compression
-      
-      bool compress() ;
-      bool decompress() ;
-      bool iscompressed() const ;
-      float ratio() const ; // compression ratio
-      
-      //////////////////////////////////////////////////
       
       friend class vertex<T>;
       
@@ -334,8 +326,6 @@ namespace whiteice
       
       unsigned int numRows; // ysize
       unsigned int numCols; // xsize
-      
-      MemoryCompressor* compressor;
     };
     
     

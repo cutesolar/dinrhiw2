@@ -6,7 +6,7 @@ CXX= @CXX@
 
 OBJECTS = RNN_RBM.o
 
-EXTRA_OBJECTS =	../dataset.o ../MemoryCompressor.o \
+EXTRA_OBJECTS =	../dataset.o \
 	../math/quaternion.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
 	../math/integer.o ../math/correlation.o ../math/matrix_rotations.o \
@@ -37,7 +37,7 @@ CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-
 TARGET= testsuite
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../reinforcement -I../crypto $(OPTIMIZE)
 
-LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@
+LIBS= @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@
 
 CD = cd
 
