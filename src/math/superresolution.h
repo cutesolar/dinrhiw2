@@ -41,6 +41,12 @@ namespace whiteice
 	superresolution(const superresolution<T,U>& s);
 	superresolution(const std::vector<T>& values);
         ~superresolution();
+
+        // sets superresolution componenets to be all zero
+        void zeros();
+      
+        // sets supperresolution components to be all ones
+        void ones();
 	
 	// operators
 	superresolution<T,U> operator+(const superresolution<T,U>&) const ;
@@ -60,8 +66,8 @@ namespace whiteice
 	superresolution<T,U>& operator-=(const superresolution<T,U>&) ;
 	superresolution<T,U>& operator*=(const superresolution<T,U>&) ;
 	superresolution<T,U>& operator/=(const superresolution<T,U>&) ;
-	
-	superresolution<T,U>& operator=(const superresolution<T,U>&) ;
+
+        superresolution<T,U>& operator=(const superresolution<T,U>&) ;
 
 	bool operator==(const superresolution<T,U>&) const ;
 	bool operator!=(const superresolution<T,U>&) const ;
@@ -104,9 +110,9 @@ namespace whiteice
         { 
 #ifdef _GLIBCXX_DEBUG	
 	  if(index >= DEFAULT_MODULAR_BASIS){
-	    whiteice::logging.error("vertex::operator[]: index out of range");
+	    whiteice::logging.error("superresolution::operator[]: index out of range");
 	    assert(0);
-	    throw std::out_of_range("vertex index out of range");
+	    throw std::out_of_range("superresolution index out of range");
 	  }
 #endif
 	  return basis[index];
@@ -117,9 +123,9 @@ namespace whiteice
         {
 #ifdef _GLIBCXX_DEBUG	
 	  if(index >= DEFAULT_MODULAR_BASIS){
-	    whiteice::logging.error("vertex::operator[]: index out of range");
+	    whiteice::logging.error("superresolution::operator[]: index out of range");
 	    assert(0);
-	    throw std::out_of_range("vertex index out of range");
+	    throw std::out_of_range("superresolution index out of range");
 	  }
 #endif
 	  
@@ -173,6 +179,20 @@ namespace whiteice{
   {
     template <typename T>
     std::ostream& operator<<(std::ostream& ios, const superresolution<T, modular<unsigned int> > & m);
+
+    
+    template <typename T, typename U>
+    superresolution<T,U> componentwise_multi(const superresolution<T,U>& a, const superresolution<T,U>& b)
+    {
+      // calculates a .* b
+
+      superresolution<T,U> result;
+
+      for(unsigned int i=0;i<DEFAULT_MODULAR_BASIS;i++)
+	result.basis[i] = a.basis[i]*b.basis[i];
+
+      return result;
+    }
 			     
     
     extern template struct superresolution< whiteice::math::blas_real<float>,

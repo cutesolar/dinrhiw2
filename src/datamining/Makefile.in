@@ -20,7 +20,7 @@ SOURCES = AssociationRuleFinder.cpp test/tst.cpp \
 
 TARGET  = tst
 
-LIBS= @EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@
+LIBS= @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@
 
 ##################################################
 

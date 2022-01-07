@@ -5322,19 +5322,7 @@ if [ $INTELMKL == "no" -a $OPENBLAS == "no" ]; then
 fi
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for ZLIB library and headers" >&5
-printf %s "checking for ZLIB library and headers... " >&6; }
 ZLIB_USABLE="no"
-
-`gcc -o zlibtest zlibtest.c -I/usr/local/include/ -L/usr/local/lib/ -lz > /dev/null 2> /dev/null`
-
-if [ $? -eq 0 ]; then
-   ZLIB_USABLE="yes"
-   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-else
-   as_fn_error $? "no, install ZLIB and header files" "$LINENO" 5
-fi
 
 
 ATLASLIBS_PATH="/usr/local/lib/"

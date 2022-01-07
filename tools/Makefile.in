@@ -22,8 +22,8 @@ SOURCES = aescipher.cpp FileSource.cpp CryptoFileSource.cpp dataplot.cpp MMAP.cp
 	nntool.cpp argparser.tab.cpp cpuid_threads.cpp datatool.cpp gendata.cpp gendata2.cpp
 
 
-AESCIPHER_LIBS = @EXTRA_LIBPATHS@ @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
-WDV_LIBS = @EXTRA_LIBPATHS@ ../lib/lindinrhiw.a -lgmp -lz
+AESCIPHER_LIBS = @EXTRA_LIBPATHS@ @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
+WDV_LIBS = @EXTRA_LIBPATHS@ ../lib/lindinrhiw.a -lgmp
 
 AESCIPHER_OBJECTS = aescipher.o FileSource.o CryptoFileSource.o
 AESCIPHER_TARGET = aescipher
@@ -33,27 +33,27 @@ DATAPLOT_TARGET = wdv
 
 MMAP_OBJECTS = MMAP.o mapping.o
 MMAP_TARGET  = ftest
-MMAP_LIBS = ../lib/libdinrhiw.a @EXTRA_LIBS@ -lgmp -lz
+MMAP_LIBS = ../lib/libdinrhiw.a @EXTRA_LIBS@ -lgmp
 
 NNTOOLS_OBJECTS = nntool.o argparser.tab.o cpuid_threads.o
 NNTOOLS_TARGET  = nntool
-NNTOOLS_LIBS    = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+NNTOOLS_LIBS    = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
 DATATOOL_OBJECTS = datatool.o
 DATATOOL_TARGET  = dstool
-DATATOOL_LIBS    = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+DATATOOL_LIBS    = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
 GENDATA_OBJECTS  = gendata.o
 GENDATA_TARGET   = gendata
-GENDATA_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+GENDATA_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
 GENDATA2_OBJECTS  = gendata2.o
 GENDATA2_TARGET   = gendata2
-GENDATA2_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+GENDATA2_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
 GENDATA3_OBJECTS  = gendata3_norm.o
 GENDATA3_TARGET   = gendata3
-GENDATA3_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp -lz
+GENDATA3_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
 ##################################################
 

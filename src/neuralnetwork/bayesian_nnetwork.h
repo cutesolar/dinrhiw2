@@ -40,6 +40,10 @@ namespace whiteice
     bool exportSamples(whiteice::nnetwork<T>& nn, 
 		       std::vector< math::vertex<T> >& weights,
 		       int latestN = 0) const;
+
+    const whiteice::nnetwork<T>& getNetwork() const {
+      assert(nnets.size()>0); return (*(nnets[0]));
+    }
     
     bool getArchitecture(std::vector<unsigned int>& arch) const;
 

@@ -97,6 +97,7 @@ def minihack_performAction(action):
     if(reward < 0):
         reward = 10*reward
     
+
     surroundings = convert_chars(flatten(obs["chars_crop"]))
     stats = obs["blstats"].tolist()
     state = combine([surroundings, stats])

@@ -11,7 +11,7 @@ OBJECTS = point.o static_array.o dynamic_array.o \
 	conffile.o linear_ETA.o \
 	dynamic_bitset.o list_source.o \
 	VisualizationInterface.o \
-	MemoryCompressor.o timed_boolean.o \
+	timed_boolean.o \
 	Log.o \
 	dinrhiw.o
 
@@ -31,7 +31,7 @@ SOURCES = point.cpp static_array.cpp dynamic_array.cpp \
 	conversion.cpp unique_id.cpp \
 	conffile.cpp linear_ETA.cpp \
 	VisualizationInterface.cpp \
-	MemoryCompressor.cpp timed_boolean.cpp \
+	timed_boolean.cpp \
 	math/quaternion.cpp math/RNG.cpp \
 	math/vertex.cpp math/matrix.cpp math/ownexception.cpp \
 	math/norms.cpp math/superresolution.cpp math/modular.cpp \
@@ -56,7 +56,7 @@ CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-
 TARGET=testsuite
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -Iexceptions -Imath -Ineuralnetwork -Icrypto -Ihmm -Ireinforcement -Irnn $(OPTIMIZE)
 
-LIBS=@EXTRA_LIBPATHS@ -lz -lgmp @EXTRA_LIBS@
+LIBS=@EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@
 
 CD = cd
 

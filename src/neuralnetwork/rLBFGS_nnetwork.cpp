@@ -200,8 +200,7 @@ namespace whiteice
 	  // E = SUM 0.5*e(i)^2
 #pragma omp for nowait schedule(auto)
 	  for(unsigned int i=0;i<MINIBATCHSIZE;i++){
-	    const unsigned int index =
-	      whiteice::math::LBFGS<T>::rng.rand() % dtrain.size(0);
+	    const unsigned int index = rng.rand() % dtrain.size(0);
 	    nnet.input() = dtrain.access(0, index);
 	    nnet.calculate(false);
 	    err = dtrain.access(1, index) - nnet.output();
@@ -238,8 +237,7 @@ namespace whiteice
 	  // E = SUM 0.5*e(i)^2
 #pragma omp for nowait schedule(auto)
 	  for(unsigned int i=0;i<MINIBATCHSIZE;i++){
-	    const unsigned int index =
-	      whiteice::math::LBFGS<T>::rng.rand() % dtrain.size(0);
+	    const unsigned int index = rng.rand() % dtrain.size(0);
 	    input.zero();
 	    assert(input.write_subvertex(dtrain.access(0,index), 0));
 	    

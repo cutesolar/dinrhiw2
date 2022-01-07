@@ -8,7 +8,7 @@ OBJECTS = RIFL_abstract.o RIFL_abstract3.o CartPole.o PolicyGradAscent.o RIFL_ab
 	CreateRIFLdataset.o CreateRIFL3dataset.o CreateRIFL2dataset.o CreatePolicyDataset.o \
 	RotationProblem.o AdditionProblem.o
 
-EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
+EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
 	../math/integer.o ../math/correlation.o ../math/matrix_rotations.o \
 	../math/eig.o ../math/blade_math.o ../math/real.o ../math/ica.o \
@@ -22,6 +22,7 @@ EXTRA_OBJECTS = ../dataset.o ../MemoryCompressor.o ../dynamic_bitset.o \
 	../neuralnetwork/DBN.o ../neuralnetwork/GBRBM.o ../neuralnetwork/BBRBM.o \
 	../math/outerproduct.o \
 	../math/LBFGS.o ../neuralnetwork/rLBFGS_recurrent_nnetwork.o \
+	../neuralnetwork/rLBFGS_recurrent_nnetwork_softmax_actions.o \
 	../neuralnetwork/LBFGS_GBRBM.o \
 	../neuralnetwork/LBFGS_BBRBM.o ../math/RNG.o
 
@@ -60,6 +61,7 @@ SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp
 	../neuralnetwork/stackedRBM_pretraining.cpp ../neuralnetwork/DBN.cpp \
 	../neuralnetwork/GBRBM.cpp ../neuralnetwork/BBRBM.cpp ../math/outerproduct.cpp \
 	../math/LBFGS.cpp ../neuralnetwork/rLBFGS_recurrent_nnetwork.cpp \
+	../neuralnetwork/rLBFGS_recurrent_nnetwork_softmax_actions.cpp \
 	../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
 	../math/RNG.cpp
 
@@ -78,7 +80,7 @@ TARGET6=minihack2_test
 
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
 
-LIBS=@EXTRA_LIBPATHS@ -lz -lgmp -lpthread @EXTRA_LIBS@
+LIBS=@EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
 LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -L/mingw64/lib/ -lpython3.9
 

@@ -20,7 +20,7 @@ OBJECTS = blade_math.o ownexception.o outerproduct.o \
 	pdftree.o simplex.o BFGS.o LBFGS.o SGD.o gcd.o integer.o modular.o \
 	gmatrix.o gvertex.o correlation.o norms.o eig.o \
 	ica.o RungeKutta.o maximizer.o fastpca.o RNG.o \
-	../MemoryCompressor.o ../conffile.o ../dynamic_bitset.o \
+	../conffile.o ../dynamic_bitset.o \
 	../Log.o ../dataset.o
 
 
@@ -32,13 +32,13 @@ SOURCES = blade_math.cpp ownexception.cpp outerproduct.cpp \
 	gmatrix.cpp gvertex.cpp eig.cpp correlation.cpp norms.cpp eig.cpp \
 	ica.cpp RungeKutta.cpp maximizer.cpp fastpca.cpp RNG.cpp \
 	superresolution.cpp modular.cpp \
-	../MemoryCompressor.cpp ../conffile.cpp  ../dynamic_bitset.cpp \
+	../conffile.cpp  ../dynamic_bitset.cpp \
 	../dataset.cpp \
 	tst/test.cpp tst/test2.cpp 
 
 
 
-LIBS = @EXTRA_LIBPATHS@ -lgmp -lz -lpthread @EXTRA_LIBS@
+LIBS = @EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
 TEST_OBJ = tst/test.o
 TARGET = testsuite

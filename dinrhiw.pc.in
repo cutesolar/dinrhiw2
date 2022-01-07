@@ -4,9 +4,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@/dinrhiw
 
-Name: whiteice::dinrhiw
-Description: whiteice::dinrhiw - basic linear algebra and machine learning library and tools
+Name: dinrhiw2
+Description: dinrhiw2 - basic linear algebra and machine learning library and tools
 Version: 0.80
 Requires: 
-Libs: -L@prefix@/lib @EXTRA_LIBPATHS@ -ldinrhiw -lz -lgmp @EXTRA_LIBS@
+Libs: -L@prefix@/lib @EXTRA_LIBPATHS@ -ldinrhiw -lgmp @EXTRA_LIBS@
 Cflags: -I@prefix@/include/dinrhiw @EXTRA_INCLUDEPATHS@ @conf_flags@

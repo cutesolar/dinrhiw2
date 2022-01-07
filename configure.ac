@@ -542,18 +542,20 @@ if [[ $INTELMKL == "no" -a $OPENBLAS == "no" ]]; then
 fi
 
 
-dnl checking for ZLIB header files and library
-AC_MSG_CHECKING([for ZLIB library and headers])
+dnl ZLIB IS DISABLED AND NOT USED ANYMORE
+dnl 
+dnl dnl checking for ZLIB header files and library
+dnl AC_MSG_CHECKING([for ZLIB library and headers])
 ZLIB_USABLE="no"
-
-`gcc -o zlibtest zlibtest.c -I/usr/local/include/ -L/usr/local/lib/ -lz > /dev/null 2> /dev/null`
-
-if [[ $? -eq 0 ]]; then
-   ZLIB_USABLE="yes"
-   AC_MSG_RESULT([yes])
-else
-   AC_MSG_ERROR([no, install ZLIB and header files])
-fi
+dnl 
+dnl `gcc -o zlibtest zlibtest.c -I/usr/local/include/ -L/usr/local/lib/ -lz > /dev/null 2> /dev/null`
+dnl 
+dnl if [[ $? -eq 0 ]]; then
+dnl    ZLIB_USABLE="yes"
+dnl    AC_MSG_RESULT([yes])
+dnl else
+dnl    AC_MSG_ERROR([no, install ZLIB and header files])
+dnl fi
 
 
 dnl adds --with-atlaslibpath

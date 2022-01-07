@@ -83,7 +83,7 @@
 #include "dynamic_array.h"
 #include "search_array.h"
 #include "container.h"
-#include "compressable.h"
+//#include "compressable.h"
 #include "printable.h"
 #include "data_source.h"
 #include "chainhash.h"
@@ -120,7 +120,7 @@
 
 #include "ETA.h"
 #include "linear_ETA.h"
-#include "MemoryCompressor.h"
+//#include "MemoryCompressor.h"
 #include "conffile.h"
 #include "unique_id.h"
 

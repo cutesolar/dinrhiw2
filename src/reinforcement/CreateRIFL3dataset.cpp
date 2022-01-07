@@ -20,8 +20,8 @@ namespace whiteice
   // using database_lock
   template <typename T>
   CreateRIFL3dataset<T>::CreateRIFL3dataset(const RIFL_abstract3<T> & rifl_,
-					    //const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
-					    const std::multimap< T, std::vector< rifl_datapoint<T> > >& episodes_,
+					    const  std::vector< std::vector< rifl_datapoint<T> > >& episodes_,
+					    //const std::multimap< T, std::vector< rifl_datapoint<T> > >& episodes_,
 					    std::mutex & database_mutex_,
 					    std::mutex & model_mutex_,
 					    const unsigned int & epoch_,
@@ -156,10 +156,13 @@ namespace whiteice
     // used to calculate avg max abs(Q)-value
     // (internal debugging for checking that Q-values are within sane limits)
     std::vector<T> maxvalues;
+    std::vector<T> recurrent_norms;
 
     // needed??
     whiteice::bayesian_nnetwork<T> model, lagged_Q;
     whiteice::dataset<T> preprocess;
+
+    const T delta = T(0.66f); // amount% of new Q value to be added as new Q value
 
     // double DQN (lagged_Q network is used to select next action)
     {
@@ -180,22 +183,42 @@ namespace whiteice
 	if(running == false)
 	  continue; // exits loop
 
+	std::vector< rifl_datapoint<T> > episode;
+
 	database_mutex.lock();
 
-	// take random episode from top 50% reward elements if there are more than 500 elements
-	unsigned int index = 0;
+	// random sample from database
+	const unsigned int index = rng.rand() % episodes.size();
+	episode = episodes[index];
 
+#if 0
+	// take samples from 50% lowest performing episodes (lowest score)
+	// these are the cases we cannot properly handle
+
+	
 	if(episodes.size() >= 500)
 	  index = rng.rand() % (episodes.size()/2);
 	else
-	  index = rng.rand() % episodes.size();
+	  index = rng.rand() % episodes.size(); // too little data so sample
 
-	auto iter = episodes.rbegin();
+	auto iter = episodes.begin(); // from smallest to largest
+	std::advance(iter, index);
+	episode = iter->second;
 
-	std::advance(iter, index); // for(unsigned int i=0;i<index;i++) iter++;
-	
+
+	if(rng.rand()&1){
+	  auto iter = episodes.rbegin(); // take episodes with largest rewards
+	  std::advance(iter, index); // for(unsigned int i=0;i<index;i++) iter++;
+	  episode = iter->second;
+	}
+	else{
+	  auto iter = episodes.begin(); // take episodes with smallest rewards
+	  std::advance(iter, index); // for(unsigned int i=0;i<index;i++) iter++;
+	  episode = iter->second;
+	}
+#endif
+
 	// const auto episode = episodes[index];
-	const auto episode = iter->second;
 
 	database_mutex.unlock();
 	
@@ -214,7 +237,7 @@ namespace whiteice
 
 	whiteice::math::vertex<T> recurrent_data;
 	assert(recurrent_data.resize(rifl.RECURRENT_DIMENSIONS) == rifl.RECURRENT_DIMENSIONS);
-	recurrent_data.zero();
+	recurrent_data.zero();	
 
 //#pragma omp parallel for schedule(guided)
 	for(unsigned i=0;i<episode.size();i++){
@@ -259,6 +282,8 @@ namespace whiteice
 	    whiteice::math::vertex<T> input(rifl.numStates);
 	    whiteice::math::vertex<T> full_input(rifl.numStates + rifl.RECURRENT_DIMENSIONS);
 	    whiteice::math::vertex<T> output(rifl.numActions);
+
+	    //full_input.zero(); // recurrent dimensions are ZERO for lagged_Q (fresh start)
 	    
 	    assert(input.write_subvertex(datum.newstate, 0) == true);
 	    
@@ -292,6 +317,7 @@ namespace whiteice
 	    
 	    maxvalue = output[next_action];
 #else
+	    // SELECTS max value for now and not probabilistic selection..
 
 	    assert(lagged_Q.calculate(full_input, u, 1, 0) == true);
 
@@ -299,22 +325,26 @@ namespace whiteice
 	    
 	    assert(preprocess.invpreprocess(1, output) == true);
 
-	    const T temperature = 1.00f;
-	    const unsigned int next_action = rifl.prob_action_select(output, temperature);
-	    maxvalue = output[next_action];
+	    //auto tmp_logits = output; // TODO: optimize to be outside of loop, not recreated everytime
+	    
+	    //lagged_Q.getNetwork().softmax_output(tmp_logits, 0, tmp_logits.size());
+	    
+	    //const unsigned int next_action = rifl.prob_action_select(tmp_logits);
+	    //maxvalue = output[next_action];
 
-#if 0
+	    maxvalue = output[0];
+	    //unsigned int next_action = 0;
+
 	    for(unsigned int i=0;i<output.size();i++){
 	      if(maxvalue < output[i]){
 		maxvalue = output[i];
 		//next_action = i;
 	      }
 	    }
-#endif
 	    
 #endif
 	    
-	    if(epoch <= 10 || datum.lastStep == true){
+	    if(epoch <= rifl.WARMUP_ITERS || datum.lastStep == true){
 	      // first iteration always uses pure reinforcement values
 	      unew_value = datum.reinforcement;
 	    }
@@ -323,7 +353,9 @@ namespace whiteice
 	    }
 	  }
 	  
-	  outaction[action] = unew_value;
+	  outaction[action] = (T(1.0f) - delta)*outaction[action] + delta*unew_value;
+	  
+	  model.getNetwork().softmax_output(outaction, 0, outaction.size());
 	  
 //#pragma omp critical
 	  {
@@ -333,6 +365,7 @@ namespace whiteice
 	    counter++;
 	    
 	    maxvalues.push_back(maxvalue);
+	    recurrent_norms.push_back(recurrent_data.norm()/T(recurrent_data.size()));
 	  }
 	  
 	} // for i in episodes (OpenMP loop)
@@ -348,8 +381,12 @@ namespace whiteice
 #if 1
     // add preprocessing to dataset
     {
+      // TODO: ENABLE INPUT DATASET PREPROCESSING LATER BUT USE WHOLE DATASETS:
+      
+      //// batch dataset used for training is so small that we don't normalize input(??)
       assert(data.preprocess
 	     (0, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
+      
       
       // assert(data.preprocess
       //(1, whiteice::dataset<T>::dnMeanVarianceNormalization) == true);
@@ -360,8 +397,8 @@ namespace whiteice
     // for debugging purposes (reports average max Q-value)
     if(maxvalues.size() > 0)
     {
-      T sum = T(0.0);
-      for(auto& m : maxvalues)
+      T sum = T(0.0f);
+      for(const auto& m : maxvalues)
 	sum += m;
 
       sum /= T(maxvalues.size());
@@ -369,9 +406,19 @@ namespace whiteice
       double tmp = 0.0;
       whiteice::math::convert(tmp, sum);
 
-      char buffer[80];
-      snprintf(buffer, 80, "CreateRIFL3dataset: avg max(Q)-value %f",
-	       tmp);
+      sum = T(0.0f);
+
+      for(const auto& m : recurrent_norms)
+	sum += m;
+
+      sum /= T(recurrent_norms.size());
+
+      double tmp2 = 0.0;
+      whiteice::math::convert(tmp2, sum);
+
+      char buffer[256];
+      snprintf(buffer, 256, "CreateRIFL3dataset: avg max(Q)-value=%f, avg(|recurrent_data|)/DIM(r)=%f",
+	       tmp, tmp2);
 
       whiteice::logging.info(buffer);
     }

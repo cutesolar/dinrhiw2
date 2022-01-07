@@ -81,7 +81,7 @@ namespace whiteice
 	  this->use_wolfe = useWolfe; // SLOW but should guarantee convergence to grad == zero point.
 	}
 
-	// zero disable iterations check
+	// zero disables iterations check
 	void setMaxIterations(const unsigned int iters = 0){
 	  this->MAXITERS = iters;
 	}
@@ -99,6 +99,18 @@ namespace whiteice
         bool wolfe_conditions(const vertex<T>& x0,
 			      const T& alpha,
 			      const vertex<T>& p) const;
+
+	// optimized wolfe conditions checker
+	bool wolfe_conditions(const vertex<T>& x0t,
+			      const T& Ux0t,
+			      const vertex<T>& t,
+			      const T& Ut,
+			      const T& alpha,
+			      const vertex<T>& p) const;
+
+	
+	// M = MEMORY SIZE (5 adapt quickly and don't get stuck to wrong gradient like with 10)
+	const unsigned int LBFGS_MEMORY = 5;
       
         // best solution found
 	vertex<T> bestx; 
@@ -121,7 +133,7 @@ namespace whiteice
         mutable std::mutex sleep_mutex, thread_mutex, solution_mutex;
 
       protected:
-	whiteice::RNG<T> rng;
+	// whiteice::RNG<T> rng;
 	
       private:
 	void optimizer_loop();

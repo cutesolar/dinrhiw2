@@ -352,13 +352,23 @@ namespace whiteice
 	  
 	    while(errors.size() > 30)
 	      errors.pop_front();
+
+	    // make all values to be positive
+	    T min_value = *errors.begin();
+
+	    for(const auto& e : errors)
+	      if(e < min_value) min_value = e;
+
+	    if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
+	    else min_value = T(-0.01f);
+	    
 	    
 	    T m = T(0.0f);
 	    T s = T(0.0f);
 	    
 	    for(const auto& e : errors){
-	      m += e;
-	      s += e*e;
+	      m += (e-min_value);
+	      s += (e-min_value)*(e-min_value);
 	    }
 	    
 	    m /= errors.size();

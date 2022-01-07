@@ -117,22 +117,24 @@ namespace whiteice
       unsigned int min(const std::vector<unsigned int>& vec) const ;
 
       // helper functions, returns randomly chosen index from vector v
-      // where vector values are probability values p_i = exp(v[i]/temperature)
-      // first scales vector v to have Normal(0,I) distribution
-      unsigned int prob_action_select(const std::vector<T> v,
-				      const T temperature = T(0.1)) const;
+      // where vector values are probability values p_i which sum to one.
+      unsigned int prob_action_select(std::vector<T> v) const;
       
-      unsigned int prob_action_select(const whiteice::math::vertex<T> v,
-				      const T temperature = T(0.1)) const;
+      unsigned int prob_action_select(whiteice::math::vertex<T> v) const;
+
 
     private:
 
       unsigned int numActions, numStates;
 
-      // number of dimensions to be used as recurrent dimensions
+      // number of dimensions to be used as recurrency of neural network
       const unsigned int RECURRENT_DIMENSIONS = 5;
+
+      // number of iterations at the start to optimize for single step
+      const unsigned int WARMUP_ITERS = 10; // was 20
       
-      // separate network for each action
+      // one Q network for all actions, output is log(p_i)
+      // values of probabilities to select action i, inputs are current state
       whiteice::bayesian_nnetwork<T> model;
       whiteice::bayesian_nnetwork<T> lagged_Q;
       

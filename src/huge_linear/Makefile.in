@@ -15,7 +15,7 @@ OBJECTS= HugeLinear.o CSVToBinaryFile.o OneHotEncoder.o LBFGS_hugelinear.o \
 
 EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
-	../math/real.o 	../dataset.o ../conffile.o ../MemoryCompressor.o ../linear_ETA.o \
+	../math/real.o 	../dataset.o ../conffile.o ../linear_ETA.o \
 	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
@@ -36,7 +36,7 @@ CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-
 
 CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -I. -I.. -I../.. -I../math -I../neuralnetwork -IFP-growth/include $(OPTIMIZE)
 
-LIBS= @EXTRA_LIBPATHS@ -lgmp -lz -lpthread @EXTRA_LIBS@
+LIBS= @EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
 ##################################################
 

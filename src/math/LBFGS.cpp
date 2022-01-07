@@ -47,23 +47,23 @@ namespace whiteice
      template <typename T>
     LBFGS<T>::~LBFGS()
     {
-    	thread_mutex.lock();
+      thread_mutex.lock();
+      
+      if(thread_running){
+	thread_running = false;
+	
+	// waits for thread to stop running
+	// std::unique_lock<std::mutex> lock(thread_is_running_mutex);
+	// thread_is_running_cond.wait_for(lock, std::chrono::milliseconds(1000)); // 1 second
+      }
 
-    	if(thread_running){
-    		thread_running = false;
-
-    		// waits for thread to stop running
-    		// std::unique_lock<std::mutex> lock(thread_is_running_mutex);
-    		// thread_is_running_cond.wait_for(lock, std::chrono::milliseconds(1000)); // 1 second
-    	}
-
-    	if(optimizer_thread){
-	        optimizer_thread->join();
-		delete optimizer_thread;
-	}
-    	optimizer_thread = nullptr;
-
-    	thread_mutex.unlock();
+      if(optimizer_thread){
+	optimizer_thread->join();
+	delete optimizer_thread;
+      }
+      optimizer_thread = nullptr;
+      
+      thread_mutex.unlock();
     }
     
     
@@ -228,7 +228,10 @@ namespace whiteice
       T localbest  = T(10e20);
       unsigned int found = 0;
       
-      vertex<T> t;
+      vertex<T> t, x0t(x);
+
+      box_values(x0t);
+      const T Ux0t = U(x0t);
       
       T best_alpha = scale * T(::pow(2.0f, -30)); // minimum possible step length
       localbestx = x;
@@ -247,7 +250,7 @@ namespace whiteice
 	tvalue = U(t);
 
 	if(use_wolfe == true){
-	  if(wolfe_conditions(x, alpha, d)){
+	  if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	    {
 	      best_alpha = alpha;
 	      localbest = tvalue;
@@ -283,7 +286,7 @@ namespace whiteice
 
 
 	  if(use_wolfe == true){
-	    if(wolfe_conditions(x, alpha, d)){
+	    if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	      {
 		best_alpha = alpha;
 		localbest = tvalue;
@@ -312,7 +315,7 @@ namespace whiteice
 	tvalue = U(t);
 	
 	if(use_wolfe == true){
-	  if(wolfe_conditions(x, alpha, d)){
+	  if(wolfe_conditions(x0t, Ux0t, t, tvalue, alpha, d)){
 	    {
 	      best_alpha = alpha;
 	      localbest = tvalue;
@@ -332,19 +335,6 @@ namespace whiteice
 	  }
 	}
 	
-#if 0
-	// HACK: (DISABLED)
-	// heuristics: allows going to worse solution with 20% prob
-	// (small step length values to gradient direction)
-	if((rng.rand() % 5) == 0 && tvalue < T(10.0)){
-	  best_alpha = alpha;
-	  localbest = tvalue;
-	  localbestx = t;
-	  found++;
-	  break;
-	}
-#endif
-	
 	k++;
       }
       
@@ -359,10 +349,12 @@ namespace whiteice
     template <typename T>
     bool LBFGS<T>::box_values(vertex<T>& x) const
     {
-      // don't allow values larger than 10^4
+      // don't allow values larger than 10^4 (10.000 is a large value)
+      // without this function line search causes floating point exceptions..
+#pragma omp parallel for schedule(static)
       for(unsigned int i=0;i<x.size();i++)
-	if(x[i] > T(1e4)) x[i] = T(1e4);
-	else if(x[i] < T(-1e4)) x[i] = T(-1e4);
+	if(x[i] > T(1e4f)) x[i] = T(1e4f);
+	else if(x[i] < T(-1e4f)) x[i] = T(-1e4f);
 
       return true;
     }
@@ -373,11 +365,53 @@ namespace whiteice
 				    const T& alpha,
 				    const vertex<T>& p) const
     {
+      // TODO: optimize this, we call box_values() for vectors which we have
+      // already boxed in the main loop.
+      
       T c1 = T(0.0001f);
       T c2 = T(0.9f);
+
+      vertex<T> t = x0 + alpha*p;
+      vertex<T> x0t = x0;
+
+      box_values(t);
+      box_values(x0t);
+
+      bool cond1 = (U(t) <= (U(x0t) + c1*alpha*(p*Ugrad(x0t))[0]));
+      bool cond2 = ((p*Ugrad(t))[0] >= c2*(p*Ugrad(x0t))[0]);
       
-      bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
-      bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
+      //bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
+      //bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
+
+      return (cond1 && cond2);
+    }
+
+
+    // optimized wolfe conditions
+    template <typename T>
+    bool LBFGS<T>::wolfe_conditions(const vertex<T>& x0t,
+				    const T& Ux0t,
+				    const vertex<T>& t,
+				    const T& Ut,
+				    const T& alpha,
+				    const vertex<T>& p) const
+    {
+      const T c1 = T(0.0001f);
+      const T c2 = T(0.9f);
+
+      //vertex<T> t = x0 + alpha*p;
+      //vertex<T> x0t = x0;
+
+      //box_values(t);
+      //box_values(x0t);
+
+      const auto Ugrad_value = Ugrad(x0t);
+
+      const bool cond1 = (Ut <= (Ux0t + c1*alpha*(p*Ugrad_value)[0]));
+      const bool cond2 = ((p*Ugrad(t))[0] >= c2*(p*Ugrad_value)[0]);
+      
+      //bool cond1 = (U(x0 + alpha*p) <= (U(x0) + c1*alpha*(p*Ugrad(x0))[0]));
+      //bool cond2 = ((p*Ugrad(x0 + alpha*p))[0] >= c2*(p*Ugrad(x0))[0]);
 
       return (cond1 && cond2);
     }
@@ -433,7 +467,7 @@ namespace whiteice
       const unsigned int RESET = 5;
 
       // history size is large (15) should try value 5 and change to it if results do not become worse.
-      const unsigned int M = 10;  // M = MEMORY SIZE (10 could be a good compromise)
+      const unsigned int M = LBFGS_MEMORY;  // M = MEMORY SIZE (10 could be a good compromise)
       
       std::list< vertex<T> > yk;
       std::list< vertex<T> > sk;
@@ -444,33 +478,29 @@ namespace whiteice
       while(thread_running && (MAXITERS == 0 || iterations < MAXITERS)){
 	try{
 	  // we keep iterating until we converge (later) or
-	  // the real error starts to increase
+	  // the real error starts to increase (FIXME: NOT DONE NOW!!!)
 	  
 	  if(overfit == false){
 	    ratios.push_back(besty);
 	    
 	    while(ratios.size() > 20)
 	      ratios.pop_front();
+
+	    // make all values to be positive
+	    T min_value = *ratios.begin();
+
+	    for(const auto& r : ratios)
+	      if(r < min_value) min_value = r;
+
+	    if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
+	    else min_value = T(-0.01f);
 	    
 	    T mean_ratio = 0.0f;
 	    T inv = 1.0f/ratios.size();
 	    
 	    for(auto r : ratios){
-	      mean_ratio += (r/besty)*inv;
+	      mean_ratio += ((r-min_value)/(besty-min_value))*inv;
 	    }
-	    
-	    // mean_ratio = math::pow(mean_ratio, inv);
-	    // std::cout << "ratio = " << mean_ratio << std::endl;
-	    // std::cout << "ratio = " << mean_ratio << std::endl;
-	    
-	    
-	    // 50% increase from the minimum found
-	    //if(mean_ratio > T(1.50f) && iterations > 25){
-	    //  break;
-	    //}
-	    
-	    // std::cout << "mean ratio: " << mean_ratio << std::endl;
-	    
 	    
 	    if(mean_ratio < T(1.005f) && iterations > 20){
 	      solution_converged = true; // last 20 iterations showed less than 0.5% change..

@@ -75,7 +75,7 @@ void linear_equations_test();
 void statistics_test();
 void test_integer();
 void modular_test();
-void compression_test();
+//void compression_test();
 void correlation_test();
 
 void blas_compile_tests();
@@ -336,8 +336,8 @@ int main()
     std::cout << "REAL TESTS" << std::endl;
     real_test();
     
-    std::cout << "COMPRESSION TESTS" << std::endl;
-    compression_test();
+    //std::cout << "COMPRESSION TESTS" << std::endl;
+    //compression_test();
     
     std::cout << "ATLAS COMPILE TESTS" << std::endl;
     blas_compile_tests();
@@ -2335,7 +2335,7 @@ void test_integer()
 }
 
 
-
+#if 0
 
 void compression_test()
 {
@@ -2578,7 +2578,7 @@ void compression_test()
   }
 
 }
-
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////
