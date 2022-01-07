@@ -76,11 +76,11 @@ TARGET4A=testsuite4a
 TARGET5=minihack_test
 TARGET6=minihack2_test
 
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
 
 LIBS=@EXTRA_LIBPATHS@ -lz -lgmp -lpthread @EXTRA_LIBS@
 
-LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -lpython3.9
+LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -L/mingw64/lib/ -lpython3.9
 
 # `pkg-config sdl2 --libs`
 
