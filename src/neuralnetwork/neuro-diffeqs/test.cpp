@@ -14,6 +14,8 @@ int main(void)
   printf("dx/dt = neuralnetwork(x|w) for differential equation model.\n");
 
   whiteice::RNG<> rng;
+
+  srand(rng.rand64());
   
   // plots random lines to graphical window (1/2 of the whole screen size)
   
@@ -90,6 +92,35 @@ int main(void)
 	  }
 	}
       }
+
+      // generate training data (random model)
+      std::vector< whiteice::math::vertex<> > tdata;
+      std::vector< whiteice::math::blas_real<float> > ttimes;
+
+      whiteice::math::vertex<> u, v;
+      u.resize(2);
+      v.resize(2);
+      
+      {
+	whiteice::nnetwork<> diffeq;
+	
+	if(create_random_diffeq_model(diffeq, 2) == false) throw 1;
+
+	// random starting point
+	u[0] = rng.uniformf()*2.0f - 1.0f; // x
+	u[1] = rng.uniformf()*2.0f - 1.0f; // y
+
+	// simulate training data
+	if(simulate_diffeq_model(diffeq, u, 20.0, tdata, ttimes) == false) // 20 seconds long simulation
+	  throw 2;
+	
+	printf("TRAINING simulation data points: %d\n", (int)tdata.size());
+
+#if 0
+	for(unsigned int i=0;i<tdata.size();i++)
+	  std::cout << "tdata: " << tdata[i] << std::endl;
+#endif
+      }
       
       // drawing
       // black background
@@ -131,20 +162,24 @@ int main(void)
       }
 #endif
 
-      // draws 50 trajectories from random differential equation neural network model
+      // draws 1000 trajectories from random differential equation neural network model
       try{
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
 
 	whiteice::nnetwork<> diffeq;
 
-	whiteice::math::vertex<> u, v;
-	u.resize(2);
-	v.resize(2);
-	
 	if(create_random_diffeq_model(diffeq, 2) == false) throw 1;
+
+	// random starting point
+	u[0] = rng.uniformf()*2.0f - 1.0f; // x
+	u[1] = rng.uniformf()*2.0f - 1.0f; // y
+	
+	if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, 100) == false) throw 2;
 
 	std::vector< std::vector< whiteice::math::vertex<> > > datas;
 	datas.resize(1000);
+
+	std::vector< whiteice::math::blas_real<float> > times;
 
 	for(unsigned int i=0;i<datas.size();i++){
 	  
@@ -152,8 +187,8 @@ int main(void)
 	  u[0] = rng.uniformf()*2.0f - 1.0f; // x
 	  u[1] = rng.uniformf()*2.0f - 1.0f; // y
 
-	  if(simulate_diffeq_model(diffeq, u, 5.0, datas[i]) == false) // 5 seconds long simulation
-	    throw 2;
+	  if(simulate_diffeq_model(diffeq, u, 5.0, datas[i], times) == false) // 5 seconds long simulation
+	    throw 3;
 
 	  printf("Simulation data points: %d\n", (int)datas[i].size());
 	}
@@ -245,7 +280,7 @@ int main(void)
 
       }
       catch(int error){
-	printf("Error in differential equation code.\n");
+	printf("Error in differential equation code: %d\n", error);
 	return -1;
       }
       
