@@ -1,0 +1,21 @@
+PROJECT MADY BY TOMAS UKKONEN 2022 
+==================================
+
+
+TODO
+
+-diff.eq. model from residual relu neural network with 4 layers (10-10-10-10),
+ take 2 first dim for coordinates
+	  
+-runge-kutta simulation of diff.eq. neural network
+-visualize trajectory from random neural network
+
+* ADD COMPLEX VALUE SUPPORT FOR COMPLEX VALUED  diff.eqs. (waves etc)
+
+
+
+- generate test data from random network
+- model and model fitting with HMC sampler and sample from p(w|error) (bayesian) minimizing error
+  -  low number of parameters to make sampling practical (<500 parameter values in neural net)
+-
+
