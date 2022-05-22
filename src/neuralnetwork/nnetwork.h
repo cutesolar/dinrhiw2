@@ -44,7 +44,8 @@ namespace whiteice
        tanh = 4, // tanh non-linearity (output: [-1,+1] (input: [-1,1])
        rectifier = 5, // leaky ReLU f(x) = max(0.1x,x) - deep networks [biologically motivated]
        softmax = 6, // for complex neural networks: this derivates ok and is similar to ReLU rectifier
-       tanh10 = 7 // for limiting output to [-10,+10] interval
+       tanh10 = 7, // for limiting output to [-10,+10] interval
+       rectifierAndSquared = 8 // TODO not implemented yet: ReLU and x^2 squared non-linearity every other neuron
       };
     
     

@@ -38,8 +38,8 @@ namespace whiteice
 		T getTemperature();             // get "temperature" of probability distribution
 
 		// probability functions for hamiltonian MC sampling
-		T U(const math::vertex<T>& q, bool useRegulizer = true) const;
-		math::vertex<T> Ugrad(const math::vertex<T>& q) const;
+	        virtual T U(const math::vertex<T>& q, bool useRegulizer = true) const;
+	        virtual math::vertex<T> Ugrad(const math::vertex<T>& q) const;
 	
 	       /*
 	        * error terms e = y-f(x|w) covariance matrix used during
@@ -66,11 +66,11 @@ namespace whiteice
 		// math::matrix<T> getCovariance() const; // DO NOT SCALE TO HIGH DIMENSIONS
 
 		// calculates mean error for the latest N samples, 0 = all samples
-		T getMeanError(unsigned int latestN = 0) const;
+	        virtual T getMeanError(unsigned int latestN = 0) const;
 
 		bool getAdaptive() const { return adaptive; }
 	
-    	private:
+    	protected:
 	        // performs leapfrog operation (keeps probability function constant)
 	        void leapfrog(math::vertex<T>& p, math::vertex<T>& q, const T epsilon, const unsigned int L) const;
 	
@@ -90,8 +90,8 @@ namespace whiteice
 	        // calculates z-ratio between data likelihood distributions
 	        T zratio(const math::vertex<T>& q1, const math::vertex<T>& q2) const;
 	
-		whiteice::nnetwork<T> nnet;
-	        const whiteice::dataset<T>& data;
+	        whiteice::nnetwork<T> nnet;
+	        const whiteice::dataset<T> data;
 		math::vertex<T> q;
 		mutable std::mutex updating_sample;
 	
@@ -123,11 +123,10 @@ namespace whiteice
 
 
 namespace whiteice
-{
+{  
   extern template class HMC< math::blas_real<float> >;
-  extern template class HMC< math::blas_real<double> >;
+  extern template class HMC< math::blas_real<double> >;    
 };
-
 
 #endif
 

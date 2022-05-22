@@ -15,15 +15,22 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
 {
   if(DIMENSIONS <= 0) return false;
 
-  std::vector<unsigned int> arch; // 4 layers
+  std::vector<unsigned int> arch; // 11 layers
 
-  unsigned int width = 10;
+  const unsigned int width = 20;
 
   arch.push_back(DIMENSIONS);
   arch.push_back(width);
   arch.push_back(width);
   arch.push_back(width);
-  arch.push_back(DIMENSIONS);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(width);
+  arch.push_back(DIMENSIONS); 
 
   if(diffeq.setArchitecture(arch) == false) return false;
 
@@ -218,7 +225,7 @@ bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
   }
 
   // whiteice::HMC<T> hmc(diffeq, ds);
-  HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true); // USE ADAPTIVE STEP LENGTH! 
+  HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true); // DON'T USE ADAPTIVE STEP LENGTH! 
 
   whiteice::linear_ETA<double> eta;
 

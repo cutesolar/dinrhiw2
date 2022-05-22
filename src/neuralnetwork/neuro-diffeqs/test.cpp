@@ -58,7 +58,7 @@ int main(void)
 	if(SDL_GetCurrentDisplayMode(0, &mode) == 0){
 	  W = (4*mode.w)/5;
 	  H = (3*mode.h)/4;
-	  }
+	}
 	
 	
 	SDL_CreateWindowAndRenderer(W, H, 0, &window, &renderer);
@@ -100,7 +100,8 @@ int main(void)
       whiteice::math::vertex<> u, v;
       u.resize(2);
       v.resize(2);
-      
+
+      // generates data
       {
 	whiteice::nnetwork<> diffeq;
 	
@@ -113,13 +114,24 @@ int main(void)
 	// simulate training data
 	if(simulate_diffeq_model(diffeq, u, 20.0, tdata, ttimes) == false) // 20 seconds long simulation
 	  throw 2;
+
+	// generates sin() function instead
+	tdata.clear();
+	ttimes.clear();
+
+	const double A = 1.0;
+	const double freq = 0.1*2.0*M_PI;
+
+	for(double t = 0.0;t<10.0;t+=0.05){
+
+	  v[0] = t/5.0 - 1.0;
+	  v[1] = A*sin(freq*t);
+
+	  tdata.push_back(v);
+	  ttimes.push_back(t);
+	}
 	
 	printf("TRAINING simulation data points: %d\n", (int)tdata.size());
-
-#if 0
-	for(unsigned int i=0;i<tdata.size();i++)
-	  std::cout << "tdata: " << tdata[i] << std::endl;
-#endif
       }
       
       // drawing
@@ -127,40 +139,6 @@ int main(void)
       SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
       SDL_RenderFillRect(renderer, NULL);
       SDL_RenderClear(renderer);
-
-#if 0
-      // draws random hermite splines
-      for(unsigned int i=0;i<2;i++)
-      {
-	SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-
-	std::vector< whiteice::math::vertex<> > data;
-	whiteice::math::vertex<> u, v;
-	u.resize(2);
-	v.resize(2);
-	
-	whiteice::math::hermite< whiteice::math::vertex<>, whiteice::math::blas_real<float> > spline;
-
-	for(unsigned int i=0;i<10;i++){
-	  double y0 = rng.uniformf()*H;
-	  double x0 = rng.uniformf()*W;
-
-	  v[0] = x0;
-	  v[1] = y0;
-
-	  data.push_back(v);
-	}
-
-	spline.calculate(data, 500);
-
-	for(unsigned int i=1;i<spline.size();i++){
-	  u = spline[i-1];
-	  v = spline[i];
-
-	  SDL_RenderDrawLine(renderer, (int)u[0].c[0], (int)u[1].c[0], (int)v[0].c[0], (int)v[1].c[0]);
-	}
-      }
-#endif
 
       // draws 1000 trajectories from random differential equation neural network model
       try{
@@ -170,27 +148,34 @@ int main(void)
 
 	if(create_random_diffeq_model(diffeq, 2) == false) throw 1;
 
-	// random starting point
-	u[0] = rng.uniformf()*2.0f - 1.0f; // x
-	u[1] = rng.uniformf()*2.0f - 1.0f; // y
+	// random starting point (zero same as in data)
+	u[0] = 0.0f; // rng.uniformf()*2.0f - 1.0f; // x
+	u[1] = 0.0f; // rng.uniformf()*2.0f - 1.0f; // y
+
+	const unsigned int NUM_SAMPLES = 80000; // 20.000 makes error go to 3/4, need 80.000 samples
 	
-	if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, 100) == false) throw 2;
+	if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, NUM_SAMPLES) == false) throw 2;
 
 	std::vector< std::vector< whiteice::math::vertex<> > > datas;
-	datas.resize(1000);
+	datas.resize(200);
 
 	std::vector< whiteice::math::blas_real<float> > times;
 
 	for(unsigned int i=0;i<datas.size();i++){
 	  
-	  // random starting point
-	  u[0] = rng.uniformf()*2.0f - 1.0f; // x
-	  u[1] = rng.uniformf()*2.0f - 1.0f; // y
+	  // random starting point (almost zero now, same as in training data)
+	  // TODO: add multiple starting positions in training data
+	  u[0] = 0.01f*(rng.uniformf()*2.0f - 1.0f); // x
+	  u[1] = 0.01f*(rng.uniformf()*2.0f - 1.0f); // y
 
 	  if(simulate_diffeq_model(diffeq, u, 5.0, datas[i], times) == false) // 5 seconds long simulation
 	    throw 3;
 
-	  printf("Simulation data points: %d\n", (int)datas[i].size());
+	  // printf("Simulation data points: %d\n", (int)datas[i].size());
+
+	  // uses/shows training data: 
+	  // datas[i] = tdata;
+	  // times = ttimes;
 	}
 
 	// origo
@@ -250,8 +235,8 @@ int main(void)
 	    
 	    // scaling
 	    u -= mean;
-	    u[0] *= ((float)(W/4))/stdev[0];
-	    u[1] *= ((float)(H/4))/stdev[1];
+	    u[0] *= ((float)(W/4))/(3.0f*stdev[0]);
+	    u[1] *= ((float)(H/4))/(3.0f*stdev[1]);
 
 	    // origo
 	    u += v;

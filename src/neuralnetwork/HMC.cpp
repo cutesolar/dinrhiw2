@@ -81,7 +81,7 @@ namespace whiteice
 
 #pragma omp for nowait schedule(auto)
 			for(unsigned int i=0;i<data.size(0);i++){
-				nnet.input() = data.access(0, i);
+			        nnet.input() = data.access(0, i);
 				nnet.calculate(false);
 				err = data.access(1, i) - nnet.output();
 				// T inv = T(1.0f/err.size());
@@ -633,20 +633,20 @@ namespace whiteice
 	template <typename T>
 	math::vertex<T> HMC<T>::getMean() const
 	{
-		std::lock_guard<std::mutex> lock(solution_lock);
-
-		if(sum_N > 0){
-			T inv = T(1.0f)/T(sum_N);
-			math::vertex<T> m = inv*sum_mean;
-
-			return m;
-		}
-		else{
-			math::vertex<T> m;
-			m.zero();
-
-			return m;
-		}
+	  std::lock_guard<std::mutex> lock(solution_lock);
+	  
+	  if(sum_N > 0){
+	    T inv = T(1.0f)/T(sum_N);
+	    math::vertex<T> m = inv*sum_mean;
+	    
+	    return m;
+	  }
+	  else{
+	    math::vertex<T> m;
+	    m.zero();
+	    
+	    return m;
+	  }
 	}
   
 #if 0
@@ -680,7 +680,7 @@ namespace whiteice
 
     template <typename T>
     T HMC<T>::getMeanError(unsigned int latestN) const
-	{
+    {
 	  std::vector< math::vertex<T> > sample;
 
 	  // copies selected nnetwork configurations
@@ -701,13 +701,14 @@ namespace whiteice
 
     	for(unsigned int i=0;i<sample.size();i++)
 	{
+	  whiteice::nnetwork<T> nnet(this->nnet);
+	  nnet.importdata(sample[i]);
+	  
 	  T E = T(0.0f);
 	  
 	  // E = SUM 0.5*e(i)^2
 #pragma omp parallel shared(E)
 	  {
-	    whiteice::nnetwork<T> nnet(this->nnet);
-	    nnet.importdata(sample[i]);
 	    
 	    math::vertex<T> err;
 	    T e = T(0.0f);
@@ -750,7 +751,7 @@ namespace whiteice
       for(unsigned int i=0;i<L;i++){
 	q += epsilon * p;
 	if(i != L-1)
-	  p -= epsilon*Ugrad(q);
+	  p -= epsilon * Ugrad(q);
       }
       
       p -= T(0.5f) * epsilon * Ugrad(q);
@@ -775,7 +776,7 @@ namespace whiteice
     	p.zero();
 
     	T epsilon = T(1.0f);
-    	const unsigned int L = 3; // HMC-10 has been used
+    	const unsigned int L = 3; // HMC-10 or 3 has been used, HMC-1 don't function correctly
 	
 #if 1
 	{
@@ -801,7 +802,7 @@ namespace whiteice
 	// (we don't store rejects during initial epsiln parameter learning)
 	unsigned int number_of_accepts = 0;
 	const unsigned int EPSILON_LEARNING_ACCEPT_LIMIT = 5;
-	const T MAX_EPSILON = T(1.0f);
+	const T MAX_EPSILON = T(200.0f);
 
 
     	while(running) // keep sampling forever or until stopped
@@ -978,13 +979,16 @@ namespace whiteice
     				accept_rate /= accept_rate_samples;
 
 				// std::cout << "ACCEPT RATE: " << accept_rate << std::endl;
-				// changed from 65-85% to 50%
+				// changed from 75-85% to 50%
+				// 
+				// ACCEPT RATE IS NOW 65.1% which was shown to be optimal
+				// in one research paper
 
-    				if(accept_rate < T(0.50f)){
+    				if(accept_rate < T(0.651f)){
     					epsilon = T(0.8)*epsilon;
 					// std::cout << "NEW SMALLER EPSILON: " << epsilon << std::endl;
     				}
-    				else if(accept_rate > T(0.50f)){
+    				else if(accept_rate > T(0.651f)){
 				        // important, sampler can diverge so we FORCE epsilon to be small (<MAX_EPSILON)
 				        auto new_epsilon = T(1.0/0.8)*epsilon;
 					if(new_epsilon < MAX_EPSILON)
