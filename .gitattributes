@@ -1,5 +1,1 @@
-src/huge_linear/*.cpp filter=git-crypt diff=git-crypt
-src/huge_linear/*.h filter=git-crypt diff=git-crypt
-src/huge_linear/tst/*.cpp filter=git-crypt diff=git-crypt
-src/huge_linear/FP-growth/src/* filter=git-crypt diff=git-crypt
-src/huge_linear/FP-growth/include/* filter=git-crypt diff=git-crypt
+
