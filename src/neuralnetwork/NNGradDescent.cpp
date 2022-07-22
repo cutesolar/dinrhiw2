@@ -1160,7 +1160,7 @@ namespace whiteice
 	      }
 #endif
 	    }
-	    while(real(delta_error) < T(0.0) && real(lrate) >= real(T(10e-25)) && running);
+	    while(real(delta_error) <= T(0.0) && real(lrate) >= real(T(10e-25)) && running);
 
 	    
 	    // replaces error with TESTing set error
