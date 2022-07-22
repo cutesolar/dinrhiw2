@@ -54,9 +54,13 @@ RNG<T>::RNG(const bool usehw)
   if(has_rdrand && usehw){
     rdrand32 = &whiteice::RNG<T>::_rdrand32;
     rdrand64 = &whiteice::RNG<T>::_rdrand64;
+
+    if(has_rdrand) srand(this->_rdrand32());
+    else srand(time(0));
   }
   else{
-    //srand(time(0));
+    if(has_rdrand) srand(this->_rdrand32());
+    else srand(time(0));
     
     rdsource = new std::random_device;
     gen = new std::mt19937((*rdsource)());
@@ -390,8 +394,8 @@ void RNG<T>::cpuid(unsigned int leaf, unsigned int subleaf, unsigned int regs[4]
 
   // template and constant class
 
-  class RNG< whiteice::math::blas_real<float> > rng(true);
-
+  class RNG< whiteice::math::blas_real<float> > rng(false); // DON'T USE HARDWARE RNG (SLOW)
+  
   template class RNG< float >;
   template class RNG< double >;
   
