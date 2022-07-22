@@ -52,7 +52,8 @@ namespace whiteice
     
     // creates useless 1x1 network. 
     // Use to load some useful network
-    nnetwork(); 
+    nnetwork();
+    
     nnetwork(const nnetwork<T>& nn);
     nnetwork(const std::vector<unsigned int>& nnarch,
 	     const nonLinearity nl = rectifier) ;

@@ -118,7 +118,7 @@ namespace whiteice
       nonlinearity[i] = nl;
 
     // HERE WE ALWAYS SET LAST LAYERS NONLINEARITY TO BE LINEAR FOR NOW..
-    // nonlinearity[nonlinearity.size()-1] = pureLinear; 
+    nonlinearity[nonlinearity.size()-1] = pureLinear; 
     
     W.resize(arch.size()-1);
     b.resize(arch.size()-1);
