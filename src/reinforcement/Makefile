@@ -1,8 +1,8 @@
 # dinrhiw2 reinforcement learning
 ##################################################
 
-CC = @CC@
-CXX= @CXX@
+CC = gcc
+CXX= g++
 
 OBJECTS = RIFL_abstract.o RIFL_abstract3.o CartPole.o PolicyGradAscent.o RIFL_abstract2.o CartPole2.o \
 	CreateRIFLdataset.o CreateRIFL3dataset.o CreateRIFL2dataset.o CreatePolicyDataset.o \
@@ -65,8 +65,8 @@ SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp
 	../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
 	../math/RNG.cpp
 
-OPTIMIZE=@optimization_flags@
-CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@ `pkg-config python3 --cflags`
+OPTIMIZE=-fPIC -O3 -g -DAMD64 -ffast-math -mtune=native -ftree-vectorize -fopenmp -mtune=native
+CFLAGS=-g -O2 -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess -I/usr/include/ -I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/ -DOPENBLAS -I/ucrt64/include/openblas/ -DWINOS `pkg-config python3 --cflags`
 
 # -DUSE_SDL `pkg-config sdl2 --cflags`
 
@@ -80,9 +80,9 @@ TARGET6=minihack2_test
 
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
 
-LIBS=@EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
+LIBS=-L/usr/local/lib -L/ucrt64/lib/ -lgmp -lpthread -L/usr/lib/  -L/ucrt64/lib/ -lopenblas -lstdc++
 
-LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -L/mingw64/lib/ -lpython3.9 `pkg-config python3 --libs`
+LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -L/mingw64/lib/ -lpython3.9
 LIBS_PYTHON=`pkg-config python3 --libs`
 
 # `pkg-config sdl2 --libs`

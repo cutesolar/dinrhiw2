@@ -20,7 +20,7 @@ libdir=@libdir@
 includedir=@includedir@/dinrhiw
 
 LIBOBJECTS = src/*.o src/math/*.o src/neuralnetwork/*.o src/crypto/*.o src/hmm/*.o \
-	src/reinforcement/*.o src/rnn/*.o src/huge_linear/*.o src/huge_linear/FP-growth/src/fptree.o
+	src/reinforcement/*.o src/rnn/*.o # src/huge_linear/*.o src/huge_linear/FP-growth/src/fptree.o
 LIBNAME = libdinrhiw.a
 
 
@@ -50,7 +50,7 @@ depend:
 	$(CD) src/hmm && $(MAKE) depend
 	$(CD) src/reinforcement && $(MAKE) depend
 	$(CD) src/rnn && $(MAKE) depend
-	$(CD) src/huge_linear && $(MAKE) depend
+#	$(CD) src/huge_linear && $(MAKE) depend
 	$(CD) tools && $(MAKE) depend
 
 make_objects:
@@ -61,7 +61,7 @@ make_objects:
 	$(CD) src/hmm && $(MAKE) all
 	$(CD) src/reinforcement && $(MAKE) all
 	$(CD) src/rnn && $(MAKE) all
-	$(CD) src/huge_linear && $(MAKE) all
+#	$(CD) src/huge_linear && $(MAKE) all
 
 clean: 
 	$(CD) src && $(MAKE) clean
@@ -72,7 +72,7 @@ clean:
 	$(CD) src/hmm && $(MAKE) clean
 	$(CD) src/reinforcement && $(MAKE) clean
 	$(CD) src/rnn && $(MAKE) clean
-	$(CD) src/huge_linear && $(MAKE) clean
+#	$(CD) src/huge_linear && $(MAKE) clean
 	$(RM) *~
 
 realclean: clean removelib
@@ -83,7 +83,7 @@ realclean: clean removelib
 	$(CD) src/hmm && $(MAKE) realclean
 	$(CD) src/reinforcement && $(MAKE) realclean
 	$(CD) src/rnn && $(MAKE) realclean
-	$(CD) src/huge_linear && $(MAKE) realclean
+#	$(CD) src/huge_linear && $(MAKE) realclean
 	$(CD) tools && $(MAKE) clean
 	$(RM) dinrhiw.pc
 	$(RM) Makefile 
@@ -118,7 +118,7 @@ makelib:
 	$(CP) src/hmm/*.h lib/
 	$(CP) src/reinforcement/*.h lib/
 	$(CP) src/rnn/*.h lib/
-	$(CP) src/huge_linear/*.h lib/
+#	$(CP) src/huge_linear/*.h lib/
 	$(CP) config.h lib/
 	chmod a+x ./copy_cpp_templates.sh
 	./copy_cpp_templates.sh
