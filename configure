@@ -4633,19 +4633,19 @@ printf "%s\n" "#define SIZEOF_LONG_LONG_INT $ac_cv_sizeof_long_long_int" >>confd
 
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -I/usr/local/include command line parameter needed" >&5
-printf %s "checking is -I/usr/local/include command line parameter needed... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -I/usr/local/include -I/ucrt64/include/ command line parameter needed" >&5
+printf %s "checking is -I/usr/local/include -I/ucrt64/include/ command line parameter needed... " >&6; }
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes (not checked, write real check)" >&5
 printf "%s\n" "yes (not checked, write real check)" >&6; }
-EXTRA_INCLUDEPATHS="-I/usr/local/include"
+EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -L/usr/local/lib command line parameter needed" >&5
-printf %s "checking is -L/usr/local/lib command line parameter needed... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed" >&5
+printf %s "checking is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed... " >&6; }
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes (not checked, write real check)" >&5
 printf "%s\n" "yes (not checked, write real check)" >&6; }
-EXTRA_LIBPATHS="-L/usr/local/lib"
+EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking Windows OS" >&5
 printf %s "checking Windows OS... " >&6; }
@@ -4905,6 +4905,24 @@ printf "%s\n" "no cblas.h detected" >&6; }
 fi
 
 
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BLAS C headers (4)" >&5
+printf %s "checking for BLAS C headers (4)... " >&6; }
+
+`gcc -c blastest.c -I/ucrt64/include/openblas/ -L/ucrt64/lib/ > /dev/null 2> /dev/null`
+
+if [ $? -eq 0 ]; then
+    CBLAS_HEADERS="yes"
+    BLAS_CFLAGS="-I/ucrt64/include/openblas"
+    BLAS_LIBS="-lopenblas -L/ucrt64/lib/"
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+else
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no cblas.h detected" >&5
+printf "%s\n" "no cblas.h detected" >&6; }
+fi
+
+
+
 if [ "$CBLAS_HEADERS" = "no" ]; then
    as_fn_error $? "Cannot find cblas.h" "$LINENO" 5
 fi
@@ -5112,6 +5130,36 @@ else $as_nop
      BLAS_LIBS="`pkg-config openblas --libs`"
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config conf file" >&5
 printf "%s\n" "yes, pkg-config conf file" >&6; }
+
+fi
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
+printf "%s\n" "no OpenBLAS detected" >&6; }
+   if [ "x$OPENBLAS" != "xyes" ]; then
+      OPENBLAS="no"
+   fi
+fi
+
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (8)" >&5
+printf %s "checking for OpenBLAS library (8)... " >&6; }
+`gcc -o openblastest openblastest.c -DOPENBLAS -I/ucrt64/include/openblas/ -L/ucrt64/lib/ -lopenblas > /dev/null 2> /dev/null`
+
+if [ $? -eq 0 ]; then
+  if test "x$enable_openblas" == "xno"
+then :
+
+     OPENBLAS="no"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, but DISABLED" >&5
+printf "%s\n" "yes, but DISABLED" >&6; }
+
+else $as_nop
+
+     OPENBLAS="yes"
+     BLAS_CFLAGS="-DOPENBLAS -I/ucrt64/include/openblas/"
+     BLAS_LIBS="-L/ucrt64/lib/ -lopenblas"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /ucrt64/include/openblas/" >&5
+printf "%s\n" "yes, headers in /ucrt64/include/openblas/" >&6; }
 
 fi
 else

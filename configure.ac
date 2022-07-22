@@ -24,19 +24,19 @@ dnl do all the magick stuff here
 
 
 dnl checks if -I/usr/local/include is needed
-AC_MSG_CHECKING([is -I/usr/local/include command line parameter needed])
+AC_MSG_CHECKING([is -I/usr/local/include -I/ucrt64/include/ command line parameter needed])
 
 dnl not checked right now, just added
 AC_MSG_RESULT([yes (not checked, write real check)])
-EXTRA_INCLUDEPATHS="-I/usr/local/include"
+EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
 
 dnl checks if -L/usr/local/lib is needed to
 dnl link with libraries in /usr/local/lib
-AC_MSG_CHECKING([is -L/usr/local/lib command line parameter needed])
+AC_MSG_CHECKING([is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed])
 
 dnl not checked right now, just added
 AC_MSG_RESULT([yes (not checked, write real check)])
-EXTRA_LIBPATHS="-L/usr/local/lib"
+EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
 
 dnl check for Windows (WINNT)
 AC_MSG_CHECKING([Windows OS])
@@ -224,6 +224,21 @@ else
 fi
 
 
+AC_MSG_CHECKING([for BLAS C headers (4)])
+
+`gcc -c blastest.c -I/ucrt64/include/openblas/ -L/ucrt64/lib/ > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+    CBLAS_HEADERS="yes"
+    BLAS_CFLAGS="-I/ucrt64/include/openblas"
+    BLAS_LIBS="-lopenblas -L/ucrt64/lib/"
+    AC_MSG_RESULT([yes])
+else
+    AC_MSG_RESULT([no cblas.h detected])
+fi
+
+
+
 if [[ "$CBLAS_HEADERS" = "no" ]]; then
    AC_MSG_ERROR([Cannot find cblas.h])
 fi
@@ -373,6 +388,28 @@ if [[ $? -eq 0 ]]; then
      BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas --cflags`"
      BLAS_LIBS="`pkg-config openblas --libs`"
      AC_MSG_RESULT([yes, pkg-config conf file])
+   ])
+else
+   AC_MSG_RESULT([no OpenBLAS detected])
+   if [[ "x$OPENBLAS" != "xyes" ]]; then
+      OPENBLAS="no"
+   fi
+fi
+
+
+AC_MSG_CHECKING([for OpenBLAS library (8)])
+`gcc -o openblastest openblastest.c -DOPENBLAS -I/ucrt64/include/openblas/ -L/ucrt64/lib/ -lopenblas > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_openblas" == "xno"],[
+     OPENBLAS="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     OPENBLAS="yes"
+     BLAS_CFLAGS="-DOPENBLAS -I/ucrt64/include/openblas/"
+     BLAS_LIBS="-L/ucrt64/lib/ -lopenblas"
+     AC_MSG_RESULT([yes, headers in /ucrt64/include/openblas/])
    ])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
