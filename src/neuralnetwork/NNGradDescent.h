@@ -72,7 +72,7 @@ namespace whiteice
 
       // if lrate is <= 0, disable the SGD (default)
       void setSGD(T sgd_lrate_ = T(0.0f)){
-	if(sgd_lrate <= T(0.0f)){ this->use_SGD = false; this->sgd_lrate = T(0.0f); return; }
+	if(sgd_lrate_ <= T(0.0f)){ this->use_SGD = false; this->sgd_lrate = T(0.0f); return; }
 	this->use_SGD = true;
 	this->sgd_lrate = sgd_lrate_;
       }

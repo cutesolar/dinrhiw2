@@ -1085,6 +1085,10 @@ namespace whiteice
 	    
 	    lrate = sqrt(lrate);
 	    lrate *= T(100.0);
+
+	    if(lrate <= T(1e-3)) // now very small learning rates
+	      lrate = T(1e-3);
+	    
 	    // lrate = 0.01f;
 
 	    
@@ -1242,10 +1246,12 @@ namespace whiteice
 	      const T gerror = getError(*nn, *data, false, false);
 
 	      std::lock_guard<std::mutex> lock(solution_lock);
-	      
-	      nn->exportdata(bestx);
-	      best_error = error;
-	      best_pure_error = gerror;
+
+	      if(real(gerror) < real(best_pure_error)){
+		nn->exportdata(bestx);
+		best_error = error;
+		best_pure_error = gerror;
+	      }
 	    }
 	    
 	    
