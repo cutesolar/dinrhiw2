@@ -4636,16 +4636,32 @@ printf "%s\n" "#define SIZEOF_LONG_LONG_INT $ac_cv_sizeof_long_long_int" >>confd
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -I/usr/local/include -I/ucrt64/include/ command line parameter needed" >&5
 printf %s "checking is -I/usr/local/include -I/ucrt64/include/ command line parameter needed... " >&6; }
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes (not checked, write real check)" >&5
-printf "%s\n" "yes (not checked, write real check)" >&6; }
-EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
+EXTRA_INCLUDEPATHS="-I/usr/local/include/"
+
+if [ -d "/ucrt64" ]; then
+   EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed" >&5
 printf %s "checking is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed... " >&6; }
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes (not checked, write real check)" >&5
-printf "%s\n" "yes (not checked, write real check)" >&6; }
-EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
+EXTRA_LIBPATHS="-L/usr/local/lib"
+
+if [ -d "/ucrt64" ]; then
+   EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking Windows OS" >&5
 printf %s "checking Windows OS... " >&6; }

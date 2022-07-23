@@ -26,17 +26,29 @@ dnl do all the magick stuff here
 dnl checks if -I/usr/local/include is needed
 AC_MSG_CHECKING([is -I/usr/local/include -I/ucrt64/include/ command line parameter needed])
 
-dnl not checked right now, just added
-AC_MSG_RESULT([yes (not checked, write real check)])
-EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
+EXTRA_INCLUDEPATHS="-I/usr/local/include/"
+
+if [[ -d "/ucrt64" ]]; then
+   EXTRA_INCLUDEPATHS="-I/usr/local/include -I/ucrt64/include/ -I/ucrt64/include/openblas/"
+   AC_MSG_RESULT([yes])
+else
+   AC_MSG_RESULT([no])
+fi
+
 
 dnl checks if -L/usr/local/lib is needed to
 dnl link with libraries in /usr/local/lib
 AC_MSG_CHECKING([is -L/usr/local/lib -L/ucrt64/lib/ command line parameter needed])
 
-dnl not checked right now, just added
-AC_MSG_RESULT([yes (not checked, write real check)])
-EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
+EXTRA_LIBPATHS="-L/usr/local/lib"
+
+if [[ -d "/ucrt64" ]]; then
+   EXTRA_LIBPATHS="-L/usr/local/lib -L/ucrt64/lib/"
+   AC_MSG_RESULT([yes])
+else
+   AC_MSG_RESULT([no])
+fi
+
 
 dnl check for Windows (WINNT)
 AC_MSG_CHECKING([Windows OS])
