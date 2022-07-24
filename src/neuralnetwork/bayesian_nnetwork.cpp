@@ -362,6 +362,7 @@ namespace whiteice
     if(nnets.size() <= 0) return false;
     if(latestN > (signed)nnets.size()) return false;
     if(latestN <= 0) latestN = nnets.size();
+    if(SIMULATION_DEPTH == 0) return false;
 
     const int RDIM = nnets[0]->input_size() - input.size();
     
@@ -381,8 +382,8 @@ namespace whiteice
     mean.zero();
     covariance.zero();
 
-    if(latestN <= (signed)DIM)
-      covariance.identity(); // regularizer term for small datasize
+    //if(latestN <= (signed)DIM)
+    //  covariance.identity(); // regularizer term for small datasize
     
 #pragma omp parallel shared(mean, covariance)
     {
@@ -415,6 +416,7 @@ namespace whiteice
 	  }
 	  
 	  nnets[i]->calculate(in, out_nn); // recurrent calculations if needed
+	  
 	  if(SIMULATION_DEPTH > 1){
 	    out_nn.subvertex(rdim, DIM, rdim.size());
 	  }

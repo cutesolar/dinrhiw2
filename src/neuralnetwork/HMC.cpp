@@ -68,81 +68,81 @@ namespace whiteice
 	template <typename T>
 	T HMC<T>::U(const math::vertex<T>& q, bool useRegulizer) const
 	{
-		T E = T(0.0f);
-
-		// E = SUM 0.5*e(i)^2
+	  T E = T(0.0f);
+	  
+	  whiteice::nnetwork<T> nnet(this->nnet);
+	  nnet.importdata(q);
+	  
+	  // E = SUM 0.5*e(i)^2
 #pragma omp parallel shared(E)
-		{
-			whiteice::nnetwork<T> nnet(this->nnet);
-			nnet.importdata(q);
-
-			math::vertex<T> err;
-			T e = T(0.0f);
-
+	  {
+	    math::vertex<T> err;
+	    T e = T(0.0f);
+	    
 #pragma omp for nowait schedule(auto)
-			for(unsigned int i=0;i<data.size(0);i++){
-			        nnet.input() = data.access(0, i);
-				nnet.calculate(false);
-				err = data.access(1, i) - nnet.output();
-				// T inv = T(1.0f/err.size());
-				err = (err*err);
-				e = e  + T(0.5f)*err[0];
-			}
-
+	    for(unsigned int i=0;i<data.size(0);i++){
+	      nnet.calculate(data.access(0, i), err);
+	      err -= data.access(1, i);
+			  // T inv = T(1.0f/err.size());
+	      err = (err*err);
+	      e = e  + T(0.5f)*err[0];
+	    }
+	    
 #pragma omp critical (mvjrwerfwegh)
-			{
-				E = E + e;
-			}
-		}
-
-		E /= sigma2;
-
-		E /= temperature;
-		
-		E += T(0.5)*alpha*(q*q)[0];
-		
-		return (E);
+	    {
+	      E = E + e;
+	    }
+	  }
+	  
+	  E /= sigma2;
+	  
+	  E /= temperature;
+	  
+	  E += T(0.5)*alpha*(q*q)[0];
+	  
+	  return (E);
 	}
   
   
 	template <typename T>
 	math::vertex<T> HMC<T>::Ugrad(const math::vertex<T>& q) const
 	{
-		math::vertex<T> sum;
-		sum.resize(q.size());
-		sum.zero();
-
-		// positive gradient
-#pragma omp parallel shared(sum)
-		{
-			// const T ninv = T(1.0f); // T(1.0f/data.size(0));
-			math::vertex<T> sumgrad, grad, err;
-			sumgrad.resize(q.size());
-			sumgrad.zero();
-
-			whiteice::nnetwork<T> nnet(this->nnet);
-			nnet.importdata(q);
-
-#pragma omp for nowait schedule(auto)
-			for(unsigned int i=0;i<data.size(0);i++){
-				nnet.input() = data.access(0, i);
-				nnet.calculate(true);
-				err = nnet.output() - data.access(1,i);
-
-				if(nnet.mse_gradient(err, grad) == false){
-					std::cout << "gradient failed." << std::endl;
-					assert(0); // FIXME
-				}
-
-				sumgrad += grad;
-			}
-
-#pragma omp critical (mfkrewiorweqqqa)
-			{
-				sum += sumgrad;
-			}
-		}
+	  math::vertex<T> sum;
+	  sum.resize(q.size());
+	  sum.zero();
+	  
+	  whiteice::nnetwork<T> nnet(this->nnet);
+	  nnet.importdata(q);
 		
+	  // positive gradient
+#pragma omp parallel shared(sum)
+	  {
+	    // const T ninv = T(1.0f); // T(1.0f/data.size(0));
+	    math::vertex<T> sumgrad, grad, err;
+	    sumgrad.resize(q.size());
+	    sumgrad.zero();
+
+	    std::vector< math::vertex<T> > bpdata;
+	    
+#pragma omp for nowait schedule(auto)
+	    for(unsigned int i=0;i<data.size(0);i++){
+	      nnet.calculate(data.access(0, i), err, bpdata);
+	      err -= data.access(1, i);
+	      
+	      if(nnet.mse_gradient(err, bpdata, grad) == false){
+		std::cout << "gradient failed." << std::endl;
+		assert(0); // FIXME
+	      }
+	      
+	      sumgrad += grad;
+	    }
+	    
+#pragma omp critical (mfkrewiorweqqqa)
+	    {
+	      sum += sumgrad;
+	    }
+	  }
+	  
 #if 0		
 		// negative gradient
 #pragma omp parallel shared(sum)
@@ -681,67 +681,64 @@ namespace whiteice
     template <typename T>
     T HMC<T>::getMeanError(unsigned int latestN) const
     {
-	  std::vector< math::vertex<T> > sample;
-
-	  // copies selected nnetwork configurations
-	  // from global variable (synchronized) to local memory;
-	  {
-	    std::lock_guard<std::mutex> lock(solution_lock);
+      std::vector< math::vertex<T> > sample;
+      
+      // copies selected nnetwork configurations
+      // from global variable (synchronized) to local memory;
+      {
+	std::lock_guard<std::mutex> lock(solution_lock);
 	    
-	    if(!latestN) latestN = samples.size();
-	    if(latestN > samples.size()) latestN = samples.size();
-	    
-	    for(unsigned int i=samples.size()-latestN;i<samples.size();i++){
-	      sample.push_back(samples[i]);
-	    }
-	  }
-	  
-
-    	T sumErr = T(0.0f);
-
-    	for(unsigned int i=0;i<sample.size();i++)
-	{
-	  whiteice::nnetwork<T> nnet(this->nnet);
-	  nnet.importdata(sample[i]);
-	  
-	  T E = T(0.0f);
-	  
-	  // E = SUM 0.5*e(i)^2
-#pragma omp parallel shared(E)
-	  {
-	    
-	    math::vertex<T> err;
-	    T e = T(0.0f);
-	    
-#pragma omp for nowait schedule(auto)
-	    for(unsigned int i=0;i<data.size(0);i++){
-	      nnet.input() = data.access(0, i);
-	      nnet.calculate(false);
-	      err = data.access(1, i) - nnet.output();
-	      // T inv = T(1.0f/err.size());
-	      err = (err*err);
-	      e = e  + T(0.5f)*err[0];
-	    }
-	    
-#pragma omp critical (mogjfisdrwe)
-	    {
-	      E = E + e;
-	    }
-	  }
-	  
-	  sumErr += E;
-	}
-
+	if(!latestN) latestN = samples.size();
+	if(latestN > samples.size()) latestN = samples.size();
 	
-	if(sample.size() > 0){
-	  sumErr /= T((float)sample.size());
-	  sumErr /= T((float)data.size(0));
+	for(unsigned int i=samples.size()-latestN;i<samples.size();i++){
+	  sample.push_back(samples[i]);
 	}
-
-    	return sumErr;
+      }
+      
+      
+      T sumErr = T(0.0f);
+      
+      for(unsigned int i=0;i<sample.size();i++)
+      {
+	whiteice::nnetwork<T> nnet(this->nnet);
+	nnet.importdata(sample[i]);
+	
+	T E = T(0.0f);
+	
+	// E = SUM 0.5*e(i)^2
+#pragma omp parallel shared(E)
+	{
+	  
+	  math::vertex<T> err;
+	  T e = T(0.0f);
+	  
+#pragma omp for nowait schedule(auto)
+	  for(unsigned int i=0;i<data.size(0);i++){
+	    nnet.calculate(data.access(0, i), err);
+	    err -= data.access(1, i);
+	    e = e  + err.norm();
+	  }
+	  
+#pragma omp critical (mogjfisdrwe)
+	  {
+	    E = E + e;
+	  }
 	}
-
-
+	
+	sumErr += E;
+      }
+      
+      
+      if(sample.size() > 0){
+	sumErr /= T((float)sample.size());
+	sumErr /= T((float)data.size(0));
+      }
+      
+      return sumErr;
+    }
+  
+  
   
     template <typename T>
     void HMC<T>::leapfrog(math::vertex<T>& p, math::vertex<T>& q, const T epsilon, const unsigned int L) const

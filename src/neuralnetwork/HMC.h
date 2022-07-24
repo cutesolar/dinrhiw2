@@ -31,7 +31,12 @@ namespace whiteice
 	{
     	public:
 
-		HMC(const whiteice::nnetwork<T>& net, const whiteice::dataset<T>& ds, bool adaptive=false, T alpha = T(0.5), bool store = true);
+		HMC(const whiteice::nnetwork<T>& net,
+		    const whiteice::dataset<T>& ds,
+		    bool adaptive=false,
+		    T alpha = T(0.5),
+		    bool store = true);
+	  
 		~HMC();
 
 		bool setTemperature(const T t); // set "temperature" for probability distribution [default T = 1 => no temperature]
