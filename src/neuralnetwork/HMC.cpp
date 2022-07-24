@@ -861,6 +861,11 @@ namespace whiteice
 		  
 		}
 #endif
+		{
+		  char buffer[128];
+		  sprintf(buffer, "HMC::sampler_loop(). epsilon=%e", epsilon.c[0]);
+		  whiteice::logging.info(buffer);
+		}
 		
 		// after selecting the best epsilon, we do the actual sampling
 		
