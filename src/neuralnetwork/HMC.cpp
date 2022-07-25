@@ -863,7 +863,7 @@ namespace whiteice
 #endif
 		{
 		  char buffer[128];
-		  sprintf(buffer, "HMC::sampler_loop(). epsilon=%e", epsilon.c[0]);
+		  sprintf(buffer, "HMC::sampler_loop(). epsilon=%e.", epsilon.c[0]);
 		  whiteice::logging.info(buffer);
 		}
 		
@@ -930,7 +930,11 @@ namespace whiteice
 			    samples.push_back(q);
 			  
 			  solution_lock.unlock();
+
+			  whiteice::logging.info("HMC::sampler_loop(). sample ACCEPTED.");
 			}
+
+			
 
     			if(adaptive){
 			  accept_rate++;
@@ -979,7 +983,13 @@ namespace whiteice
     			if(accept_rate_samples >= 20)
     			{
     				accept_rate /= accept_rate_samples;
-
+				
+				{
+				  char buffer[128];
+				  sprintf(buffer, "HMC::sampler_loop(). accept_rate=%.2f.", accept_rate.c[0]);
+				  whiteice::logging.info(buffer);
+				}
+				
 				// std::cout << "ACCEPT RATE: " << accept_rate << std::endl;
 				// changed from 75-85% to 50%
 				// 
@@ -987,12 +997,12 @@ namespace whiteice
 				// in one research paper
 
     				if(accept_rate < T(0.651f)){
-    					epsilon = T(0.8)*epsilon;
+    					epsilon = T(0.7)*epsilon;
 					// std::cout << "NEW SMALLER EPSILON: " << epsilon << std::endl;
     				}
     				else if(accept_rate > T(0.651f)){
 				        // important, sampler can diverge so we FORCE epsilon to be small (<MAX_EPSILON)
-				        auto new_epsilon = T(1.0/0.8)*epsilon;
+				        auto new_epsilon = T(1.0/0.7)*epsilon;
 					if(new_epsilon < MAX_EPSILON)
 					  epsilon = new_epsilon;
 					// std::cout << "NEW LARGER  EPSILON: " << epsilon << std::endl;
