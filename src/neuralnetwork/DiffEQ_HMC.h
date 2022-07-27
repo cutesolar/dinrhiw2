@@ -59,7 +59,8 @@ namespace whiteice
   };
   
   
-  
+  extern template class DiffEq_HMC< math::blas_real<float> >;
+  extern template class DiffEq_HMC< math::blas_real<double> >;
 };
 
 

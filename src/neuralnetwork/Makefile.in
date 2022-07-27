@@ -21,6 +21,7 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	rLBFGS_recurrent_nnetwork.cpp SGD_recurrent_nnetwork.cpp \
 	rLBFGS_recurrent_nnetwork_softmax_actions.cpp \
 	globaloptimum.cpp KMBoosting.cpp WeightingOptimizer.cpp \
+	DiffEQ_HMC.cpp neuro-diffeqs/diffeqs.cpp neuro-diffeqs/HMC_diffeq.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
 	../math/RNG.cpp ../math/LBFGS.cpp ../math/SGD.cpp
@@ -39,7 +40,8 @@ OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensio
 	stackedRBM_pretraining.o rLBFGS_nnetwork.o Mixture.o EnsembleMeans.o \
 	rLBFGS_recurrent_nnetwork.o SGD_recurrent_nnetwork.o \
 	rLBFGS_recurrent_nnetwork_softmax_actions.o \
-	globaloptimum.o KMBoosting.o WeightingOptimizer.o
+	globaloptimum.o KMBoosting.o WeightingOptimizer.o \
+	DiffEQ_HMC.o neuro-diffeqs/diffeqs.o neuro-diffeqs/HMC_diffeq.o
 
 EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
@@ -48,7 +50,7 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
-	../math/quaternion.o ../math/SGD.o
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o 
 
 
 TARGET1_OBJECTS=tst/test.o 
@@ -66,7 +68,7 @@ TARGET5=testsuite5
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
 
-CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn $(OPTIMIZE)
+CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -Ineuro-diffeqs -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn $(OPTIMIZE)
 
 LIBS= @EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 

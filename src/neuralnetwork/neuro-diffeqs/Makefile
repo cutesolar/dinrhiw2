@@ -11,7 +11,7 @@ EXTRA_OBJECTS =
 TEST_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) test.o
 
 OPTIMIZE=-fPIC -O3 -g -DAMD64 -ffast-math -mtune=native -ftree-vectorize -fopenmp -mtune=native -march=native
-CFLAGS=-g -O2 -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess -I/usr/include/ -I/usr/local/include -m64 -I/opt/intel/compilers_and_libraries/linux/mkl/include -DINTELMKL -DUSE_SDL `pkg-config sdl2 --cflags` `pkg-config dinrhiw --cflags`
+CFLAGS=-g -O2 -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess -I/usr/include/ -I/usr/local/include -m64 -DUSE_SDL `pkg-config sdl2 --cflags` `pkg-config dinrhiw --cflags`
 
 # -fsanitize=address
 
@@ -19,9 +19,9 @@ TARGET=testsuite
 
 CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9
 
-LIBS=-L/usr/local/lib -lgmp -lpthread -L/usr/lib/  -L/opt/intel/compilers_and_libraries/linux/mkl/lib/intel64_lin -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl -lstdc++ `pkg-config dinrhiw --libs`
+LIBS=-L/usr/local/lib -lgmp -lpthread -L/usr/lib/  `pkg-config dinrhiw --libs`
 
-LIBS_PYTHON=-lcrypt -lpthread -ldl -lutil -lm -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu -lpython3.9 `pkg-config sdl2 --libs`
+LIBS_PYTHON=`python3-config --embed --ldflags` `pkg-config sdl2 --libs`
 
 CD = cd
 

@@ -21,7 +21,7 @@ namespace whiteice
     nnet = NULL;
     nnet = new nnetwork<T>(init_net);
 
-    if(nnet->inputSize() != start.size()) assert(0);
+    if(nnet->input_size() != start.size()) assert(0);
 
     this->start = start;
     this->data = data;
@@ -47,7 +47,7 @@ namespace whiteice
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
 
     whiteice::math::vertex<T> x0, y, temp, temp2;
-    std::vector< whiteice::math::vertex<T> > xdata, data;
+    std::vector< whiteice::math::vertex<T> > xdata, inputdata;
     
     T error = T(0.0f);
 
@@ -62,17 +62,17 @@ namespace whiteice
 
       for(unsigned int k=0;k<temp.size();k += N){
 	temp.subvertex(temp2, k, N);
-	data.push_back(temp2);
+	inputdata.push_back(temp2);
       }
 
       if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
 	assert(0); // should not happen
       }
       
-      if(xdata.size() != data.size()) assert(0); // should not happen
+      if(xdata.size() != inputdata.size()) assert(0); // should not happen
       
-      for(unsigned int index=0;index<data.size();index++){
-	auto delta = xdata[index] - data[index];
+      for(unsigned int index=0;index<inputdata.size();index++){
+	auto delta = xdata[index] - inputdata[index];
 	error += (delta*delta)[0];
       }
     }
@@ -96,7 +96,7 @@ namespace whiteice
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
 
     whiteice::math::vertex<T> x0, y, temp, temp2;
-    std::vector< whiteice::math::vertex<T> > xdata, data, gdata;
+    std::vector< whiteice::math::vertex<T> > xdata, inputdata, gdata;
 
     whiteice::math::vertex<T> sumgrad;
     
@@ -110,20 +110,20 @@ namespace whiteice
 
       for(unsigned int k=0;k<temp.size();k += N){
 	temp.subvertex(temp2, k, N);
-	data.push_back(temp2);
+	inputdata.push_back(temp2);
       }
 
       if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
 	assert(0); // should not happen
       }
 
-      if(xdata.size() != data.size()) assert(0); // should not happen
+      if(xdata.size() != inputdata.size()) assert(0); // should not happen
       
       // calculate deltas
       std::vector< math::vertex<T> > deltas;
 
-      for(unsigned int index=0;index<data.size();index++){
-	auto delta = xdata[index] - data[index];
+      for(unsigned int index=0;index<inputdata.size();index++){
+	auto delta = xdata[index] - inputdata[index];
 	deltas.push_back(delta);
       }
       
@@ -133,9 +133,9 @@ namespace whiteice
 					    gdata, correct_times) == false){
 	assert(0); // should not happen
       }
-
+      
       for(unsigned int index=0;index<gdata.size();index++){
-	sumgrad += gdata;
+	sumgrad += gdata[index];
       }
     }
 
@@ -154,5 +154,9 @@ namespace whiteice
     if(nnet) nnet->importdata(q);
   }
   
+  
+  
+  template class DiffEq_HMC< math::blas_real<float> >;
+  template class DiffEq_HMC< math::blas_real<double> >;
   
 };
