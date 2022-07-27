@@ -18,42 +18,38 @@ T HMC_diffeq<T>::U(const math::vertex<T>& q, bool useRegulizer) const
 
   datacp.clearData(0);
   datacp.add(0, xdata);
+
+  whiteice::nnetwork<T> nnet(this->nnet);
+  nnet.importdata(q);
   
+  T E = T(0.0f);
     
-    T E = T(0.0f);
-    
-    // E = SUM 0.5*e(i)^2
+  // E = SUM 0.5*e(i)^2
 #pragma omp parallel shared(E)
-    {
-      whiteice::nnetwork<T> nnet(this->nnet);
-      nnet.importdata(q);
-      
-      math::vertex<T> err;
-      T e = T(0.0f);
-      
+  {
+    math::vertex<T> err, tmp;
+    T e = T(0.0f);
+    
 #pragma omp for nowait schedule(auto)
-      for(unsigned int i=0;i<datacp.size(0);i++){
-	nnet.input() = datacp.access(0, i);
-	nnet.calculate(false);
-	err = datacp.access(1, i) - nnet.output();
-	// T inv = T(1.0f/err.size());
-	err = (err*err);
-	e = e  + T(0.5f)*err[0];
-      }
-      
-#pragma omp critical (mvjrwerfwegh)
-      {
-	E = E + e;
-      }
+    for(unsigned int i=0;i<datacp.size(0);i++){
+      nnet.calculate(datacp.access(0,i), tmp);
+      err = datacp.access(1, i) - tmp;
+      e = e  + T(0.5f)*(err*err)[0];
     }
     
-    E /= this->sigma2;
-    
-    E /= this->temperature;
-    
-    E += T(0.5)*this->alpha*(q*q)[0];
-    
-    return (E);
+#pragma omp critical (mvjrwerfweghx)
+    {
+      E = E + e;
+    }
+  }
+  
+  E /= this->sigma2;
+  
+  E /= this->temperature;
+  
+  E += T(0.5)*this->alpha*(q*q)[0];
+  
+  return (E);
 }
 
 

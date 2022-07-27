@@ -153,8 +153,9 @@ int main(void)
 	u[1] = 0.0f; // rng.uniformf()*2.0f - 1.0f; // y
 
 	const unsigned int NUM_SAMPLES = 80000; // 20.000 makes error go to 3/4, need 80.000 samples
-	
-	if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, NUM_SAMPLES) == false) throw 2;
+
+	// FIXME: disabled for now!!
+	//if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, NUM_SAMPLES) == false) throw 2;
 
 	std::vector< std::vector< whiteice::math::vertex<> > > datas;
 	datas.resize(200);

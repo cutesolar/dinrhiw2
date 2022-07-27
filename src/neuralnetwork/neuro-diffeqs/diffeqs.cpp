@@ -118,7 +118,7 @@ bool simulate_diffeq_model(const whiteice::nnetwork<T>& diffeq,
   if(start.size() != diffeq.getInputs(0)) return false;
   if(start.size() != diffeq.getNeurons(diffeq.getLayers()-1)) return false;
   if(TIME_LENGTH < 0.0f) return false;
-  if(TIME_LENGTH > 1e4f) return false; // too long simulation length [sanity check]
+  if(TIME_LENGTH > 1e6f) return false; // too long simulation length [sanity check]
 
   data.clear();
   times.clear();
@@ -145,7 +145,7 @@ bool simulate_diffeq_model(const whiteice::nnetwork<T>& diffeq,
 
 
 // assumes times are are ordered from smallest to biggest
-template <typename T = math::blas_real<float> >
+template <typename T>
 bool simulate_diffeq_model2(const whiteice::nnetwork<T>& diffeq,
 			    const whiteice::math::vertex<T>& start,
 			    const float TIME_LENGTH,
@@ -179,6 +179,177 @@ bool simulate_diffeq_model2(const whiteice::nnetwork<T>& diffeq,
 
   return true; 
 }
+
+
+//////////////////////////////////////////////////////////////////////
+
+
+template <typename T>
+class nnet_gradient_ode : public whiteice::math::odefunction<T>
+{
+public:
+
+  nnet_gradient_ode(const whiteice::nnetwork<T>& nnet_,
+		    const std::vector< whiteice::math::vertex<T> >& deltas_,
+		    const std::vector<T>& delta_times_) :
+    nnet(nnet_), deltas(deltas_), delta_times(delta_times_)
+  {
+    this->nnet = nnet;
+    this->deltas = deltas;
+    this->delta_times = delta_times;
+  }
+
+  // returns number of input dimensions
+  unsigned int dimensions() const PURE_FUNCTION
+  {
+    return nnet.getInputs(0);
+  }
+
+  
+
+  // calculates value of function
+  whiteice::math::vertex<T> operator()
+  (const whiteice::math::odeparam<T>& x)
+    const PURE_FUNCTION
+  {
+    whiteice::math::vertex<T> output;
+
+    // calculates delta term by linear interpolation
+
+    whiteice::math::vertex<T> delta; // (nnet.output_size());
+
+    // finds closest t value
+    unsigned int index;
+    for(index=0;index<delta_times.size();index++){
+      if(x.t >= delta_times[index]) break;
+    }
+    if(index == delta_times.size()) index--;
+
+    if(index+1<delta_times.size()){
+      delta = deltas[index] +
+	((x.t-delta_times[index])/(delta_times[index+1]-delta_times[index]))*deltas[index+1];
+    }
+    else delta = delta_times[delta_times.size()-1];
+
+    // now we have delta term, calculate MSE term (no jacobian explicitely computed)
+    // we return delta^T*Jacobian(f(x))
+    
+    nnet.mse_gradient(delta, output);
+
+    return output;
+  }
+  
+  // calculates value
+  whiteice::math::vertex<T> calculate
+  (const whiteice::math::odeparam<T>& x)
+    const PURE_FUNCTION
+  {
+    whiteice::math::vertex<T> output = nnet(x);
+    
+    return output;
+  }
+  
+  // calculates value 
+  // (optimized version, this is faster because output value isn't copied)
+  void calculate
+  (const whiteice::math::odeparam<T>& x,
+   whiteice::math::vertex<T>& y) const
+  {
+    y = nnet(x);
+  }
+  
+  // creates copy of object
+  function< whiteice::math::odeparam<T>,
+	    whiteice::math::vertex<T> >* clone() const
+  {
+    return new nnet_gradient_ode<T>(nnet, deltas, delta_times);
+  }
+
+private:
+
+  const whiteice::nnetwork<T>& nnet;
+  const std::vector< whiteice::math::vertex<T> >& deltas;
+  const std::vector<T>& delta_times;
+};
+
+
+template <typename T>
+bool simulate_diffeq_model_nn_gradient(const whiteice::nnetwork<T>& diffeq,
+				       const whiteice::math::vertex<T>& start,
+				       const std::vector< whiteice::math::vertex<T> >& deltas,
+				       const std::vector<T>& delta_times,
+				       std::vector< whiteice::math::vertex<T> >& data,
+				       std::vector<T>& times)
+{
+  if(start.size() != diffeq.gradient_size()) return false;
+
+  data.clear();
+  times.clear();
+
+  // now uses Runge-Kutta to simulate/integrate diff.eq. d(delta(t)^T*grad(x))/dt = delta(t)^T*grad(diffeq(x))
+
+  const float start_time = delta_times[0];
+  const float TIME_LENGTH = delta_times[delta_times.size()-1];
+
+  if(TIME_LENGTH < 0.0f) return false;
+  if(TIME_LENGTH > 1e6f) return false; // too long simulation length [sanity check]
+  
+  nnet_gradient_ode< T > ode(diffeq, deltas, delta_times);
+
+  whiteice::math::RungeKutta< T > rk(&ode);
+
+  rk.calculate(start_time, TIME_LENGTH,
+	       start,
+	       data,
+	       times);
+  
+
+  if(data.size() > 0 && times.size() > 0 && data.size() == times.size())
+    return true;
+  else
+    return false;
+}
+
+
+// assumes times are are ordered from smallest to biggest
+template <typename T>
+bool simulate_diffeq_model_nn_gradient2(const whiteice::nnetwork<T>& diffeq,
+					const whiteice::math::vertex<T>& start,
+					const std::vector< whiteice::math::vertex<T> >& deltas,
+					const std::vector<T>& delta_times,
+					std::vector< whiteice::math::vertex<T> >& data,
+					const std::vector<T>& correct_times)
+{
+  std::vector< whiteice::math::vertex<T> > data2;
+  std::vector< T > times;
+  
+  if(simulate_diffeq_model_nn_gradient(diffeq, start, deltas, delta_times, data2, times) == false)
+    return false;
+  
+  data.clear();
+
+  unsigned int kbest = 0;
+  
+  for(unsigned int i=0;i<correct_times.size();i++){
+    
+    whiteice::math::blas_real<float> best_error = (float)INFINITY;
+
+    for(unsigned int k=kbest;k<times.size();k++){
+      auto error = whiteice::math::abs(times[k]-correct_times[i]);
+      if(error <= best_error){
+	kbest = k;
+	best_error = error;
+      }
+      else break;
+    }
+
+    data.push_back(data2[kbest]);
+  }
+
+  return true; 
+}
+
+
 
 
 // uses hamiltonian monte carlo sampler (HMC) to fit diffeq parameters to (data, times)
