@@ -82,7 +82,7 @@ T HMC_GBRBM<T>::Udiff(const math::vertex<T>& q1, const math::vertex<T>& q2) cons
 
 
 template <typename T>
-math::vertex<T> HMC_GBRBM<T>::Ugrad(const math::vertex<T>& q)
+math::vertex<T> HMC_GBRBM<T>::Ugrad(const math::vertex<T>& q) const
 {
 	if(data.size() > 0){
 		return rbm.Ugrad(q);

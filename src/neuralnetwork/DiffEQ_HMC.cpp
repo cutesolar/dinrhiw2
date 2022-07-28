@@ -39,7 +39,9 @@ namespace whiteice
     // 1. simulate T time, N time steps forward using Runge-Kutta and nnet ODE.
     // 2. calculate error
 
-    nnet->importdata(q);
+    auto nnet = *(this->nnet);
+    
+    nnet.importdata(q);
 
     float TIME_LENGTH = 0.0f;
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
@@ -68,7 +70,7 @@ namespace whiteice
 	  x0 = temp2;
       }
       
-      if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
+      if(simulate_diffeq_model2(nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
 	assert(0); // should not happen
       }
       
@@ -82,20 +84,22 @@ namespace whiteice
 
     error = T(0.5f)*error/temperature;
 
-    error += T(0.5f)*(q*q)[0];
+    //error += T(0.5f)*(q*q)[0];
 
     return error;
   }
   
   
   template <typename T>
-  math::vertex<T> DiffEq_HMC<T>::Ugrad(const math::vertex<T>& q)
+  math::vertex<T> DiffEq_HMC<T>::Ugrad(const math::vertex<T>& q) const
   {
     // 1. simulate T time, N time steps forward using Runge-Kutta and nnet ODE.
     // 2. simulate gradient nnet ODE T time, N steps forward too
     // 3. calculate gradient
 
-    nnet->importdata(q);
+    auto nnet = *(this->nnet);
+
+    nnet.importdata(q);
 
     float TIME_LENGTH = 0;
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
@@ -103,7 +107,7 @@ namespace whiteice
     whiteice::math::vertex<T> x0, y, g0, temp, temp2;
    
     whiteice::math::vertex<T> sumgrad;
-    sumgrad.resize(nnet->gradient_size());
+    sumgrad.resize(nnet.gradient_size());
     sumgrad.zero();
     
 
@@ -121,7 +125,7 @@ namespace whiteice
       x0.resize(N);
       x0.zero();
 
-      g0.resize(nnet->gradient_size());
+      g0.resize(nnet.gradient_size());
       g0.zero();
 
       for(unsigned int k=0;k<temp.size();k += N){
@@ -131,7 +135,7 @@ namespace whiteice
 	if(k == 0) x0 = temp2;
       }
 
-      if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
+      if(simulate_diffeq_model2(nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
 	assert(0); // should not happen
       }
 
@@ -148,7 +152,7 @@ namespace whiteice
       //std::cout << "deltas size: " << deltas.size() << std::endl;
       
 
-      if(simulate_diffeq_model_nn_gradient2(*nnet, g0,
+      if(simulate_diffeq_model_nn_gradient2(nnet, g0,
 					    inputdata,
 					    deltas, correct_times,
 					    gdata, correct_times) == false){
@@ -164,7 +168,7 @@ namespace whiteice
 
     sumgrad = sumgrad/temperature;
     
-    sumgrad += q; // [GIVES ERROR, FOR NOW!]
+    // sumgrad += q; // [GIVES ERROR, FOR NOW!]
 
     
     return sumgrad;

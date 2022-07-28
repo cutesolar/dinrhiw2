@@ -35,7 +35,7 @@ public:
 
     virtual T Udiff(const math::vertex<T>& q1, const math::vertex<T>& q2) const;
 
-    virtual math::vertex<T> Ugrad(const math::vertex<T>& q);
+    virtual math::vertex<T> Ugrad(const math::vertex<T>& q) const;
 
     // a starting point q for the sampler (may not be random)
     virtual void starting_position(math::vertex<T>& q) const;

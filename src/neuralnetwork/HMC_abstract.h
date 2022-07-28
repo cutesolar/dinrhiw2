@@ -49,7 +49,7 @@ namespace whiteice
 			return (U(q1) - U(q2));
 		}
 
-		virtual math::vertex<T> Ugrad(const math::vertex<T>& q) = 0;
+		virtual math::vertex<T> Ugrad(const math::vertex<T>& q) const = 0;
 
 		// a starting point q for the sampler (may not be random)
 		virtual void starting_position(math::vertex<T>& q) const = 0;

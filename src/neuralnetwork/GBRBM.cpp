@@ -1606,7 +1606,7 @@ T GBRBM<T>::Udiff(const math::vertex<T>& q1, const math::vertex<T>& q2) const
 
 
 template <typename T>
-whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q)  // calculates grad(U(q))
+whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q) const // calculates grad(U(q))
 {
         const unsigned int CDk = 2; // was CD-25 !!
         const unsigned int NUMUSAMPLES = 1000; // 1000 seem to work rather well..

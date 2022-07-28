@@ -39,7 +39,7 @@ namespace whiteice
 
 
   template <typename T>
-  math::vertex<T> HMC_gaussian<T>::Ugrad(const math::vertex<T>& q)
+  math::vertex<T> HMC_gaussian<T>::Ugrad(const math::vertex<T>& q) const
   {
     return q;
   }

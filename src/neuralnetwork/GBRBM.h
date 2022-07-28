@@ -136,7 +136,7 @@ namespace whiteice {
   
   T Udiff(const math::vertex<T>& q1, const math::vertex<T>& q2) const;
 
-  math::vertex<T> Ugrad(const math::vertex<T>& q) ; // calculates grad(U(q))
+  math::vertex<T> Ugrad(const math::vertex<T>& q) const; // calculates grad(U(q))
 
   // prints min/max values of paramters to log
   bool diagnostics() const;

@@ -36,7 +36,7 @@ namespace whiteice
     // probability functions for hamiltonian MC sampling of
     // P ~ exp(-U(q)) distribution
     T U(const math::vertex<T>& q) const;
-    math::vertex<T> Ugrad(const math::vertex<T>& q);
+    math::vertex<T> Ugrad(const math::vertex<T>& q) const;
 
     // a starting point q for the sampler (may not be random)
     void starting_position(math::vertex<T>& q) const;

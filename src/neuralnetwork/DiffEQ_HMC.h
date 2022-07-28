@@ -40,7 +40,7 @@ namespace whiteice
     // P ~ exp(-U(q)) distribution
     virtual T U(const math::vertex<T>& q) const;
     
-    virtual math::vertex<T> Ugrad(const math::vertex<T>& q);
+    virtual math::vertex<T> Ugrad(const math::vertex<T>& q) const;
     
     // a starting point q for the sampler (may not be random)
     virtual void starting_position(math::vertex<T>& q) const;
@@ -49,7 +49,7 @@ namespace whiteice
     
     T temperature = T(1.0f);
     
-    mutable whiteice::nnetwork<T>* nnet = NULL;
+    whiteice::nnetwork<T>* nnet = NULL;
 
     whiteice::dataset<T> data;
     std::vector<T> correct_times;
