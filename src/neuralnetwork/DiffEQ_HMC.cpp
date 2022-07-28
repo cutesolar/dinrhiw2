@@ -39,11 +39,12 @@ namespace whiteice
     // 1. simulate T time, N time steps forward using Runge-Kutta and nnet ODE.
     // 2. calculate error
 
+    nnet->importdata(q);
+
     float TIME_LENGTH = 0.0f;
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
 
     whiteice::math::vertex<T> x0, y, temp, temp2;
-    std::vector< whiteice::math::vertex<T> > xdata, inputdata;
     
     T error = T(0.0f);
 
@@ -51,6 +52,8 @@ namespace whiteice
     // each vertex is in format = |x(0)||x(1)||x(2)||x(T-1)| => T = length(correct_times)
 
     for(unsigned int i=0;i<data.size(0);i++){
+      std::vector< whiteice::math::vertex<T> > xdata, inputdata;
+      
       temp = data.access(0, i);
 
       const unsigned int N = temp.size() / correct_times.size();
@@ -92,28 +95,40 @@ namespace whiteice
     // 2. simulate gradient nnet ODE T time, N steps forward too
     // 3. calculate gradient
 
+    nnet->importdata(q);
+
     float TIME_LENGTH = 0;
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
 
-    whiteice::math::vertex<T> x0, y, temp, temp2;
-    std::vector< whiteice::math::vertex<T> > xdata, inputdata, gdata;
-
+    whiteice::math::vertex<T> x0, y, g0, temp, temp2;
+   
     whiteice::math::vertex<T> sumgrad;
+    sumgrad.resize(nnet->gradient_size());
+    sumgrad.zero();
     
 
     for(unsigned int i=0;i<data.size(0);i++){
+      std::vector< whiteice::math::vertex<T> > xdata, inputdata, gdata;
+      
       temp = data.access(0, i);
 
       const unsigned int N = temp.size() / correct_times.size();
+      temp2.resize(N);
+
+      //std::cout << "temp2 size " << temp2.size() << std::endl;
+      //std::cout << "i=" << i << "/" << data.size(0) << std::endl;
+      
       x0.resize(N);
       x0.zero();
+
+      g0.resize(nnet->gradient_size());
+      g0.zero();
 
       for(unsigned int k=0;k<temp.size();k += N){
 	temp.subvertex(temp2, k, N);
 	inputdata.push_back(temp2);
 
-	if(k == 0)
-	  x0 = temp2;
+	if(k == 0) x0 = temp2;
       }
 
       if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
@@ -129,13 +144,18 @@ namespace whiteice
 	auto delta = xdata[index] - inputdata[index];
 	deltas.push_back(delta);
       }
+
+      //std::cout << "deltas size: " << deltas.size() << std::endl;
       
 
-      if(simulate_diffeq_model_nn_gradient2(*nnet, x0,
+      if(simulate_diffeq_model_nn_gradient2(*nnet, g0,
+					    inputdata,
 					    deltas, correct_times,
 					    gdata, correct_times) == false){
 	assert(0); // should not happen
       }
+
+      //std::cout << "gdata size: " << gdata.size() << std::endl;
       
       for(unsigned int index=0;index<gdata.size();index++){
 	sumgrad += gdata[index];
@@ -144,8 +164,8 @@ namespace whiteice
 
     sumgrad = sumgrad/temperature;
     
-    sumgrad += q;
-    
+    sumgrad += q; // [GIVES ERROR, FOR NOW!]
+
     
     return sumgrad;
   }
@@ -154,7 +174,7 @@ namespace whiteice
   template <typename T>
   void DiffEq_HMC<T>::starting_position(math::vertex<T>& q) const
   {
-    if(nnet) nnet->importdata(q);
+    if(nnet) nnet->exportdata(q);
   }
   
   

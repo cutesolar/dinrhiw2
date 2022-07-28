@@ -930,7 +930,7 @@ namespace whiteice
 			    samples.push_back(q);
 			  
 			  solution_lock.unlock();
-
+			  
 			  whiteice::logging.info("HMC::sampler_loop(). sample ACCEPTED.");
 			}
 

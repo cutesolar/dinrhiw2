@@ -21,13 +21,13 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
 {
   if(DIMENSIONS <= 0) return false;
 
-  std::vector<unsigned int> arch; // 11 layers, NOW: 3 layers
+  std::vector<unsigned int> arch; // 11 layers, NOW: 2 layers
 
   const unsigned int width = 20;
 
   arch.push_back(DIMENSIONS);
   arch.push_back(width);
-  arch.push_back(width);
+  // arch.push_back(width);
   /*
   arch.push_back(width);
   arch.push_back(width);
@@ -40,7 +40,6 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
   arch.push_back(width);
   */
   arch.push_back(DIMENSIONS); 
-
   if(diffeq.setArchitecture(arch) == false) return false;
 
   diffeq.randomize();
@@ -195,21 +194,22 @@ bool simulate_diffeq_model2(const whiteice::nnetwork<T>& diffeq,
 
 template <typename T>
 class nnet_gradient_ode : public whiteice::math::odefunction<T>
-{
-public:
+{public:
 
   nnet_gradient_ode(const whiteice::nnetwork<T>& nnet_,
+		    const std::vector< whiteice::math::vertex<T> >& xdata_,
 		    const std::vector< whiteice::math::vertex<T> >& deltas_,
 		    const std::vector<T>& delta_times_) :
-    nnet(nnet_), deltas(deltas_), delta_times(delta_times_)
+    nnet(nnet_), xdata(xdata_), deltas(deltas_), delta_times(delta_times_)
   {
-    
+    assert(xdata.size() == deltas.size());
+    assert(delta_times.size() == xdata.size()); 
   }
 
   // returns number of input dimensions
   unsigned int dimensions() const PURE_FUNCTION
   {
-    return nnet.getInputs(0);
+    return nnet.gradient_size();
   }
 
   
@@ -236,12 +236,28 @@ public:
       delta = deltas[index] +
 	((x.t-delta_times[index])/(delta_times[index+1]-delta_times[index]))*deltas[index+1];
     }
-    else delta = delta_times[delta_times.size()-1];
+    else delta = deltas[delta_times.size()-1];
+
+#if 1
+    math::vertex<T> xvalue;
+
+    if(index+1<delta_times.size()){
+      xvalue = xdata[index] +
+	((x.t-delta_times[index])/(delta_times[index+1]-delta_times[index]))*xdata[index+1];
+    }
+    else xvalue = xdata[delta_times.size()-1];
+#endif
 
     // now we have delta term, calculate MSE term (no jacobian explicitely computed)
     // we return delta^T*Jacobian(f(x))
+
+    std::vector< math::vertex<T> > bpdata;
+
+    if(nnet.calculate(xvalue, output, bpdata) == false)
+      assert(0);
     
-    nnet.mse_gradient(delta, output);
+    if(nnet.mse_gradient(delta, bpdata, output) == false)
+      assert(0);
 
     return output;
   }
@@ -267,12 +283,13 @@ public:
   function< whiteice::math::odeparam<T>,
 	    whiteice::math::vertex<T> >* clone() const
   {
-    return new nnet_gradient_ode<T>(nnet, deltas, delta_times);
+    return new nnet_gradient_ode<T>(nnet, xdata, deltas, delta_times);
   }
 
 private:
 
   const whiteice::nnetwork<T>& nnet;
+  const std::vector< whiteice::math::vertex<T> >& xdata;
   const std::vector< whiteice::math::vertex<T> >& deltas;
   const std::vector<T>& delta_times;
 };
@@ -281,12 +298,21 @@ private:
 template <typename T>
 bool simulate_diffeq_model_nn_gradient(const whiteice::nnetwork<T>& diffeq,
 				       const whiteice::math::vertex<T>& start,
+				       const std::vector< whiteice::math::vertex<T> >& xdata,
 				       const std::vector< whiteice::math::vertex<T> >& deltas,
 				       const std::vector<T>& delta_times,
 				       std::vector< whiteice::math::vertex<T> >& data,
 				       std::vector<T>& times)
 {
-  if(start.size() != diffeq.gradient_size()) return false;
+  if(start.size() != diffeq.gradient_size()){
+    printf("start size=%d, diffeq.gradient_size()=%d\n",
+	   (int)start.size(), (int)diffeq.gradient_size());
+    
+    assert(0);
+    
+    return false;
+  }
+  
 
   data.clear();
   times.clear();
@@ -299,23 +325,37 @@ bool simulate_diffeq_model_nn_gradient(const whiteice::nnetwork<T>& diffeq,
   whiteice::math::convert(START_TIME, delta_times[0]);
   whiteice::math::convert(TIME_LENGTH, delta_times[delta_times.size()-1]);
 
-  if(TIME_LENGTH < 0.0f) return false;
-  if(TIME_LENGTH > 1e6f) return false; // too long simulation length [sanity check]
+  if(TIME_LENGTH < 0.0f){
+    assert(0);
+    return false;
+  }
   
-  nnet_gradient_ode< T > ode(diffeq, deltas, delta_times);
+  if(TIME_LENGTH > 1e6f){
+    assert(0);
+    return false; // too long simulation length [sanity check]
+  }
+
+  
+  nnet_gradient_ode< T > ode(diffeq, xdata, deltas, delta_times);
 
   whiteice::math::RungeKutta< T > rk(&ode);
+
+  //std::cout << "RungeKutta START" << std::endl;
 
   rk.calculate(START_TIME, TIME_LENGTH,
 	       start,
 	       data,
 	       times);
-  
 
-  if(data.size() > 0 && times.size() > 0 && data.size() == times.size())
+  //std::cout << "RungeKutta END" << std::endl;
+
+  if(data.size() > 0 && times.size() > 0 && data.size() == times.size()){
     return true;
-  else
+  }
+  else{
+    assert(0);
     return false;
+  }
 }
 
 
@@ -323,6 +363,7 @@ bool simulate_diffeq_model_nn_gradient(const whiteice::nnetwork<T>& diffeq,
 template <typename T>
 bool simulate_diffeq_model_nn_gradient2(const whiteice::nnetwork<T>& diffeq,
 					const whiteice::math::vertex<T>& start,
+					const std::vector< whiteice::math::vertex<T> >& xdata,
 					const std::vector< whiteice::math::vertex<T> >& deltas,
 					const std::vector<T>& delta_times,
 					std::vector< whiteice::math::vertex<T> >& data,
@@ -330,9 +371,13 @@ bool simulate_diffeq_model_nn_gradient2(const whiteice::nnetwork<T>& diffeq,
 {
   std::vector< whiteice::math::vertex<T> > data2;
   std::vector< T > times;
+
+  //std::cout << "gradient2: simulate start" << std::endl;
   
-  if(simulate_diffeq_model_nn_gradient(diffeq, start, deltas, delta_times, data2, times) == false)
+  if(simulate_diffeq_model_nn_gradient(diffeq, start, xdata, deltas, delta_times, data2, times) == false)
     return false;
+
+  //std::cout << "gradient2: simulate ok" << std::endl;
   
   data.clear();
 
@@ -404,7 +449,9 @@ bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
   }
 
   // whiteice::HMC<T> hmc(diffeq, ds);
-  HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true); // DON'T USE ADAPTIVE STEP LENGTH! 
+  HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true); // DON'T USE ADAPTIVE STEP LENGTH!
+
+  hmc.setTemperature(0.001); // no wandering around in problem surface
 
   whiteice::linear_ETA<double> eta;
 
@@ -464,7 +511,7 @@ bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
     math::vertex<T> in;
     in.resize(ds.dimension(0));
     
-    for(unsigned int j=0;i<TIME_SERIES_LENGTH;j++){
+    for(unsigned int j=0;j<TIME_SERIES_LENGTH;j++){
       in.write_subvertex(data[i+j], j*data[0].size());
     }
 
@@ -548,6 +595,7 @@ template bool simulate_diffeq_model2< math::blas_real<double> >
 template bool simulate_diffeq_model_nn_gradient
 (const whiteice::nnetwork< math::blas_real<float> >& diffeq,
  const whiteice::math::vertex< math::blas_real<float> >& start,
+ const std::vector< whiteice::math::vertex< math::blas_real<float> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& deltas,
  const std::vector< math::blas_real<float> >& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
@@ -556,6 +604,7 @@ template bool simulate_diffeq_model_nn_gradient
 template bool simulate_diffeq_model_nn_gradient
 (const whiteice::nnetwork< math::blas_real<double> >& diffeq,
  const whiteice::math::vertex< math::blas_real<double> >& start,
+ const std::vector< whiteice::math::vertex< math::blas_real<double> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& deltas,
  const std::vector< math::blas_real<double> >& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
@@ -566,6 +615,7 @@ template bool simulate_diffeq_model_nn_gradient
 template bool simulate_diffeq_model_nn_gradient2
 (const whiteice::nnetwork< math::blas_real<float> >& diffeq,
  const whiteice::math::vertex< math::blas_real<float> >& start,
+ const std::vector< whiteice::math::vertex< math::blas_real<float> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& deltas,
  const std::vector< math::blas_real<float> >& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
@@ -574,6 +624,7 @@ template bool simulate_diffeq_model_nn_gradient2
 template bool simulate_diffeq_model_nn_gradient2
 (const whiteice::nnetwork< math::blas_real<double> >& diffeq,
  const whiteice::math::vertex< math::blas_real<double> >& start,
+ const std::vector< whiteice::math::vertex< math::blas_real<double> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& deltas,
  const std::vector< math::blas_real<double> >& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,

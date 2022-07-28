@@ -16,6 +16,8 @@ int main(void)
   whiteice::RNG<> rng;
 
   srand(rng.rand64());
+
+  logging.setPrintOutput(true);
   
   // plots random lines to graphical window (1/2 of the whole screen size)
   
@@ -155,7 +157,7 @@ int main(void)
 	const unsigned int NUM_SAMPLES = 80000; // 20.000 makes error go to 3/4, need 80.000 samples
 
 	// FIXME: disabled for now!!
-	//if(fit_diffeq_to_data_hmc(diffeq, tdata, ttimes, u, NUM_SAMPLES) == false) throw 2;
+	if(fit_diffeq_to_data_hmc2(diffeq, tdata, ttimes, NUM_SAMPLES) == false) throw 2;
 
 	std::vector< std::vector< whiteice::math::vertex<> > > datas;
 	datas.resize(200);
