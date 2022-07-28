@@ -4,9 +4,13 @@
 
 #include "diffeqs.h"
 
-#include <dinrhiw/dinrhiw.h>
-#include <dinrhiw/RungeKutta.h>
-#include <dinrhiw/HMC.h>
+#include "dataset.h"
+#include "nnetwork.h"
+#include "RungeKutta.h"
+#include "HMC.h"
+
+#include <vector>
+
 
 using namespace whiteice;
 

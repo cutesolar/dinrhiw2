@@ -10,7 +10,6 @@ namespace whiteice
 {
   template <typename T>
   DiffEq_HMC<T>::DiffEq_HMC(const nnetwork<T>& init_net,
-			    const whiteice::math::vertex<T>& start,
 			    const whiteice::dataset<T>& data,
 			    const std::vector<T>& correct_times,
 			    bool storeSamples, bool adaptive) :
@@ -21,9 +20,6 @@ namespace whiteice
     nnet = NULL;
     nnet = new nnetwork<T>(init_net);
 
-    if(nnet->input_size() != start.size()) assert(0);
-
-    this->start = start;
     this->data = data;
     this->correct_times = correct_times;
   }
@@ -51,10 +47,11 @@ namespace whiteice
     
     T error = T(0.0f);
 
-    
+    // data is in cluster 0
+    // each vertex is in format = |x(0)||x(1)||x(2)||x(T-1)| => T = length(correct_times)
 
     for(unsigned int i=0;i<data.size(0);i++){
-      temp = data.access(i, 0);
+      temp = data.access(0, i);
 
       const unsigned int N = temp.size() / correct_times.size();
       x0.resize(N);
@@ -63,8 +60,11 @@ namespace whiteice
       for(unsigned int k=0;k<temp.size();k += N){
 	temp.subvertex(temp2, k, N);
 	inputdata.push_back(temp2);
+	
+	if(k == 0)
+	  x0 = temp2;
       }
-
+      
       if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){
 	assert(0); // should not happen
       }
@@ -102,7 +102,7 @@ namespace whiteice
     
 
     for(unsigned int i=0;i<data.size(0);i++){
-      temp = data.access(i, 0);
+      temp = data.access(0, i);
 
       const unsigned int N = temp.size() / correct_times.size();
       x0.resize(N);
@@ -111,6 +111,9 @@ namespace whiteice
       for(unsigned int k=0;k<temp.size();k += N){
 	temp.subvertex(temp2, k, N);
 	inputdata.push_back(temp2);
+
+	if(k == 0)
+	  x0 = temp2;
       }
 
       if(simulate_diffeq_model2(*nnet, x0, TIME_LENGTH, xdata, correct_times) == false){

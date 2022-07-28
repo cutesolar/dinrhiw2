@@ -2,7 +2,13 @@
 #ifndef __43_diffeqs_h
 #define __43_diffeqs_h
 
-#include <dinrhiw/dinrhiw.h>
+#include "vertex.h"
+#include "matrix.h"
+#include "nnetwork.h"
+#include "linear_ETA.h"
+
+#include <vector>
+
 
 using namespace whiteice;
 
@@ -45,11 +51,17 @@ bool simulate_diffeq_model_nn_gradient2(const whiteice::nnetwork<T>& diffeq,
 // uses hamiltonian monte carlo to fit diffeq parameters to (data, times)
 // Samples HMC_SAMPLES samples and selects the best parameter w solution from sampled values (max probability)
 template <typename T = math::blas_real<float> > 
-  bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
-			      const std::vector< whiteice::math::vertex<T> >& data,
-			      const std::vector< T >& times,
-			      const whiteice::math::vertex<T>& start_point,
-			      const unsigned int HMC_SAMPLES);
+bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
+			    const std::vector< whiteice::math::vertex<T> >& data,
+			    const std::vector< T >& times,
+			    const whiteice::math::vertex<T>& start_point,
+			    const unsigned int HMC_SAMPLES);
+
+template <typename T = math::blas_real<float> > 
+bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
+			     const std::vector< whiteice::math::vertex<T> >& data,
+			     const std::vector<T>& times,
+			     const unsigned int HMC_SAMPLES);
 
 
 // template <typename T = math::blas_real<float> >
@@ -138,6 +150,19 @@ extern template bool fit_diffeq_to_data_hmc< math::blas_real<double> >
  const whiteice::math::vertex< math::blas_real<double> >& start_point,
  const unsigned int HMC_SAMPLES);
 
+
+extern template bool fit_diffeq_to_data_hmc2< math::blas_real<float> >
+(whiteice::nnetwork< math::blas_real<float> >& diffeq,
+ const std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
+ const std::vector< math::blas_real<float> >& times,
+ const unsigned int HMC_SAMPLES);
+
+extern template bool fit_diffeq_to_data_hmc2< math::blas_real<double> >
+(whiteice::nnetwork< math::blas_real<double> >& diffeq,
+ const std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
+ const std::vector< math::blas_real<double> >& times,
+ const unsigned int HMC_SAMPLES);
+    
 
 
 

@@ -3,9 +3,15 @@
 #include "diffeqs.h"
 #include "HMC_diffeq.h"
 
+#include "DiffEQ_HMC.h"
 
-#include <dinrhiw/dinrhiw.h>
-#include <dinrhiw/RungeKutta.h>
+#include "vertex.h"
+#include "matrix.h"
+#include "nnetwork.h"
+#include "RungeKutta.h"
+
+#include <vector>
+
 
 using namespace whiteice;
 
@@ -15,13 +21,14 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
 {
   if(DIMENSIONS <= 0) return false;
 
-  std::vector<unsigned int> arch; // 11 layers
+  std::vector<unsigned int> arch; // 11 layers, NOW: 3 layers
 
   const unsigned int width = 20;
 
   arch.push_back(DIMENSIONS);
   arch.push_back(width);
   arch.push_back(width);
+  /*
   arch.push_back(width);
   arch.push_back(width);
   arch.push_back(width);
@@ -30,6 +37,8 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
   arch.push_back(width);
   arch.push_back(width);
   arch.push_back(width);
+  arch.push_back(width);
+  */
   arch.push_back(DIMENSIONS); 
 
   if(diffeq.setArchitecture(arch) == false) return false;
@@ -424,6 +433,82 @@ bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
 }
 
 
+// uses hamiltonian monte carlo sampler (HMC) to fit diffeq parameters to (data, times)
+// Samples HMC_SAMPLES samples and selects the best parameter w solution from sampled values (max probability)
+// assumes time starts from zero.
+template <typename T>
+bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
+			     const std::vector< whiteice::math::vertex<T> >& data,
+			     const std::vector<T>& times,
+			     const unsigned int HMC_SAMPLES)
+{
+  if(data.size() != times.size()) return false;
+  if(HMC_SAMPLES <= 1) return false;
+  if(diffeq.getInputs(0) != diffeq.getNeurons(diffeq.getLayers()-1)) return false;
+  if(data.size() <= 5) return false; // must have some data
+  if(data[0].size() != diffeq.getInputs(0)) return false;
+
+  // construct dataset for HMC which used for training
+  // we use samples from time-series data (data, times)
+  
+  whiteice::dataset<T> ds;
+
+  // create dataset time-series data points
+  const unsigned int TIME_SERIES_LENGTH = 10;
+  
+  ds.createCluster("time-series for differential equations", TIME_SERIES_LENGTH*data[0].size());
+  
+  // creates dataset
+  for(unsigned int i=0;i<data.size();i+=TIME_SERIES_LENGTH){
+    
+    math::vertex<T> in;
+    in.resize(ds.dimension(0));
+    
+    for(unsigned int j=0;i<TIME_SERIES_LENGTH;j++){
+      in.write_subvertex(data[i+j], j*data[0].size());
+    }
+
+    ds.add(0, in);
+  }
+
+  // creates times for dataset
+  auto delta_time = (times[times.size()-1] - times[0]).c[0];
+  auto delta_t = delta_time/times.size();
+
+  std::vector<T> dstimes;
+  
+  for(unsigned int i=0;i<TIME_SERIES_LENGTH;i++)
+    dstimes.push_back(i*delta_t);
+
+  //HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true);
+  
+  whiteice::DiffEq_HMC<T> hmc(diffeq, ds, dstimes, true, true); // use adaptive step length
+
+  whiteice::linear_ETA<double> eta;
+
+  eta.start(0.0, (double)HMC_SAMPLES);
+
+  hmc.startSampler();
+
+  while(hmc.getNumberOfSamples() <= HMC_SAMPLES){
+    sleep(5);
+    auto error = hmc.getMeanError(10);
+
+    eta.update((double)hmc.getNumberOfSamples());
+
+    std::cout << "HMC sampler error: " << error << ". ";
+    std::cout << "HMC sampler samples (0 means no samples yet): " << hmc.getNumberOfSamples() << ". ";
+    std::cout << "ETA: " << eta.estimate() << " secs." <<  std::endl;
+  }
+
+  hmc.stopSampler();
+
+  auto wbest = hmc.getMean(); // FIXME: select minimum error weight
+
+  if(diffeq.importdata(wbest) == false) return false;
+
+  return true;
+}
 
 
 
@@ -510,4 +595,17 @@ template bool fit_diffeq_to_data_hmc< math::blas_real<double> >
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
  const std::vector< math::blas_real<double> >& times,
  const whiteice::math::vertex< math::blas_real<double> >& start_point,
+ const unsigned int HMC_SAMPLES);
+
+
+template bool fit_diffeq_to_data_hmc2< math::blas_real<float> >
+(whiteice::nnetwork< math::blas_real<float> >& diffeq,
+ const std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
+ const std::vector< math::blas_real<float> >& times,
+ const unsigned int HMC_SAMPLES);
+
+template bool fit_diffeq_to_data_hmc2< math::blas_real<double> >
+(whiteice::nnetwork< math::blas_real<double> >& diffeq,
+ const std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
+ const std::vector< math::blas_real<double> >& times,
  const unsigned int HMC_SAMPLES);

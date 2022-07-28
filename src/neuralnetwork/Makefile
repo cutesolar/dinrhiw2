@@ -1,0 +1,114 @@
+# GNU Makefile
+##################################################
+
+CC = gcc
+CXX = g++
+
+SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/stest.cpp \
+	activation_function.cpp odd_sigmoid.cpp identity_activation.cpp \
+	multidimensional_gaussian.cpp stretched_function.cpp \
+	optimized_nnetwork_function.cpp VAE.cpp TSNE.cpp \
+	PSO.cpp test_function.cpp negative_function.cpp \
+	SOM2D.cpp KMeans.cpp HC.cpp GDALogic.cpp \
+	tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp \
+	GeneticAlgorithm.cpp GeneticAlgorithm2.cpp test_function2.cpp \
+	NNGradDescent.cpp NNRandomSearch.cpp HMC.cpp bayesian_nnetwork.cpp HMC_abstract.cpp HMC_gaussian.cpp \
+	GA3.cpp ga3_test_function.cpp deep_ica_network_priming.cpp BFGS_nnetwork.cpp pBFGS_nnetwork.cpp \
+	LBFGS_nnetwork.cpp pLBFGS_nnetwork.cpp lreg_nnetwork.cpp nnetwork_function.cpp ultradeep.cpp \
+	RBM.cpp CRBM.cpp DBN.cpp BBRBM.cpp construct_nnetwork.cpp LBFGS_GBRBM.cpp LBFGS_BBRBM.cpp \
+	GBRBM.cpp HMCGBRBM.cpp PTHMCGBRBM.cpp PTHMCabstract.cpp  HMCconvergencecheck.cpp UHMC.cpp \
+	stackedRBM_pretraining.cpp rLBFGS_nnetwork.cpp Mixture.cpp EnsembleMeans.cpp \
+	rLBFGS_recurrent_nnetwork.cpp SGD_recurrent_nnetwork.cpp \
+	rLBFGS_recurrent_nnetwork_softmax_actions.cpp \
+	globaloptimum.cpp KMBoosting.cpp WeightingOptimizer.cpp \
+	DiffEQ_HMC.cpp neuro-diffeqs/diffeqs.cpp neuro-diffeqs/HMC_diffeq.cpp \
+	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
+	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
+	../math/RNG.cpp ../math/LBFGS.cpp ../math/SGD.cpp
+
+OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensional_gaussian.o \
+	stretched_function.o optimized_function.o \
+	optimized_nnetwork_function.o VAE.o TSNE.o \
+	PSO.o test_function.o negative_function.o \
+	SOM2D.o KMeans.o nnetwork.o HC.o GDALogic.o \
+	GeneticAlgorithm.o GeneticAlgorithm2.o test_function2.o \
+	NNGradDescent.o NNRandomSearch.o HMC.o bayesian_nnetwork.o HMC_abstract.o HMC_gaussian.o \
+	GA3.o ga3_test_function.o deep_ica_network_priming.o BFGS_nnetwork.o pBFGS_nnetwork.o \
+	LBFGS_nnetwork.o pLBFGS_nnetwork.o lreg_nnetwork.o nnetwork_function.o ultradeep.o \
+	RBM.o CRBM.o DBN.o BBRBM.o construct_nnetwork.o LBFGS_GBRBM.o LBFGS_BBRBM.o \
+	GBRBM.o HMCGBRBM.o PTHMCGBRBM.o PTHMCabstract.o  HMCconvergencecheck.o UHMC.o \
+	stackedRBM_pretraining.o rLBFGS_nnetwork.o Mixture.o EnsembleMeans.o \
+	rLBFGS_recurrent_nnetwork.o SGD_recurrent_nnetwork.o \
+	rLBFGS_recurrent_nnetwork_softmax_actions.o \
+	globaloptimum.o KMBoosting.o WeightingOptimizer.o \
+	DiffEQ_HMC.o neuro-diffeqs/diffeqs.o neuro-diffeqs/HMC_diffeq.o
+
+EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
+	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
+	../math/real.o 	../dataset.o ../conffile.o ../linear_ETA.o \
+	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \
+	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
+	../math/modular.o ../math/superresolution.o \
+	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o 
+
+
+TARGET1_OBJECTS=tst/test.o 
+TARGET2_OBJECTS=tst/pso_main.o
+TARGET3_OBJECTS=tst/somtest.o 
+TARGET4_OBJECTS=tst/gene_main.o
+TARGET5_OBJECTS=tst/stest.o
+
+TARGET1=testsuite1
+TARGET2=testsuite2
+TARGET3=testsuite3
+TARGET4=testsuite4
+TARGET5=testsuite5
+
+OPTIMIZE=-fPIC -O3 -g -DAMD64 -ffast-math -mtune=native -ftree-vectorize -fopenmp -mtune=native
+CFLAGS=-g -O2 -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess -I/usr/include/ -I/usr/local/include/ -DOPENBLAS -I/ucrt64/include/openblas/ 
+
+CXXFLAGS=-Wall $(CFLAGS) -g -O2 -g -Ineuro-diffeqs -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn $(OPTIMIZE)
+
+LIBS= -L/usr/local/lib -lgmp -lpthread -L/usr/lib/  -L/ucrt64/lib/ -lopenblas -lstdc++
+
+##################################################
+
+all: test1 test2 test3 test4 test5
+
+test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test2: $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET2) $(TARGET2_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test3: $(TARGET3_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET3) $(TARGET3_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test4: $(TARGET4_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET4) $(TARGET4_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+test5: $(TARGET5_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TARGET5_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
+clean:
+	$(RM) $(OBJECTS)
+	$(RM) $(TARGET1_OBJECTS) $(TARGET2_OBJECTS) $(TARGET3_OBJECTS) $(TARGET4_OBJECTS) $(TARGET5_OBJECTS)
+	$(RM) $(TARGET1) $(TARGET2) $(TARGET3) $(TARGET4) $(TARGET5)
+	$(RM) *~
+
+realclean: clean
+	$(RM) *.o *.rpo
+	$(RM) tst/*.o tst/*.rpo
+
+depend:
+	$(CXX) $(CXXFLAGS) -MM $(SOURCES) > Makefile.depend
+
+##################################################
+# must have initially empty dependencies file
+
+include Makefile.depend
+
+
+
+

@@ -195,6 +195,7 @@
 #include "HMCconvergencecheck.h"
 #include "bayesian_nnetwork.h"
 #include "GA3.h"
+#include "DiffEQ_HMC.h"
 
 // in development [experimental]
 // these do not really work well enough (yet)

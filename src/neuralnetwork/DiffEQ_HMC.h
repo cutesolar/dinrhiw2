@@ -22,7 +22,6 @@ namespace whiteice
   public:
     
     DiffEq_HMC(const nnetwork<T>& init_net,
-	       const whiteice::math::vertex<T>& start,
 	       const dataset<T>& data,
 	       const std::vector<T>& correct_times,
 	       bool storeSamples = true, bool adaptive = true);
@@ -52,7 +51,6 @@ namespace whiteice
     
     mutable whiteice::nnetwork<T>* nnet = NULL;
 
-    whiteice::math::vertex<T> start;
     whiteice::dataset<T> data;
     std::vector<T> correct_times;
     
