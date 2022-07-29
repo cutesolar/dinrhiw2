@@ -23,7 +23,8 @@
 
 #include <vector>
 
-// keep 80% of weights in neural network seem to generalize well (90% gives bad result)
+// keep 80% of neurons neural network seem to generalize well (90% gives bad result)
+// => 20% are dropout neurons
 #define DROPOUT_PROBABILITY 0.80f
 
 

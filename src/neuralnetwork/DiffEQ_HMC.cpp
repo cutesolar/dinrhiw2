@@ -22,6 +22,11 @@ namespace whiteice
 
     this->data = data;
     this->correct_times = correct_times;
+
+    for(unsigned int i=0;i<correct_times.size();i++){
+      delta_times.insert(std::pair(correct_times[i], i));
+    }
+    
   }
 
   
@@ -105,7 +110,7 @@ namespace whiteice
     convert(TIME_LENGTH, correct_times[correct_times.size()-1]);
 
     whiteice::math::vertex<T> x0, y, g0, temp, temp2;
-   
+
     whiteice::math::vertex<T> sumgrad;
     sumgrad.resize(nnet.gradient_size());
     sumgrad.zero();
@@ -154,7 +159,7 @@ namespace whiteice
 
       if(simulate_diffeq_model_nn_gradient2(nnet, g0,
 					    inputdata,
-					    deltas, correct_times,
+					    deltas, delta_times,
 					    gdata, correct_times) == false){
 	assert(0); // should not happen
       }

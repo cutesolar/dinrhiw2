@@ -47,13 +47,13 @@ namespace whiteice
       T h  = T(10e-5);
 #if 0
       // for scientific accuracy
-      const T e0 = T(10e-8); // (error is kept at 10e-8)
-      const T h_min = T(10e-13);
-      const T h_max = T(10e-2);
+      const T e0 = T(1e-8); // (error is kept at 10e-8)
+      const T h_min = T(1e-13);
+      const T h_max = T(1e-2);
 #endif
       // for machine learning accuracy
-      const T e0 = T(1e-2); // (error is kept at 10e-2)
-      const T h_min = T(1e-2);
+      const T e0 = T(1e-8); // (error was kept at 1e-2)
+      const T h_min = T(1e-2); // was 1e-2
       const T h_max = T(1e-1);
 
 	

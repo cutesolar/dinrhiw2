@@ -8,6 +8,7 @@
 #include "linear_ETA.h"
 
 #include <vector>
+#include <map>
 
 
 using namespace whiteice;
@@ -35,7 +36,7 @@ bool simulate_diffeq_model_nn_gradient(const whiteice::nnetwork<T>& diffeq,
 				       const whiteice::math::vertex<T>& start,
 				       const std::vector< whiteice::math::vertex<T> >& xdata,
 				       const std::vector< whiteice::math::vertex<T> >& deltas,
-				       const std::vector<T>& delta_times,
+				       const std::map<T, unsigned int>& delta_times,
 				       std::vector< whiteice::math::vertex<T> >& data,
 				       std::vector<T>& times);
 
@@ -45,7 +46,7 @@ bool simulate_diffeq_model_nn_gradient2(const whiteice::nnetwork<T>& diffeq,
 					const whiteice::math::vertex<T>& start,
 					const std::vector< whiteice::math::vertex<T> >& xdata,
 					const std::vector< whiteice::math::vertex<T> >& deltas,
-					const std::vector<T>& delta_times,
+					const std::map<T, unsigned int>& delta_times,
 					std::vector< whiteice::math::vertex<T> >& data,
 					const std::vector<T>& correct_times);
 
@@ -106,7 +107,7 @@ extern template bool simulate_diffeq_model_nn_gradient
  const whiteice::math::vertex< math::blas_real<float> >& start,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& deltas,
- const std::vector< math::blas_real<float> >& delta_times,
+ const std::map< math::blas_real<float>, unsigned int>& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
  std::vector< math::blas_real<float> >& times);
 
@@ -115,7 +116,7 @@ extern template bool simulate_diffeq_model_nn_gradient
  const whiteice::math::vertex< math::blas_real<double> >& start,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& deltas,
- const std::vector< math::blas_real<double> >& delta_times,
+ const std::map< math::blas_real<double>, unsigned int>& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
  std::vector< math::blas_real<double> >& times);
 
@@ -126,7 +127,7 @@ extern template bool simulate_diffeq_model_nn_gradient2
  const whiteice::math::vertex< math::blas_real<float> >& start,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& deltas,
- const std::vector< math::blas_real<float> >& delta_times,
+ const std::map< math::blas_real<float>, unsigned int>& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
  const std::vector< math::blas_real<float> >& correct_times);
 
@@ -135,7 +136,7 @@ extern template bool simulate_diffeq_model_nn_gradient2
  const whiteice::math::vertex< math::blas_real<double> >& start,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& xdata,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& deltas,
- const std::vector< math::blas_real<double> >& delta_times,
+ const std::map< math::blas_real<double>, unsigned int>& delta_times,
  std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
  const std::vector< math::blas_real<double> >& correct_times);
 

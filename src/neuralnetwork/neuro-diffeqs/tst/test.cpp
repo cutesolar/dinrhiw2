@@ -17,7 +17,7 @@ int main(void)
 
   srand(rng.rand64());
 
-  logging.setPrintOutput(true);
+  // logging.setPrintOutput(true);
   
   // plots random lines to graphical window (1/2 of the whole screen size)
   
@@ -113,21 +113,24 @@ int main(void)
 	u[0] = rng.uniformf()*2.0f - 1.0f; // x
 	u[1] = rng.uniformf()*2.0f - 1.0f; // y
 
+#if 0
 	// simulate training data
 	if(simulate_diffeq_model(diffeq, u, 20.0, tdata, ttimes) == false) // 20 seconds long simulation
 	  throw 2;
+#endif
 
 	// generates sin() function instead
 	tdata.clear();
 	ttimes.clear();
+	
 
 	const double A = 1.0;
 	const double freq = 0.1*2.0*M_PI;
 
 	for(double t = 0.0;t<10.0;t+=0.05){
 
-	  v[0] = t/5.0 - 1.0;
-	  v[1] = A*sin(freq*t);
+	  v[0] = t/5.0;
+	  v[1] = t/10.0; // A*sin(freq*t);
 
 	  tdata.push_back(v);
 	  ttimes.push_back(t);

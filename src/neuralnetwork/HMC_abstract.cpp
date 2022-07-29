@@ -268,11 +268,11 @@ namespace whiteice
     
     // epsilon = epsilon0/sqrt(D) in order to keep distance ||x(n+1) - x(n)|| = epsilon0 for all dimensions dim(x) = D
     T epsilon = T(0.01f); ///math::sqrt(q.size()); .. NOT!!
-    unsigned int L = 3; // HMC-10 and HMC-3 has been used, was: HMC-20 is probably a overkill, 1 don't work correctly
+    unsigned int L = 3; // HMC-10 and HMC-3 has been used, was: HMC-20 is probably a overkill, HMC-1 don't work correctly
 
     // sets epsilon similarly to HMC.pp [NOT!]
     {
-      epsilon = T(0.10f);
+      epsilon = T(0.001f);
       epsilon /= whiteice::math::sqrt((float)q.size());
     }
     
@@ -289,10 +289,10 @@ namespace whiteice
     // correctly so that the probability of accept per iteration is reasonable
     // (we don't store rejects during initial epsilon parameter learning)
     unsigned int number_of_accepts = 0;
-    const unsigned int EPSILON_LEARNING_ACCEPT_LIMIT = 5;
+    const unsigned int EPSILON_LEARNING_ACCEPT_LIMIT = 0; // BUGGY!! was: 5, we set this to zero
     const T MAX_EPSILON = T(1.0f);
     
-    const bool use_difference = true;
+    const bool use_difference = false;
     
     
     while(running) // keep sampling forever
@@ -448,7 +448,7 @@ namespace whiteice
       if(adaptive){
 	// use accept rate to adapt epsilon
 	// adapt sampling rate every N iteration (sample)
-	if(accept_rate_samples >= 20)
+	if(accept_rate_samples >= 10) // was: 20
 	  {
 	    accept_rate /= accept_rate_samples;
 	    
@@ -475,7 +475,7 @@ namespace whiteice
 	    // is not that serious..
 	    
 	    if(accept_rate < T(0.651f)){ // 65.1% was shown to be optimal in one research paper
-	      epsilon = T(0.7)*epsilon;
+	      epsilon = T(0.6)*epsilon;
 	      // std::cout << "NEW SMALLER EPSILON: " << epsilon << std::endl;
 	      
 	    }
@@ -483,7 +483,7 @@ namespace whiteice
 	      // important: sampler can diverge because of adaptive epsilon so we FORCE
 	      //            epsilon to be small and sampler cannot diverge??
 	      
-	      auto new_epsilon  = T(1.0/0.7)*epsilon;
+	      auto new_epsilon  = T(1.0/0.6)*epsilon;
 	      if(new_epsilon < MAX_EPSILON)
 		epsilon = new_epsilon;
 	      

@@ -8,7 +8,7 @@
 #include <random>
 #include <list>
 #include <chrono>
-
+#include <exception>
 
 namespace whiteice
 {
@@ -494,22 +494,22 @@ namespace whiteice
 		for(unsigned int i=0;i<NUM_THREADS;i++){
 
 			try{
-			        std::thread* t = new std::thread(&HMC<T>::sampler_loop, this);
-				// t->detach();
-				sampling_thread.push_back(t);
+			  std::thread* t = new std::thread(&HMC<T>::sampler_loop, this);
+			  // t->detach();
+			  sampling_thread.push_back(t);
 			}
-			catch(std::system_error e){
-				running = false;
-				paused = false;
-
-				for(auto t : sampling_thread){
-					t->join();
-					delete t;
-				}
-
-				sampling_thread.clear();
-
-				return false;
+			catch(const std::exception& e){ // was std::system_error
+			  running = false;
+			  paused = false;
+			  
+			  for(auto t : sampling_thread){
+			    t->join();
+			    delete t;
+			  }
+			  
+			  sampling_thread.clear();
+			  
+			  return false;
 			}
 		}
 

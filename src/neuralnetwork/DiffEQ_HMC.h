@@ -12,6 +12,10 @@
 
 #include "HMC_abstract.h"
 #include "nnetwork.h"
+#include "dataset.h"
+
+#include <vector>
+#include <map>
 
 
 namespace whiteice
@@ -53,7 +57,9 @@ namespace whiteice
 
     whiteice::dataset<T> data;
     std::vector<T> correct_times;
-    
+
+    std::map<T, unsigned int> delta_times;
+
   };
   
   
