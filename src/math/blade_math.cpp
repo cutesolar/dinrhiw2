@@ -945,6 +945,50 @@ namespace whiteice
     }
 
     
+    bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
+		 const superresolution< blas_complex<float>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = A[i].c[0];
+      }
+
+      return true;
+    }
+
+    bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
+		 const superresolution< blas_complex<double>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = A[i].c[0];
+      }
+
+      return true;
+    }
+
+    bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
+		 const superresolution< blas_real<float>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = A[i].c[0];
+	B[i].c[1] = 0.0f;
+      }
+
+      return true;;
+    }
+
+    bool convert(superresolution< blas_complex<double>, modular<unsigned int> >& B,
+		 const superresolution< blas_real<double>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = A[i].c[0];
+	B[i].c[1] = 0.0;
+      }
+
+      return true;
+    }
+
+
+    
 
     bool convert(float& B, const complex<float> A){ B = (float)std::real(A); return true; }
     bool convert(double& B, const complex<double> A){ B = (double)std::real(A); return true; }

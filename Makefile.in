@@ -20,7 +20,8 @@ libdir=@libdir@
 includedir=@includedir@/dinrhiw
 
 LIBOBJECTS = src/*.o src/math/*.o src/neuralnetwork/*.o src/crypto/*.o src/hmm/*.o \
-	src/reinforcement/*.o src/rnn/*.o # src/huge_linear/*.o src/huge_linear/FP-growth/src/fptree.o
+	src/reinforcement/*.o src/rnn/*.o src/neuralnetwork/neuro-diffeqs/*.o
+# src/huge_linear/*.o src/huge_linear/FP-growth/src/fptree.o
 LIBNAME = libdinrhiw.a
 
 

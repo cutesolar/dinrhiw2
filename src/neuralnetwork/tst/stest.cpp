@@ -78,12 +78,13 @@ int main()
   math::vertex< math::superresolution< math::blas_real<double>,
 				       math::modular<unsigned int> > > sweights;
 
-  // 4-10-10-10-4 network
+  // was: 4-10-10-10-4 network
+  // now: 5-50-4 network
   std::vector<unsigned int> arch;  
   arch.push_back(4);
   arch.push_back(50);
-  arch.push_back(50);
-  arch.push_back(50);
+  //arch.push_back(50);
+  //arch.push_back(50);
   arch.push_back(4);
 
 
@@ -228,7 +229,8 @@ int main()
     
     double lratef = 0.01;
     
-    while(abs(error)[0].real() > math::blas_real<double>(0.001f) && counter < 100000){
+    while(abs(error)[0].real() > math::blas_real<double>(0.001f) && lratef > 1e-100 && counter < 100000)
+    {
       error = math::superresolution<math::blas_real<double>,
 				    math::modular<unsigned int> >(0.0f);
       sumgrad.zero();
@@ -258,39 +260,71 @@ int main()
 	//const unsigned int K = prng.rand() % weights[0].size();
 	
 	{
-	  snet.calculate(data.access(0,i), err);
-	  err -= data.access(1,i);
+	  const auto x = data.access(0,i);
+	  const auto y = data.access(1,i);
+	  
+	  snet.calculate(x, err);
+	  err -= y;
+	  
 	  
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
-	    //for(unsigned int k=0;k<ej.size();k++)
-	    //error += ninv*ej[k]*math::conj(ej[k]);
+	    for(unsigned int k=0;k<ej.size();k++)
+	      error += ninv*ej[k]*math::conj(ej[k]);
 
-	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    // error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
 	  }
 	  
 	  // this works with pureLinear non-linearity
 	  auto delta = err; // delta = (f(z) - y)
 	  math::matrix< math::superresolution<math::blas_real<double>,
 					      math::modular<unsigned int> > > DF;
-	  snet.jacobian(data.access(0, i), DF);
+
+	  math::matrix< math::superresolution<math::blas_complex<double>,
+					      math::modular<unsigned int> > > cDF;
+		  
+	  snet.jacobian(x, DF);
+	  cDF.resize(DF.ysize(), DF.xsize());
+
+	  // circular convolution in F-domain
 	  
-	  auto cDF = DF;
-	  cDF.conj();
+	  math::vertex<
+	    math::superresolution< math::blas_complex<double>,
+				   math::modular<unsigned int> > > ce, cerr;
+	  
+	  for(unsigned int j=0;j<DF.ysize();j++){
+	    for(unsigned int i=0;i<DF.xsize();i++){
+	      whiteice::math::convert(cDF(j,i), DF(j,i));
+	      cDF(j,i).fft();
+	    }
+	  }
 
-	  // we only calculate gradient for the first components [other components are free to change]
+	  ce.resize(err.size());
+	  
+	  for(unsigned int i=0;i<err.size();i++){
+	    whiteice::math::convert(ce[i], err[i]);
+	    ce[i].fft();
+	  }
+	  
+	  cerr.resize(DF.xsize());
+	  cerr.zero();
 
-	  for(unsigned int i=0;i<delta.size();i++)
-	    for(unsigned int k=1;k<delta[0].size();k++)
-	      delta[i][k] = 0.0f;
-
-	  for(unsigned int j=0;j<cDF.ysize();j++){
-	    for(unsigned int i=0;i<cDF.xsize();i++){
-	      cDF(j,i) = whiteice::math::componentwise_multi(s0, h*cDF(j,i))/h;
+	  for(unsigned int i=0;i<DF.xsize();i++){
+	    auto ctmp = ce;
+	    for(unsigned int j=0;j<DF.ysize();j++){
+	      cerr[i] += ctmp[j].circular_convolution(cDF(j,i));
 	    }
 	  }
 	  
-	  grad = delta*cDF; // was commented out..
+	  err.resize(cerr.size());
+	    
+	  for(unsigned int i=0;i<err.size();i++){
+	    cerr[i].inverse_fft();
+	    for(unsigned int k=0;k<err[i].size();k++)
+	      whiteice::math::convert(err[i][k], cerr[i][k]); // converts complex numbers to real
+	  }
+
+	  grad = err;
 	}
 	
 	if(i == 0)
@@ -323,6 +357,7 @@ int main()
       for(unsigned int i=1;i<abserror.size();i++){
 	abserror[0] += abs(abserror[i]);
 	//abserror[i] = math::blas_real<double>(0.0f);
+	abserror[i] = 0.0f;
       }
 
       auto orig_error = abserror;
@@ -354,10 +389,10 @@ int main()
 	  
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
-	    //for(unsigned int k=0;k<ej.size();k++)
-	    // error += ninv*ej[k]*math::conj(ej[k]);
+	    for(unsigned int k=0;k<ej.size();k++)
+	      error += ninv*ej[k]*math::conj(ej[k]);
 
-	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    //error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
 	  }
 	}
 
@@ -367,6 +402,7 @@ int main()
 	for(unsigned int i=1;i<abserror2.size();i++){
 	  abserror2[0] += abs(abserror2[i]);
 	  //abserror2[i] = math::blas_real<double>(0.0f);
+	  abserror2[i] = 0.0f;
 	}
 
 	if(abserror2[0].real() < abserror[0].real()){

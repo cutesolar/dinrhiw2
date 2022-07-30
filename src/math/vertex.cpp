@@ -69,7 +69,8 @@ namespace whiteice
       
 #else
       
-      this->data = (T*)malloc(sizeof(T));
+      //this->data = (T*)malloc(sizeof(T));
+      this->data = new T[1];
       if(this->data == nullptr) throw std::bad_alloc();
       
       memset(this->data, 0, sizeof(T));
@@ -106,6 +107,7 @@ namespace whiteice
 #else
       
       if(i > 0){
+#if 0
 #ifdef BLAS_MEMALIGN
 	// electric fence don't know about posix_memalign()
 	posix_memalign((void**)&(this->data),
@@ -114,6 +116,8 @@ namespace whiteice
 #else
 	this->data = (T*)malloc(i*sizeof(T));
 #endif
+#endif
+	this->data = new T[i];
 	
 	if(this->data == 0)
 	  throw std::bad_alloc();
@@ -221,6 +225,7 @@ namespace whiteice
 #else
       
       if(v.data){
+#if 0
 #ifdef BLAS_MEMALIGN
 	// electric fence don't know about posix_memalign()
 	posix_memalign((void**)&(this->data),
@@ -229,6 +234,8 @@ namespace whiteice
 #else
 	this->data = (T*)malloc(v.dataSize*sizeof(T));
 #endif
+#endif
+	this->data = new T[v.dataSize];
 	
 	if(this->data == 0)
 	  throw std::bad_alloc();
@@ -368,6 +375,7 @@ namespace whiteice
 #else
       
       if(v.size() > 0){
+#if 0
 #ifdef BLAS_MEMALIGN
 	posix_memalign((void**)&(this->data),
 		       (8/whiteice::gcd<unsigned int>(8,sizeof(void*)))*sizeof(void*),
@@ -375,6 +383,8 @@ namespace whiteice
 #else
 	this->data = (T*)malloc(v.size()*sizeof(T));
 #endif
+#endif
+	this->data = new T[v.size()];
 	
 	if(this->data == 0)
 	  throw std::bad_alloc();
@@ -401,9 +411,10 @@ namespace whiteice
       }
 
 #else
-      
+#if 0
       if(this->data) free(this->data);
-      
+#endif
+      if(this->data) delete[] (this->data);
 #endif
     }
     
@@ -533,7 +544,8 @@ namespace whiteice
 #else
       
       if(d == 0){
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	data = 0;
 	dataSize = 0;
 	return 0;
@@ -543,7 +555,8 @@ namespace whiteice
       }
       else{
 	T* new_area = 0;
-	
+
+#if 0
 	if(data != 0){
 	  new_area = (T*)realloc(data, sizeof(T)*d);
 	  
@@ -551,18 +564,30 @@ namespace whiteice
 	    return dataSize; // mem. alloc failure
 	}
 	else{
-	  new_area = (T*)malloc(sizeof(T)*d);
+#endif
+	  //new_area = (T*)malloc(sizeof(T)*d);
+	  new_area = new T[d];
 
 	  if(new_area == 0)
 	    return dataSize; // mem. alloc failure
+#if 0
 	}
+#endif
+	unsigned int SIZE = dataSize;
+	if(d < SIZE) SIZE = d;
 	
-	data = new_area;
+	for(unsigned int s=0;s<SIZE;s++){
+	  new_area[s] = data[s];
+	}
     
 	// fills new memory area with zeros
 	if(dataSize < d)
 	  for(unsigned int s = dataSize;s<d;s++)
-	    data[s] = T(0.0);
+	    new_area[s] = T(0.0);
+
+	if(data) delete[] data;
+	data = new_area;
+
 	
 	dataSize = d;
       }

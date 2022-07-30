@@ -318,7 +318,6 @@ namespace whiteice
       math::vertex<T> old_q = q;
       math::vertex<T> current_p = p;
       
-
       // leap frog algorithm
       {
 	p -= T(0.5f) * epsilon * Ugrad(q);
@@ -332,6 +331,7 @@ namespace whiteice
 	
 	p = -p;
       }
+      
 	
       T deltaU = T(0.0);
 	
@@ -358,8 +358,12 @@ namespace whiteice
 	proposed_K += T(0.5f)*p[i]*p[i];
       }
       
-      T r = rng.uniform();
-      T p_accept = exp(deltaU+current_K-proposed_K);
+      const T r = rng.uniform();
+      const T p_accept = exp(deltaU+current_K-proposed_K);
+      // const T p_accept = exp(deltaU); // HACK TO ALLOW MOVES MOSTLY TO BETTER DIRECTION
+
+      std::cout << "p_accept: " << p_accept << std::endl;
+      std::cout << "epsilon: " << epsilon << std::endl;
       
       if(r <= p_accept && !whiteice::math::isnan(p_accept))
 	{
@@ -373,7 +377,7 @@ namespace whiteice
 	    
 	    q_updated = true;
 	  }
-	  // std::cout << "ACCEPT" << std::endl;
+	  std::cout << "ACCEPT" << std::endl;
 	  
 	  number_of_accepts++;
 	  
@@ -383,7 +387,7 @@ namespace whiteice
 	    if(sum_N > 0){
 	      sum_mean += q;
 	      // sum_covariance += q.outerproduct();
-				    sum_N++;
+	      sum_N++;
 	    }
 	    else{
 	      sum_mean = q;
@@ -405,7 +409,7 @@ namespace whiteice
 	}
       else{
 	// reject (keep old_q)
-	// printf("REJECT\n");
+	printf("REJECT\n");
 	{
 	  std::lock_guard<std::mutex> lock(updating_sample);
 	  if(q_overwritten == false){
@@ -448,7 +452,7 @@ namespace whiteice
       if(adaptive){
 	// use accept rate to adapt epsilon
 	// adapt sampling rate every N iteration (sample)
-	if(accept_rate_samples >= 10) // was: 20
+	if(accept_rate_samples >= 30) // was: 20
 	  {
 	    accept_rate /= accept_rate_samples;
 	    

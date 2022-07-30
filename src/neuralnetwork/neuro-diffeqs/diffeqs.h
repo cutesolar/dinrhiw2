@@ -5,7 +5,9 @@
 #include "vertex.h"
 #include "matrix.h"
 #include "nnetwork.h"
+#include "bayesian_nnetwork.h"
 #include "linear_ETA.h"
+
 
 #include <vector>
 #include <map>
@@ -61,7 +63,8 @@ bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
 			    const unsigned int HMC_SAMPLES);
 
 template <typename T = math::blas_real<float> > 
-bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
+bool fit_diffeq_to_data_hmc2(whiteice::bayesian_nnetwork<T>& diffeq,
+			     //whiteice::nnetwork<T>& diffeq,
 			     const std::vector< whiteice::math::vertex<T> >& data,
 			     const std::vector<T>& times,
 			     const unsigned int HMC_SAMPLES);
@@ -159,13 +162,14 @@ extern template bool fit_diffeq_to_data_hmc< math::blas_real<double> >
 
 
 extern template bool fit_diffeq_to_data_hmc2< math::blas_real<float> >
-(whiteice::nnetwork< math::blas_real<float> >& diffeq,
+(whiteice::bayesian_nnetwork< math::blas_real<float> >& diffeq,
+ //whiteice::nnetwork< math::blas_real<float> >& diffeq,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
  const std::vector< math::blas_real<float> >& times,
  const unsigned int HMC_SAMPLES);
 
 extern template bool fit_diffeq_to_data_hmc2< math::blas_real<double> >
-(whiteice::nnetwork< math::blas_real<double> >& diffeq,
+(whiteice::bayesian_nnetwork< math::blas_real<double> >& diffeq,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
  const std::vector< math::blas_real<double> >& times,
  const unsigned int HMC_SAMPLES);

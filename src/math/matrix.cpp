@@ -54,6 +54,7 @@ namespace whiteice
       
 #else
 
+#if 0
 #ifdef BLAS_MEMALIGN
       // NOTE: electric fence don't know about posix_memalign()
       posix_memalign((void**)&data,
@@ -62,6 +63,8 @@ namespace whiteice
 #else
       data = (T*)malloc(ysize*xsize*sizeof(T));
 #endif
+#endif
+      data = new T[ysize*xsize];
       
       if(!data) throw std::bad_alloc();
       
@@ -156,6 +159,7 @@ namespace whiteice
       
 #else
 
+#if 0
 #ifdef BLAS_MEMALIGN
       // electric fence don't know about posix_memalign()
       posix_memalign((void**)&data,
@@ -164,6 +168,8 @@ namespace whiteice
 #else
       data = (T*)malloc(M.numRows*M.numCols*sizeof(T));
 #endif
+#endif
+      data = new T[M.numRows*M.numCols];
       
       if(!data) throw std::bad_alloc();
       
@@ -241,6 +247,7 @@ namespace whiteice
       
 #else
 
+#if 0
 #ifdef BLAS_MEMALIGN
       // electric fence don't know about posix_memalign()
       posix_memalign((void**)&data,
@@ -249,6 +256,8 @@ namespace whiteice
 #else
       data = (T*)malloc(diagonal.size()*diagonal.size()*sizeof(T));
 #endif
+#endif
+      data = new T[diagonal.size()*diagonal.size()];
       
       if(!data) throw std::bad_alloc();
       
@@ -275,7 +284,8 @@ namespace whiteice
 	cudaFree(data);
       
 #else
-      if(data) free(data);
+      // if(data) free(data);
+      if(data) delete[] data;
 #endif
       
     }
@@ -4165,7 +4175,8 @@ namespace whiteice
       
 #else
       if(y == 0 || x == 0){
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	data = NULL;
 	numRows = y;
 	numCols = x;
@@ -4180,8 +4191,10 @@ namespace whiteice
       else{
 	T* new_area = NULL;
 
-	new_area = (T*)realloc(data, sizeof(T)*x*y);
+	//new_area = (T*)realloc(data, sizeof(T)*x*y);
+	new_area = new T[x*y];
 	if(new_area == NULL) return false;
+	if(data) delete[] data;
 	data = new_area;
 
 	numRows = y;
@@ -4240,7 +4253,8 @@ namespace whiteice
 	return true;
       }
       else if(d == 0){
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	
 	data = NULL;
 	
@@ -4251,10 +4265,12 @@ namespace whiteice
       else{
 	T* new_area = NULL;
 
-	new_area = (T*)malloc(sizeof(T)*d*numRows);
+	//new_area = (T*)malloc(sizeof(T)*d*numRows);
+	new_area = new T[d*numRows];
 	if(new_area == NULL) return false;
 	
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	data = new_area;
 	
 	numCols = d;
@@ -4312,7 +4328,8 @@ namespace whiteice
 	return true;
       }
       else if(d == 0){
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	
 	data = NULL;
 	
@@ -4323,10 +4340,12 @@ namespace whiteice
       else{
 	T* new_area = 0;
 
-	new_area = (T*)malloc(sizeof(T)*d*numCols);
+	//new_area = (T*)malloc(sizeof(T)*d*numCols);
+	new_area = new T[d*numCols];
 	  
 	if(new_area == NULL) return false;
-	if(data) free(data);
+	//if(data) free(data);
+	if(data) delete[] data;
 	data = new_area;
 
 	numRows = d;

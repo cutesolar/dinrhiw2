@@ -8,6 +8,7 @@
 #include "vertex.h"
 #include "matrix.h"
 #include "nnetwork.h"
+#include "bayesian_nnetwork.h"
 #include "RungeKutta.h"
 
 #include <vector>
@@ -27,7 +28,6 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
 
   arch.push_back(DIMENSIONS);
   arch.push_back(width);
-  // arch.push_back(width);
   /*
   arch.push_back(width);
   arch.push_back(width);
@@ -43,8 +43,8 @@ bool create_random_diffeq_model(whiteice::nnetwork<>& diffeq,
   if(diffeq.setArchitecture(arch) == false) return false;
 
   diffeq.randomize();
-  diffeq.setResidual(false);
-  diffeq.setDropOut(1.00f);
+  diffeq.setResidual(true);
+  // diffeq.setDropOut(1.00f);
 
   return true;
 }
@@ -504,16 +504,17 @@ bool fit_diffeq_to_data_hmc(whiteice::nnetwork<T>& diffeq,
 // Samples HMC_SAMPLES samples and selects the best parameter w solution from sampled values (max probability)
 // assumes time starts from zero.
 template <typename T>
-bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
+bool fit_diffeq_to_data_hmc2(whiteice::bayesian_nnetwork<T>& bdiffeq,
 			     const std::vector< whiteice::math::vertex<T> >& data,
 			     const std::vector<T>& times,
 			     const unsigned int HMC_SAMPLES)
 {
   if(data.size() != times.size()) return false;
   if(HMC_SAMPLES <= 1) return false;
-  if(diffeq.getInputs(0) != diffeq.getNeurons(diffeq.getLayers()-1)) return false;
+  if(bdiffeq.getNetwork().getInputs(0) !=
+     bdiffeq.getNetwork().getNeurons(bdiffeq.getNetwork().getLayers()-1)) return false;
   if(data.size() <= 5) return false; // must have some data
-  if(data[0].size() != diffeq.getInputs(0)) return false;
+  if(data[0].size() != bdiffeq.getNetwork().getInputs(0)) return false;
 
   // construct dataset for HMC which used for training
   // we use samples from time-series data (data, times)
@@ -551,11 +552,13 @@ bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
   }
 
   //HMC_diffeq<T> hmc(diffeq, ds, start_point, times, true);
+
+  whiteice::nnetwork<T> diffeq = bdiffeq.getNetwork();
   
   whiteice::DiffEq_HMC<T> hmc(diffeq, ds, dstimes, true, true); // use adaptive step length
 
   // TEST THIS: ENABLE!!
-  hmc.setTemperature(0.001); // no wandering around in problem surface
+  // hmc.setTemperature(0.001); // no wandering around in problem surface
 
   whiteice::linear_ETA<double> eta;
 
@@ -576,9 +579,27 @@ bool fit_diffeq_to_data_hmc2(whiteice::nnetwork<T>& diffeq,
 
   hmc.stopSampler();
 
-  auto wbest = hmc.getMean(); // FIXME: select minimum error weight
+  std::vector< math::vertex<T> > samples;
+
+  hmc.getSamples(samples);
+
+  bdiffeq.importSamples(diffeq, samples);
+
+#if 0
+  math::vertex<T> wbest;
+  bool first = true;
+
+  for(unsigned int i=samples.size()/2;i<samples.size();i++){
+    if(first) wbest = samples[i];
+    else wbest += samples[i];
+  }
+
+  wbest /= (samples.size()/2);
+
+  // auto wbest = hmc.getMean(); // FIXME: select minimum error weight
 
   if(diffeq.importdata(wbest) == false) return false;
+#endif
 
   return true;
 }
@@ -676,13 +697,13 @@ template bool fit_diffeq_to_data_hmc< math::blas_real<double> >
 
 
 template bool fit_diffeq_to_data_hmc2< math::blas_real<float> >
-(whiteice::nnetwork< math::blas_real<float> >& diffeq,
+(whiteice::bayesian_nnetwork< math::blas_real<float> >& diffeq,
  const std::vector< whiteice::math::vertex< math::blas_real<float> > >& data,
  const std::vector< math::blas_real<float> >& times,
  const unsigned int HMC_SAMPLES);
 
 template bool fit_diffeq_to_data_hmc2< math::blas_real<double> >
-(whiteice::nnetwork< math::blas_real<double> >& diffeq,
+(whiteice::bayesian_nnetwork< math::blas_real<double> >& diffeq,
  const std::vector< whiteice::math::vertex< math::blas_real<double> > >& data,
  const std::vector< math::blas_real<double> >& times,
  const unsigned int HMC_SAMPLES);

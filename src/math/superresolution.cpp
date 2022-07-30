@@ -161,7 +161,6 @@ namespace whiteice
       return result;
     }
     
-    
     template <typename T, typename U>
     superresolution<T,U> superresolution<T,U>::operator/(const superresolution<T,U>& s) const
       
@@ -812,6 +811,60 @@ namespace whiteice
       }
     }
     
+    // FFT and inverse-FFT only works for complex numbers, stores FFT result to number
+    template <typename T, typename U>
+    superresolution<T,U>& superresolution<T,U>::fft()
+    {
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1;
+      b1.resize(this->size());
+
+      for(unsigned int i=0;i<b1.size();i++){
+	whiteice::math::convert(b1[i], this->basis[i]);
+      }
+
+      const unsigned int K = DEFAULT_MODULAR_EXP;
+
+      // calculates FFT of convolutions
+      if(whiteice::math::fft<K, double>(b1) == false)
+	throw illegal_operation("FFT failed");
+
+      for(unsigned int i=0;i<b1.size();i++){
+	whiteice::math::convert(this->basis[i], b1[i]);
+      }
+
+      return (*this);
+    }
+
+    template <typename T, typename U>
+    superresolution<T,U>& superresolution<T,U>::inverse_fft()
+    {
+      whiteice::math::vertex< whiteice::math::blas_complex<double> > b1;
+      b1.resize(this->size());
+
+      for(unsigned int i=0;i<b1.size();i++){
+	whiteice::math::convert(b1[i], this->basis[i]);
+      }
+
+      const unsigned int K = DEFAULT_MODULAR_EXP;
+
+      // calculates FFT of convolutions
+      if(whiteice::math::ifft<K, double>(b1) == false)
+	throw illegal_operation("FFT failed");
+
+      for(unsigned int i=0;i<b1.size();i++){
+	whiteice::math::convert(this->basis[i], b1[i]);
+      }
+
+      return (*this);
+    }
+    
+    // calculates circular convolution: (*this) = (*this) * s, stores circular convolution to number
+    template <typename T, typename U>
+    superresolution<T,U>& superresolution<T,U>::circular_convolution(superresolution<T,U>& s)
+    {
+      (*this) = (*this) * s; // multiplication is circular convolution in our number system
+      return (*this);
+    }
     
   }
 }

@@ -44,6 +44,11 @@ namespace whiteice
     const whiteice::nnetwork<T>& getNetwork() const {
       assert(nnets.size()>0); return (*(nnets[0]));
     }
+
+    const whiteice::nnetwork<T>& getNetwork(unsigned int index) const {
+      assert(index<nnets.size());
+      return (*nnets[index]);
+    }
     
     bool getArchitecture(std::vector<unsigned int>& arch) const;
 
