@@ -68,7 +68,7 @@ namespace whiteice
       
       if(!data) throw std::bad_alloc();
       
-      memset(data, 0, ysize*xsize*sizeof(T));
+      //memset(data, 0, ysize*xsize*sizeof(T));
       
       numRows = ysize;
       numCols = xsize;
@@ -261,7 +261,7 @@ namespace whiteice
       
       if(!data) throw std::bad_alloc();
       
-      memset(data, 0, diagonal.size()*diagonal.size());
+      //memset(data, 0, diagonal.size()*diagonal.size());
       numCols = diagonal.size();
       numRows = diagonal.size();
       
@@ -4185,7 +4185,7 @@ namespace whiteice
       else if(y*x == numCols*numRows){
 	numRows = y;
 	numCols = x;
-	memset(data, 0, numRows*numCols*sizeof(T)); // resets values to zero [remove]
+	//memset(data, 0, numRows*numCols*sizeof(T)); // resets values to zero [remove]
 	return true;
       }
       else{
@@ -4200,7 +4200,7 @@ namespace whiteice
 	numRows = y;
 	numCols = x;
 	
-	memset(data, 0, numRows*numCols*sizeof(T));
+	//memset(data, 0, numRows*numCols*sizeof(T));
 	return true;
       }
       
@@ -4275,7 +4275,7 @@ namespace whiteice
 	
 	numCols = d;
 	
-	memset(data, 0, numRows*numCols*sizeof(T));
+	//memset(data, 0, numRows*numCols*sizeof(T));
 	return true;
 	
       }
@@ -4350,7 +4350,7 @@ namespace whiteice
 
 	numRows = d;
 	
-	memset(data, 0, numRows*numCols*sizeof(T));
+	//memset(data, 0, numRows*numCols*sizeof(T));
 	return true;
 	
       }

@@ -204,7 +204,7 @@ void RNG<T>::exp(math::matrix<T>& E) const
 template <typename T>
 float RNG<T>::rnor() const
 {
-        int hz = (signed)(this->*rdrand32)();
+        int hz = (signed)((this->*rdrand32)());
 	unsigned int iz = hz & 127;
 
 	if((unsigned)abs(hz) < kn[iz]){
@@ -227,7 +227,7 @@ float RNG<T>::rnor() const
 			if( fn[iz]+unid()*(fn[iz-1]-fn[iz]) < math::exp(-.5*x*x) )
 				return x;
 
-			hz=(signed)(this->*rdrand32)();
+			hz=(signed)((this->*rdrand32)());
 			iz=hz&127;
 
 			if((unsigned int)math::abs(hz)<kn[iz])
@@ -240,7 +240,7 @@ float RNG<T>::rnor() const
 template <typename T>
 float RNG<T>::rexp() const
 {
-	int jz = (this->*rdrand32)();
+        int jz = (signed)((this->*rdrand32)());
 	unsigned int iz = jz & 255;
 
 	if( jz <(signed)ke[iz]){ // added (signed)
@@ -258,7 +258,7 @@ float RNG<T>::rexp() const
 			if( fe[iz]+unid()*(fe[iz-1]-fe[iz]) < math::exp(-x) )
 				return (x);
 
-			jz=(this->*rdrand32)();
+			jz=(signed)((this->*rdrand32)());
 			iz=(jz&255);
 
 			if(jz<(signed)ke[iz]) // added (signed)

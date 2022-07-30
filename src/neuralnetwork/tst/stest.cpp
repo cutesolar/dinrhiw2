@@ -79,10 +79,11 @@ int main()
 				       math::modular<unsigned int> > > sweights;
 
   // was: 4-10-10-10-4 network
-  // now: 5-50-4 network
+  // now: 5-50-50-50-50-4 network
   std::vector<unsigned int> arch;  
   arch.push_back(4);
-  arch.push_back(50);
+  arch.push_back(200);
+  //arch.push_back(50);
   //arch.push_back(50);
   //arch.push_back(50);
   arch.push_back(4);
@@ -107,7 +108,7 @@ int main()
   net.exportdata(weights);
   snet.exportdata(sweights);
   
-  math::convert(sweights, weights);
+  //math::convert(sweights, weights);
 
   // sweights = abs(sweights); // drop complex parts of initial weights
 
@@ -125,13 +126,13 @@ int main()
     
   }
   
-  snet.importdata(sweights);
-  snet.exportdata(sweights);
+  //snet.importdata(sweights);
+  //snet.exportdata(sweights);
 
-  std::cout << "weights = " << weights << std::endl;
-  std::cout << "sweights = " << sweights << std::endl;
+  //std::cout << "weights = " << weights << std::endl;
+  //std::cout << "sweights = " << sweights << std::endl;
 
-  const unsigned int NUMDATAPOINTS = 10;
+  const unsigned int NUMDATAPOINTS = 20;
   
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
     math::vertex<
@@ -228,8 +229,11 @@ int main()
 			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.05
     
     double lratef = 0.01;
+    unsigned int grad_search_counter = 0;
     
-    while(abs(error)[0].real() > math::blas_real<double>(0.001f) && lratef > 1e-100 && counter < 100000)
+    while(abs(error)[0].real() > math::blas_real<double>(0.001f) &&
+	  grad_search_counter < 499 &&
+	  lratef > 1e-100 && counter < 100000)
     {
       error = math::superresolution<math::blas_real<double>,
 				    math::modular<unsigned int> >(0.0f);
@@ -269,10 +273,10 @@ int main()
 	  
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
-	    for(unsigned int k=0;k<ej.size();k++)
-	      error += ninv*ej[k]*math::conj(ej[k]);
+	    //for(unsigned int k=0;k<ej.size();k++)
+	    //  error += ninv*ej[k]*math::conj(ej[k]);
 
-	    // error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
 	  }
 	  
 	  // this works with pureLinear non-linearity
@@ -315,6 +319,21 @@ int main()
 	      cerr[i] += ctmp[j].circular_convolution(cDF(j,i));
 	    }
 	  }
+
+#if 1
+	  // after we have FFT(gradient) which we convolve with FFT([1 0 ...]) dimensional number
+	  
+	  math::superresolution<math::blas_complex<double>,
+				math::modular<unsigned int> > one;
+	  one.zero();
+	  one[0] = whiteice::math::blas_complex<double>(1.0, 0.0);
+	  one.fft();
+
+	  for(unsigned int i=0;i<cerr.size();i++)
+	    cerr[i].circular_convolution(one);
+#endif
+
+	  // finally we do inverse Fourier transform
 	  
 	  err.resize(cerr.size());
 	    
@@ -344,8 +363,7 @@ int main()
       regularizer = weights;
 
       for(unsigned int j=0;j<regularizer.size();j++){
-	regularizer[j][0] = 0.0f;
-	for(unsigned int k=1;k<regularizer[0].size();k++){
+	for(unsigned int k=0;k<regularizer[0].size();k++){
 	  regularizer[j][k] *= alphaf;
 	}
       }
@@ -362,7 +380,7 @@ int main()
 
       auto orig_error = abserror;
 
-      unsigned int grad_search_counter = 0;
+      grad_search_counter = 0;
       
       while(grad_search_counter < 500){ // until error becomes smaller
 
@@ -389,10 +407,10 @@ int main()
 	  
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
-	    for(unsigned int k=0;k<ej.size();k++)
-	      error += ninv*ej[k]*math::conj(ej[k]);
+	    //for(unsigned int k=0;k<ej.size();k++)
+	    //  error += ninv*ej[k]*math::conj(ej[k]);
 
-	    //error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
 	  }
 	}
 
@@ -407,12 +425,12 @@ int main()
 
 	if(abserror2[0].real() < abserror[0].real()){
 	  // error becomes smaller => found new better solution
-	  lratef *= 1.10; // bigger step length..
+	  lratef *= 2.0; // bigger step length..
 	  abserror = abserror2;
 	  break;
 	}
 	else{ // try shorter step length
-	  lratef *= 1/1.10;
+	  lratef *= 1/2.0;
 	  grad_search_counter++;
 	}
 	
@@ -426,6 +444,8 @@ int main()
 		<< " (lrate: " << lratef << ")" 
 		<< std::endl;
 
+      if(lratef < 0.01) lratef = 0.01;
+
       error = abserror;
       
       counter++;
@@ -436,7 +456,7 @@ int main()
     math::vertex< math::superresolution<math::blas_real<double>,
 					math::modular<unsigned int> > > params;
     snet.exportdata(params);
-    std::cout << "nn solution weights = " << params << std::endl;
+    //std::cout << "nn solution weights = " << params << std::endl;
     
   }
   

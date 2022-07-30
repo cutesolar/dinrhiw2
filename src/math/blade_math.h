@@ -670,9 +670,11 @@ namespace whiteice
     whiteice::math::superresolution<T,S> sqrt(const whiteice::math::superresolution<T,S> x)
     {
       whiteice::math::superresolution<T, S> y;
+
       
-      for(unsigned int i=0;i<x.size();i++)
-	y[i] = whiteice::math::sqrt(x[i]);
+      for(unsigned int i=0;i<x.size();i++){
+	  y[i] = whiteice::math::sqrt(x[i]);
+      }
 
       return y;
     }
@@ -2264,6 +2266,54 @@ namespace whiteice
 	
 	return true;      
       }
+
+
+    // slow arbitrary length signal FFT
+    template <typename T>
+    bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
+    {
+      auto u = v;
+
+      whiteice::math::blas_complex<T> imag;
+      imag.real(0.0);
+      imag.imag(1.0);
+
+      for(unsigned int k=0;k<v.size();k++){
+	v[k] = 0.0;
+
+	for(unsigned int n=0;n<u.size();n++){
+	  whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((-2.0*M_PI*k*n)/v.size()));
+	  v[k] += w_nk*u[n];
+	}
+      }
+      
+      return true;
+    }
+
+    
+    template <typename T>
+    bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
+    {
+      auto u = v;
+
+      whiteice::math::blas_complex<T> imag;
+      imag.real(0.0);
+      imag.imag(1.0);
+
+      for(unsigned int k=0;k<v.size();k++){
+	v[k] = 0.0;
+
+	for(unsigned int n=0;n<u.size();n++){
+	  whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((+2.0*M_PI*k*n)/v.size()));
+	  v[k] += w_nk*u[n];
+	}
+
+	v[k] /= T((double)v.size());
+      }
+      
+      return true;
+    }
+    
     
   }
 }

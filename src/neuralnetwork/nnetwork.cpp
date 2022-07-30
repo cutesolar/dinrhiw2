@@ -714,7 +714,7 @@ namespace whiteice
 				 math::modular<unsigned int> >))
 	  {
 	    
-	    T var  = math::sqrt(T(1.0f) / arch[l]);
+	    T var  = math::sqrt(math::abs(T(1.0f) / T(arch[l])));
 	    
 	    var *= EXTRA_SCALING;
 	    

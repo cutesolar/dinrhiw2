@@ -113,12 +113,19 @@ namespace whiteice
     superresolution<T,U> superresolution<T,U>::operator*(const superresolution<T,U>& s) const
       
     {
-      {
-	if(this->size() != s.size())
-	  throw illegal_operation("Not same basis");
+      // for small number lengths direct convolution is faster than FFT
 
-	// don't check basis dimension is PRIME	
-      }
+      superresolution<T,U> result(T(0));
+
+      const unsigned int N = s.size();
+
+      for(unsigned int i=0;i<N;i++)
+	for(unsigned int j=0;j<N;j++)
+	  result[(i+j)%N] += (s.basis[i])*(this->basis[j]);
+
+    return result;
+
+#if 0
 
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
@@ -135,11 +142,9 @@ namespace whiteice
 	whiteice::math::convert(b2[i], s.basis[i]);
       }
 
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, double >(b1) == false ||
-	 whiteice::math::fft<K, double >(b2) == false)
+      if(whiteice::math::basic_fft< double >(b1) == false ||
+	 whiteice::math::basic_fft< double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -148,7 +153,7 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, double >(b1) == false)
+      if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       superresolution<T,U> result(T(0));
@@ -159,6 +164,7 @@ namespace whiteice
       }
 
       return result;
+#endif
     }
     
     template <typename T, typename U>
@@ -192,11 +198,9 @@ namespace whiteice
 	whiteice::math::convert(b2[i], s.basis[i]);
       }
 
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, double >(b1) == false ||
-	 whiteice::math::fft<K, double >(b2) == false)
+      if(whiteice::math::basic_fft< double >(b1) == false ||
+	 whiteice::math::basic_fft< double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -207,7 +211,7 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, double >(b1) == false)
+      if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       superresolution<T,U> result(T(0));
@@ -321,16 +325,13 @@ namespace whiteice
     
     template <typename T, typename U>
     superresolution<T,U>& superresolution<T,U>::operator*=(const superresolution<T,U>& s)
-      
     {
-      {
-	if(this->size() != s.size())
-	  throw illegal_operation("Not same basis");
-	
-	// don't check basis dimension is PRIME
-	
-      }
+      // small number of dimensions direct convolution is faster than FFT
+      
+      (*this) = (*this) * s;
+      return (*this);
 
+#if 0
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
       
@@ -346,11 +347,9 @@ namespace whiteice
 	whiteice::math::convert(b2[i], s.basis[i]);
       }
 
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, double >(b1) == false ||
-	 whiteice::math::fft<K, double >(b2) == false)
+      if(whiteice::math::basic_fft< double >(b1) == false ||
+	 whiteice::math::basic_fft< double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -359,7 +358,7 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, double >(b1) == false)
+      if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){
@@ -368,6 +367,7 @@ namespace whiteice
       }
 
       return (*this);
+#endif
     }
     
     
@@ -402,11 +402,9 @@ namespace whiteice
 	whiteice::math::convert(b2[i], s.basis[i]);
       }
       
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, double >(b1) == false ||
-	 whiteice::math::fft<K, double >(b2) == false)
+      if(whiteice::math::basic_fft< double >(b1) == false ||
+	 whiteice::math::basic_fft< double >(b2) == false)
 	throw illegal_operation("FFT failed");
 
       // inverse computation of convolution
@@ -416,7 +414,7 @@ namespace whiteice
       }
 
       // inverse FFT
-      if(whiteice::math::ifft<K, double >(b1) == false)
+      if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("Inverse FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){
@@ -735,10 +733,11 @@ namespace whiteice
 	// DO NOT CALCULATE COMPLEX CONJUGATE OF BASIS FUNCTION!
 	
       }
-
+      
       // zc.conj;
 
       z *= zc;
+      z = whiteice::math::sqrt(z);
 	
       return z;
     }
@@ -822,10 +821,8 @@ namespace whiteice
 	whiteice::math::convert(b1[i], this->basis[i]);
       }
 
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::fft<K, double>(b1) == false)
+      if(whiteice::math::basic_fft< double>(b1) == false)
 	throw illegal_operation("FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){
@@ -845,10 +842,8 @@ namespace whiteice
 	whiteice::math::convert(b1[i], this->basis[i]);
       }
 
-      const unsigned int K = DEFAULT_MODULAR_EXP;
-
       // calculates FFT of convolutions
-      if(whiteice::math::ifft<K, double>(b1) == false)
+      if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("FFT failed");
 
       for(unsigned int i=0;i<b1.size();i++){

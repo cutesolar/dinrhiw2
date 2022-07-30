@@ -73,7 +73,7 @@ namespace whiteice
       this->data = new T[1];
       if(this->data == nullptr) throw std::bad_alloc();
       
-      memset(this->data, 0, sizeof(T));
+      //memset(this->data, 0, sizeof(T));
 #endif
       
       this->dataSize = 1;      
@@ -123,7 +123,7 @@ namespace whiteice
 	  throw std::bad_alloc();
 	
 	
-	memset(this->data, 0, i*sizeof(T));
+	//memset(this->data, 0, i*sizeof(T));
       }
 
 #endif
