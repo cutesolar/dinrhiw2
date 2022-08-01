@@ -126,7 +126,8 @@ namespace whiteice
       
     {
 #if 1
-      // for small number lengths direct convolution is faster than FFT
+      // for small number lengths direct convolution is faster than FFT. This is O(N^2) thought.
+      // with N=31, N^2 = 1000 and 3*N*log(N) + N = 31*5 = 500 multiplications. So FFT is faster??
 
       superresolution<T,U> result(T(0));
 

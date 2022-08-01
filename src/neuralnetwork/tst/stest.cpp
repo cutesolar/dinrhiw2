@@ -13,6 +13,7 @@
 #include "NNGradDescent.h"
 #include "RNG.h"
 
+
 #undef __STRICT_ANSI__
 #include <fenv.h>
 
@@ -34,6 +35,7 @@ extern "C" {
 #endif
   
 }
+
 
 using namespace whiteice;
 
@@ -81,19 +83,19 @@ int main()
   // was: 4-10-10-10-4 network
   // now: 5-50-50-50-50-4 network
   std::vector<unsigned int> arch;  
-  arch.push_back(4);
+  arch.push_back(5);
 #if 0
   arch.push_back(50);
   arch.push_back(50);
   arch.push_back(50);
 #endif
   
-  const unsigned int LAYERS = 3;
+  const unsigned int LAYERS = 100; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
   
   for(unsigned int l=0;l<LAYERS;l++)
     arch.push_back(15);
   
-  arch.push_back(4);
+  arch.push_back(5);
 
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
@@ -105,8 +107,8 @@ int main()
 
   net.randomize();
   snet.randomize();
-  net.setResidual(false);
-  snet.setResidual(false);
+  net.setResidual(true);
+  snet.setResidual(true);
   
 
   std::cout << "net weights size: " << net.gradient_size() << std::endl;
@@ -127,14 +129,16 @@ int main()
   //std::cout << "weights = " << weights << std::endl;
   //std::cout << "sweights = " << sweights << std::endl;
 
+  math::vertex<
+    math::superresolution< math::blas_real<double>,
+			   math::modular<unsigned int> > > sx, sy;
+  
+  math::vertex< math::blas_real<double> > x, y;
+  
+  
   const unsigned int NUMDATAPOINTS = 20;
   
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
-    math::vertex<
-      math::superresolution< math::blas_real<double>,
-			     math::modular<unsigned int> > > sx, sy;
-
-    math::vertex< math::blas_real<double> > x, y;
 
     math::blas_real<double> sigma = 4.0;
     math::blas_real<double> f = 3.14157, a = 1.1132, w = 7.342, one = 1.0;
@@ -181,11 +185,11 @@ int main()
     
     // calculates nnetwork response to y=f(sx) with net and snet which should give same results
     
-    net.calculate(x, y);
+    //net.calculate(x, y);
 
     // std::cout << "y  =  f(x) = " << y << std::endl;
 
-    snet.calculate(sx, sy);
+    //snet.calculate(sx, sy);
 
     // std::cout << "sy = f(sx) = " << sy << std::endl;
   }
@@ -205,6 +209,36 @@ int main()
   if(data2.save("simpleproblem.ds") == false){
     printf("ERROR: saving data to file failed!\n");
     exit(-1);
+  }
+
+
+  // use sorted data instead
+  {
+    data2.load("sort-data.ds");
+
+    // remove preprocessings from data
+    data2.convert(0);
+    data2.convert(1);
+
+    data.clear();
+    data.createCluster("input", 5);
+    data.createCluster("output", 5);
+    
+    for(unsigned int i=0;i<data2.size(0);i++){
+      x = data2.access(0, i);
+      y = data2.access(1, i);
+
+      whiteice::math::convert(sx, x);
+      whiteice::math::convert(sy, y);
+
+      data.add(0, sx);
+      data.add(1, sy);
+    }
+
+    data.downsampleAll(100);
+
+    std::cout << "data.size(0): " << data.size(0) << std::endl;
+    std::cout << "data.size(1): " << data.size(1) << std::endl;
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -453,7 +487,10 @@ int main()
 	    mean_error += e;
 	  mean_error /= errors.size();
 	  
-	  if(r == 0 && abserror2[0].real() < 2.5*mean_error) go_worse = true;
+	  if(r == 0 &&
+	     abserror2[0].real() < 2.5*mean_error &&
+	     abserror2[0].real() < 1000.0)
+	    go_worse = true;
 	}
 
 	if(abserror2[0].real() < abserror[0].real() || go_worse){

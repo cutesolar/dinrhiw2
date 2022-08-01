@@ -630,6 +630,8 @@ namespace whiteice
   bool nnetwork<T>::randomize(const unsigned int type,
 			      const T EXTRA_SCALING)
   {
+    // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
+    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values
     
     if(type == 0){
       const whiteice::math::blas_complex<double> ar(2.0f,0.0f), br(1.0f, 0.0f);
@@ -720,12 +722,18 @@ namespace whiteice
 	    whiteice::math::convert(extra, EXTRA_SCALING);
 	    
 	    var *= extra;
+
+	    // scales higher dimensions in superresolutional numbers to be smaller..
+	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float factor = 1.0f;
 	    
 	    for(unsigned int k=0;k<W[l][i].size();k++){
 	      // RNG is is complex normal value if needed
-	      const auto value = (rng.normalf())*var;
+	      const auto value = (rng.normalf())*var*factor;
 
 	      whiteice::math::convert(W[l][i][k], value);
+
+	      factor *= alpha;
 	    }
 	  }
 	  else{ // complex valued numbers:
@@ -765,11 +773,17 @@ namespace whiteice
 
 	    var *= extra;
 
+	    // scales higher dimensions in superresolutional numbers to be smaller..
+	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float factor = 1.0f;
+
 	    for(unsigned int k=0;k<b[l][i].size();k++){
 	      // RNG is is complex normal value if neededq
-	      const auto value = (rng.normalf())*var*bias_scaling;
+	      const auto value = (rng.normalf())*var*bias_scaling*factor;
 	      
 	      whiteice::math::convert(b[l][i][k], value);
+
+	      factor *= alpha;
 	    }
 	    
 	  }
@@ -2085,7 +2099,7 @@ namespace whiteice
 	
 	T output = input;
 	
-	for(unsigned int i=0;i<output.size();i++){
+	for(unsigned int i=0;i<1/*output.size()*/;i++){
 	  if(output[i].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
