@@ -21,7 +21,7 @@ namespace whiteice
 #include <vector>
 
 
-// #define NO_PACKED 1
+#define NO_PACKED 1
 
 
 namespace whiteice
@@ -92,15 +92,6 @@ namespace whiteice
       superresolution<T,U>& operator/=(const T& s) ;
       
       superresolution<T,U>& operator=(const T value) ;
-      
-#if 0
-      superresolution<T,U>  operator* (const T value) const ;
-      superresolution<T,U>  operator/ (const T value) const ;
-      superresolution<T,U>& operator*=(const T value) ;
-      superresolution<T,U>& operator/=(const T value) ;
-#endif
-      
-      
       
       superresolution<T,U>& abs();
       superresolution<T,U>& zero();

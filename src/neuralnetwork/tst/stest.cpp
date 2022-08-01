@@ -41,7 +41,7 @@ int main()
 {
   std::cout << "superresolution test cases" << std::endl;
 
-  whiteice::logging.setPrintOutput(true);
+  whiteice::logging.setPrintOutput(false);
   
   // creates training dataset
   std::cout << "Creating training dataset.." << std::endl;
@@ -82,10 +82,17 @@ int main()
   // now: 5-50-50-50-50-4 network
   std::vector<unsigned int> arch;  
   arch.push_back(4);
-  arch.push_back(200);
-  //arch.push_back(50);
-  //arch.push_back(50);
-  //arch.push_back(50);
+#if 0
+  arch.push_back(50);
+  arch.push_back(50);
+  arch.push_back(50);
+#endif
+  
+  const unsigned int LAYERS = 3;
+  
+  for(unsigned int l=0;l<LAYERS;l++)
+    arch.push_back(15);
+  
   arch.push_back(4);
 
 
@@ -107,25 +114,13 @@ int main()
 
   net.exportdata(weights);
   snet.exportdata(sweights);
+
+  //std::cout << sweights << std::endl;
   
   //math::convert(sweights, weights);
 
   // sweights = abs(sweights); // drop complex parts of initial weights
 
-  // randomize sweights [also superresolution parts]
-  {
-    RNG< math::blas_real<double> > rng;
-    
-    for(unsigned int i=0;i<sweights.size();i++)
-    {
-      for(unsigned int k=0;k<sweights[i].size();k++){
-	sweights[i][k] = whiteice::math::blas_real<double>(0.01f)*rng.normal();
-      }
-      
-    }
-    
-  }
-  
   //snet.importdata(sweights);
   //snet.exportdata(sweights);
 
@@ -204,15 +199,36 @@ int main()
   data2.add(0, inputs2);
   data2.add(1, outputs2);
 
-  data2.preprocess(0);
-  data2.preprocess(1);
+  //data2.preprocess(0);
+  //data2.preprocess(1);
 
   if(data2.save("simpleproblem.ds") == false){
     printf("ERROR: saving data to file failed!\n");
     exit(-1);
   }
 
+  //////////////////////////////////////////////////////////////////////
   // next DO NNGradDescent<> && nnetwork<> to actually learn the data.
+  if(0)
+  {
+    whiteice::math::NNGradDescent<math::blas_real<double>> grad;
+
+    grad.startOptimize(data2, net, 1);
+
+    while(grad.isRunning()){
+      sleep(1);
+      
+      unsigned int iters = 0;
+      whiteice::math::blas_real<double> error;
+      
+      grad.getSolutionStatistics(error, iters);
+      
+      std::cout << "iter: " << iters << " error: " << error << std::endl;
+    }
+  }
+  
+  //////////////////////////////////////////////////////////////////////
+  
 
   // gradient descent code
   {
@@ -230,9 +246,12 @@ int main()
     
     double lratef = 0.01;
     unsigned int grad_search_counter = 0;
+
+    std::vector<double> errors; // history of errors (10 last errors)
+    
     
     while(abs(error)[0].real() > math::blas_real<double>(0.001f) &&
-	  grad_search_counter < 499 &&
+	  grad_search_counter < 300 &&
 	  lratef > 1e-100 && counter < 100000)
     {
       error = math::superresolution<math::blas_real<double>,
@@ -258,6 +277,7 @@ int main()
       snet.exportdata(weights);
       snet.exportdata(w0);
 
+      
       for(unsigned int i=0;i<data.size(0);i++){
 
 	// selects K:th dimension in number and adjust weights according to it.
@@ -379,10 +399,11 @@ int main()
       }
 
       auto orig_error = abserror;
+      auto abserror2 = abserror;
 
       grad_search_counter = 0;
       
-      while(grad_search_counter < 500){ // until error becomes smaller
+      while(grad_search_counter < 300){ // until error becomes smaller
 
 	auto delta_grad = sumgrad;
 	
@@ -414,19 +435,31 @@ int main()
 	  }
 	}
 
-	auto abserror2 = error;
+	abserror2 = error;
 	abserror2[0] = abs(abserror2[0]);
 	
 	for(unsigned int i=1;i<abserror2.size();i++){
 	  abserror2[0] += abs(abserror2[i]);
 	  //abserror2[i] = math::blas_real<double>(0.0f);
 	  abserror2[i] = 0.0f;
+	} 
+
+	bool go_worse = false;
+	unsigned int r = rng.rand() % 40;
+
+	if(errors.size() > 0){
+	  double mean_error = 0.0;
+	  for(const auto& e : errors)
+	    mean_error += e;
+	  mean_error /= errors.size();
+	  
+	  if(r == 0 && abserror2[0].real() < 2.5*mean_error) go_worse = true;
 	}
 
-	if(abserror2[0].real() < abserror[0].real()){
+	if(abserror2[0].real() < abserror[0].real() || go_worse){
 	  // error becomes smaller => found new better solution
 	  lratef *= 2.0; // bigger step length..
-	  abserror = abserror2;
+	  //abserror = abserror2;
 	  break;
 	}
 	else{ // try shorter step length
@@ -434,6 +467,17 @@ int main()
 	  grad_search_counter++;
 	}
 	
+      }
+
+      abserror = abserror2;
+
+      {
+	double e = 0.0;
+	whiteice::math::convert(e, abserror[0]);
+	errors.push_back(e);
+
+	while(errors.size() > 10)
+	  errors.erase(errors.begin());
       }
 
       // weights -= sumgrad + regularizer;

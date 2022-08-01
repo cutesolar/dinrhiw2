@@ -83,11 +83,17 @@ namespace whiteice
     {
       superresolution<T,U> t(*this);
 
+      for(unsigned int i=0;i<size();i++){
+	t.basis[i] += s.basis[i];
+      }
+      
+#if 0
       U u = U(0);
       t.basis[u[0]] += s.basis[U(0)[0]];
 
       for(U u=U(1);u != U(0);u++)
 	t.basis[u[0]] += s.basis[u[0]];
+#endif
 
       return t;
     }
@@ -98,12 +104,18 @@ namespace whiteice
       
     {
       superresolution<T,U> t(*this);
-      
+
+      for(unsigned int i=0;i<size();i++){
+	t.basis[i] -= s.basis[i];
+      }
+
+#if 0
       U u = U(0);
       t.basis[u[0]] -= s.basis[u[0]];
       
       for(U u=U(1);u != U(0);u++)
 	t.basis[u[0]] -= s.basis[u[0]];
+#endif
       
       return t;      
     }
@@ -113,20 +125,23 @@ namespace whiteice
     superresolution<T,U> superresolution<T,U>::operator*(const superresolution<T,U>& s) const
       
     {
+#if 1
       // for small number lengths direct convolution is faster than FFT
 
       superresolution<T,U> result(T(0));
 
       const unsigned int N = s.size();
 
+#pragma GCC unroll 7 
       for(unsigned int i=0;i<N;i++)
+#pragma GCC unroll 7
 	for(unsigned int j=0;j<N;j++)
 	  result[(i+j)%N] += (s.basis[i])*(this->basis[j]);
-
+      
     return result;
-
+#endif
+    
 #if 0
-
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
       
@@ -283,6 +298,14 @@ namespace whiteice
     superresolution<T,U> superresolution<T,U>::operator-() const
       
     {
+      superresolution<T,U> s;
+
+      for(unsigned int i=0;i<size();i++)
+	s.basis[i] = -(this->basis[i]);
+
+      return s;
+      
+#if 0
       superresolution<T,U> s(*this);
 
       s.basis[U(0)[0]] = -s.basis[U(0)[0]];
@@ -292,6 +315,7 @@ namespace whiteice
       }
       
       return s;
+#endif
     }
     
     
@@ -299,11 +323,16 @@ namespace whiteice
     superresolution<T,U>& superresolution<T,U>::operator+=(const superresolution<T,U>& s)
       
     {
+      for(unsigned int i=0;i<size();i++)
+	this->basis[i] += s.basis[i];
+
+#if 0
       this->basis[U(0)[0]] += s.basis[U(0)[0]];
       
       for(U u=U(1);u!=U(0);u++){
 	this->basis[u[0]] += s.basis[u[0]];
       }
+#endif
       
       return *this;
     }
@@ -313,11 +342,16 @@ namespace whiteice
     superresolution<T,U>& superresolution<T,U>::operator-=(const superresolution<T,U>& s)
       
     {
+      for(unsigned int i=0;i<size();i++)
+	this->basis[i] -= s.basis[i];
+      
+#if 0
       this->basis[U(0)[0]] -= s.basis[U(0)[0]];
       
       for(U u=U(1);u!=U(0);u++){
 	this->basis[u[0]] -= s.basis[u[0]];
       }
+#endif
       
       return *this;
     }

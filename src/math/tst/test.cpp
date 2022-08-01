@@ -1081,8 +1081,50 @@ void fft_test()
       std::cout << "ifft(fft(X)) operation error: " << samples[0].norm() << std::endl;
       std::cout << "WARNING: CircularConvolution error is suspiciosly large" << std::endl;
     }
-    else
+    else{
       std::cout << "GOOD: FFT/IFFT CircularConvolution seems to work correctly.]" << std::endl;
+    }
+    
+  }
+
+
+  {
+    std::cout << "GENERAL PURPOSE BASIC DFT FOURIER TEST" << std::endl;
+
+    std::vector< vertex<whiteice::math::blas_complex<float> > > samples;
+
+    samples.resize(4);
+
+    for(unsigned int i=0;i<samples.size();i++){
+      samples[i].resize(1 + rng.rand()%64);
+
+      for(unsigned int k=0;k<samples[i].size();k++){
+	samples[i][k] = rng.uniformf();
+      }
+
+      auto orig = samples[i];
+
+      basic_fft(samples[i]);
+
+      auto delta = orig - samples[i];
+
+      if(delta.norm().c[0] < 0.01){
+	std::cout << "WARN: fft(x) don't change the x signal." << std::endl; 
+      }
+      
+      basic_ifft(samples[i]);
+
+      auto err = orig - samples[i];
+
+      if(err.norm().c[0] > 0.01){
+	std::cout << "ERROR: ifft(fft(x)) != x (|x|=" << samples[i].size() << ")." << std::endl;
+	exit(-1);
+      }
+      else{
+	std::cout << "GOOD: ifft(fft(x)) == x (|x|=" << samples[i].size() << ")." << std::endl; 
+      }
+      
+    }
     
   }
 }

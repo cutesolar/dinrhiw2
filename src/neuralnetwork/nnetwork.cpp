@@ -670,7 +670,7 @@ namespace whiteice
 	// this initialization is as described in the paper of Xavier Glorot
 	// "Understanding the difficulty of training deep neural networks"
 	
-	T var = math::sqrt(T(6.0f) / (arch[l] + arch[l+1]));
+	T var = math::sqrt(math::abs(T(6.0f) / T(arch[l] + arch[l+1])));
 
 	var *= EXTRA_SCALING;
 
@@ -714,14 +714,19 @@ namespace whiteice
 				 math::modular<unsigned int> >))
 	  {
 	    
-	    T var  = math::sqrt(math::abs(T(1.0f) / T(arch[l])));
+	    float var  = math::sqrt(math::abs((1.0f) / (arch[l])));
+
+	    float extra = 1.0f;
+	    whiteice::math::convert(extra, EXTRA_SCALING);
 	    
-	    var *= EXTRA_SCALING;
+	    var *= extra;
 	    
-	    // RNG is is complex normal value if needed
-	    const auto value = T(rng.normalf())*var;
-	    
-	    whiteice::math::convert(W[l][i], value);
+	    for(unsigned int k=0;k<W[l][i].size();k++){
+	      // RNG is is complex normal value if needed
+	      const auto value = (rng.normalf())*var;
+
+	      whiteice::math::convert(W[l][i][k], value);
+	    }
 	  }
 	  else{ // complex valued numbers:
 	    
@@ -752,17 +757,21 @@ namespace whiteice
 				 math::modular<unsigned int> >))
 	  {
 	    
-	    T var  = math::sqrt(T(1.0f) / arch[l]);
+	    float var  = math::sqrt(math::abs((1.0f) / arch[l]));
 	    
-	    T bias_scaling;
+	    float bias_scaling, extra;
 	    whiteice::math::convert(bias_scaling, 0.01f);
+	    whiteice::math::convert(extra, EXTRA_SCALING);
 
-	    var *= EXTRA_SCALING;
+	    var *= extra;
+
+	    for(unsigned int k=0;k<b[l][i].size();k++){
+	      // RNG is is complex normal value if neededq
+	      const auto value = (rng.normalf())*var*bias_scaling;
+	      
+	      whiteice::math::convert(b[l][i][k], value);
+	    }
 	    
-	    // RNG is is complex normal value if needed
-	    const auto value = T(rng.normalf())*var*bias_scaling;
-	    
-	    whiteice::math::convert(b[l][i], value);
 	  }
 	  else{ // complex valued numbers:
 	    
@@ -2064,6 +2073,26 @@ namespace whiteice
 
 	return T(out);
       }
+#if 1
+      else if(typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<float>,
+				  whiteice::math::modular<unsigned int> >) ||
+	      typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<double>,
+				  whiteice::math::modular<unsigned int> >))
+      {
+	// extension of ReLU to superresolutional numbers [apply ReLU to each dimension]
+	
+	T output = input;
+	
+	for(unsigned int i=0;i<output.size();i++){
+	  if(output[i].real() < 0.0f)
+	    output[i] *= RELUcoef;
+	}
+
+	return output;
+      }
+#endif
       else{ // superresolution class [almost linear because superresolution numbers are non-linear already]
 	if(input[0].real() < 0.0f){
 	  T output = T(RELUcoef)*input;
@@ -2488,7 +2517,7 @@ namespace whiteice
   }
   
   
-  template <typename T> // derivat of non-linearity used in neural network
+  template <typename T> // derivate of non-linearity used in neural network
   inline T nnetwork<T>::Dnonlin(const T& input, unsigned int layer) const 
   {
     // no dropout checking
@@ -2632,6 +2661,24 @@ namespace whiteice
 	  out /= (input.first() + epsilon);
 
 	return T(out);
+      }
+      else if(typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<float>,
+				  whiteice::math::modular<unsigned int> >) ||
+	      typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<double>,
+				  whiteice::math::modular<unsigned int> >))
+      {
+	const double epsilon = 1e-30;
+
+	T h;
+
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	const T output = (nonlin(input+h, layer) - nonlin(h, layer))/h;
+
+	return output;
       }
       else{ // superresolution
 
