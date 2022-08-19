@@ -1006,6 +1006,179 @@ namespace whiteice
     
     
     //////////////////////////////////////////////////////////////////////
+    
+    template <typename T, typename S>
+    whiteice::math::superresolution<T,S> sqrt(const whiteice::math::superresolution<T,S> x)
+    {
+      // Fourier transform approach
+      // circ_conv(x,x) = y, Fourier transform => X² = Y => x = F^-1( sqrt(F(y)) )
+
+      whiteice::math::superresolution< math::blas_complex<double>, modular<unsigned int> > z;
+
+      for(unsigned int i=0;i<z.size();i++)
+	whiteice::math::convert(z[i], x[i]);
+
+      z.fft();
+      
+      for(unsigned int i=0;i<z.size();i++)
+	z[i] = whiteice::math::sqrt(z[i]);
+
+      z.inverse_fft();
+
+      whiteice::math::superresolution<T,S> result;
+
+      for(unsigned int i=0;i<z.size();i++)
+	whiteice::math::convert(result[i], z[i]);
+
+      return result;
+      
+      
+#if 0
+      // polynomial square root algorithm [DO NOT WORK WITH MODULAR POLYNOMIAL ARITHMETIC]
+
+      const unsigned int N = x.size();
+      whiteice::math::superresolution<T,S> result(0.0f);
+      auto xx = x;
+
+      // first term
+      int t = N-1;
+
+      float value = 0.0f;
+      whiteice::math::superresolution<T,S> prev(0.0f);
+      int pk = t/2;
+      
+      do{
+	convert(value, xx[t]);
+	
+	if(value){
+	  result[t/2] = sqrt(xx[t]);
+
+	  std::cout << "x = " << xx << std::endl;
+	  std::cout << "q = " << prev << std::endl;
+	  std::cout << "r = " << result << std::endl;
+	  
+	  pk = t/2;
+	  prev[t/2] = result[t/2];
+	  xx[t] = T(0.0f);
+
+	  prev[pk] = prev[pk]*T(2.0f);
+	}
+	
+	t--;
+      }
+      while(!value && t >= 0); 
+
+	    
+      for(;t>=0;t--){
+	
+	convert(value, xx[t]);
+	
+	if(value){ // non-zero element
+
+	  std::cout << "---------------------------------------------" << std::endl;
+
+	  std::cout << "x = " << xx << std::endl;
+	  std::cout << "q = " << prev << std::endl;
+	  
+	  const int xk = t-pk;
+	  const T scale = xx[t]/prev[pk];
+	  prev[xk] += scale;
+
+	  std::cout << "q = " << prev << std::endl;
+	  std::cout << "scale = " << scale << std::endl;
+	  std::cout << "xk = " << xk << std::endl;
+
+	  auto n = prev;
+
+	  n = n*scale;
+
+	  {
+	    auto nn = n; 
+	    
+	    for(int i=((signed)n.size());i>=0;i--)
+	      nn[i+xk] = n[i];
+	    
+	    n = nn;
+	  }
+	  
+#if 0
+	  for(int i=((signed)n.size()-xk);i>=0;i--)
+	    n[i+xk] = n[i];
+
+	  for(int i=0;i<xk;i++)
+	    n[i] = T(0.0f);
+#endif
+	  
+	  std::cout << "n = " << n << std::endl;
+	  
+	  xx -= n;
+
+	  result[xk] += scale;
+	  
+	  std::cout << "r = " << result << std::endl;
+
+	  prev[xk] = prev[xk]*T(2.0f);
+	}
+	
+      }
+
+      return result;
+#endif
+      
+#if 0
+      // Taylor's series expansion at point c = 1 (Taylor's series DON'T WORK!)
+
+      whiteice::math::superresolution<T,S> result(0.0f);
+
+      // Taylor-8 at c=1 point (gives wrong results for x <= 0 points)  .
+
+      result += superresolution<T,S>(1.0f);
+
+      const T c1 = T(0.5f);
+      result += x*c1;
+
+      const T c2 = T(-1.0f/8.0f);
+      result += x*x*c2;
+
+      const T c3 = T(1.0f/16.0f);
+      result += x*x*x*c3;
+
+      const T c4 = T(-5.0f/128.0f);
+      result += x*x*x*x*c4;
+
+      const T c5 = T(7.0f/256.0f);
+      result += x*x*x*x*x*c5;
+
+      const T c6 = T(-21.0f/1024.0f);
+      result += x*x*x*x*x*x*c6;
+
+      const T c7 = T(66.f/4096.0f);
+      result += x*x*x*x*x*x*x*c7;
+
+      const T c8 = T(-429.0f/(24.0f*16384.0f));
+      result += x*x*x*x*x*x*x*x*c8;
+
+      
+      return result;
+#endif
+    }
+
+
+    template whiteice::math::superresolution< blas_real<float>, modular<unsigned int> >
+    sqrt(const whiteice::math::superresolution< blas_real<float> , modular<unsigned int> > x);
+
+    template whiteice::math::superresolution< blas_real<double>, modular<unsigned int> >
+    sqrt(const whiteice::math::superresolution< blas_real<double> , modular<unsigned int> > x);
+
+    // complex value implementations should NOT work
+    template whiteice::math::superresolution< blas_complex<float>, modular<unsigned int> >
+    sqrt(const whiteice::math::superresolution< blas_complex<float> , modular<unsigned int> > x);
+
+    template whiteice::math::superresolution< blas_complex<double>, modular<unsigned int> >
+    sqrt(const whiteice::math::superresolution< blas_complex<double> , modular<unsigned int> > x);
+
+    
+    //////////////////////////////////////////////////////////////////////
 
     bool isinf(superresolution<blas_complex<float> , modular<unsigned int> > v){
       return false;

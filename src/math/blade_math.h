@@ -671,6 +671,14 @@ namespace whiteice
 	return whiteice::math::complex<T>(std::sqrt(x));
       }
 
+
+    // we implement superresolution number square root using Taylor's polynom at c = 1 so f'(c) = f'(1) = "sqrt(1)" = 1
+    // there is no theory if it will work and we may need something extra for superresolutional numbers
+    // Taylor expansion assumes numbers are close to 1 and not very large
+    template <typename T, typename S>
+    whiteice::math::superresolution<T,S> sqrt(const whiteice::math::superresolution<T,S> x);
+    
+#if 0
     template <typename T, typename S>
     whiteice::math::superresolution<T,S> sqrt(const whiteice::math::superresolution<T,S> x)
     {
@@ -683,6 +691,7 @@ namespace whiteice
 
       return y;
     }
+#endif
     
     
     // sqrt() for atlas primitives is in "blas_primitives.h"
@@ -2308,7 +2317,7 @@ namespace whiteice
       whiteice::math::blas_complex<T> w_k = 1.0f;
       const whiteice::math::blas_complex<T> ww = whiteice::math::exp(imag*((-2.0*M_PI)/N));
 
-#pragma GCC unroll 7      
+#pragma GCC unroll 11      
       for(unsigned int k=0;k<N;k++){
 	v[k] = 0.0;
 
@@ -2316,7 +2325,7 @@ namespace whiteice
 	//whiteice::math::blas_complex<T> w = whiteice::math::exp(imag*((-2.0*M_PI*k)/N));
 	const whiteice::math::blas_complex<T> w = w_k;
 
-#pragma GCC unroll 7	
+#pragma GCC unroll 11	
 	for(unsigned int n=0;n<N;n++){
 	  //whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((-2.0*M_PI*k*n)/v.size()));
 	  v[k] += w_nk*u[n];
@@ -2367,14 +2376,14 @@ namespace whiteice
       whiteice::math::blas_complex<T> w_k = 1.0f;
       const whiteice::math::blas_complex<T> ww = whiteice::math::exp(imag*((+2.0*M_PI)/N));
 
-#pragma GCC unroll 7
+#pragma GCC unroll 11
       for(unsigned int k=0;k<N;k++){
 	v[k] = 0.0;
 
 	whiteice::math::blas_complex<T> w_nk = 1.0f;
 	const whiteice::math::blas_complex<T> w = w_k;
 
-#pragma GCC unroll 7	
+#pragma GCC unroll 11	
 	for(unsigned int n=0;n<N;n++){
 	  //whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((+2.0*M_PI*k*n)/v.size()));
 	  v[k] += w_nk*u[n];

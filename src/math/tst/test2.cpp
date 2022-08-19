@@ -223,7 +223,64 @@ void test_superresolution()
   }
 
   std::cout << "SuperResolution Circular Convolution calculation OK" << std::endl;
-  
+
+
+  std::cout << "SuperResolution Square Root Calculation TEST" << std::endl;
+
+  for(unsigned int n=0;n<10;n++){
+
+    whiteice::math::superresolution< whiteice::math::blas_real<float>,
+				     whiteice::math::modular<unsigned int> >
+      A, B, C, D;
+    
+    for(unsigned int i=0;i<A.size();i++){
+      A[i] = rng.uniform();
+    }
+
+#if 0
+    A[0] = 36.0f;
+    A[1] = -48.0f;
+    A[2] = 52.0f;
+    A[3] = -36.0f;
+    A[4] = 17.0f;
+    A[5] = -6.0f;
+    A[6] = 1.0f;
+
+    A[0] = 1.0f;
+    A[1] = 4.0f;
+    A[2] = 6.0f;
+    A[3] = 6.0f;
+    A[4] = 5.0f;
+    A[5] = 2.0f;
+    A[6] = 1.0f;
+#endif
+
+    // std::cout << "A = " << A << std::endl;
+
+    B = sqrt(A);
+
+    // std::cout << "sqrt(A) = " << B << std::endl;
+
+    C = B*B;
+
+    D = A - C;
+    
+    whiteice::math::blas_real<float> err = 0.0f;
+    
+    for(unsigned int i=0;i<D.size();i++){
+      err += whiteice::math::abs(D[i]);
+    }
+
+    if(real(whiteice::math::abs(err)) >= 0.01f){
+      std::cout << "SuperResolution square root calculation DON'T WORK (HIGH ERROR): "
+		<< real(whiteice::math::abs(err))
+		<< std::endl;
+      exit(-1);
+    }
+    
+  }
+
+  std::cout << "SuperResolution Square Root Calculation OK" << std::endl;
 }
 
 

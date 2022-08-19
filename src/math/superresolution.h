@@ -54,7 +54,7 @@ namespace whiteice
       superresolution<T,U> operator-(const superresolution<T,U>&) const ;
       superresolution<T,U> operator*(const superresolution<T,U>&) const ;
       superresolution<T,U> operator/(const superresolution<T,U>&) const ;
-      
+
       // complex conjugate (?)
       superresolution<T,U> operator!() const;
       
@@ -98,28 +98,19 @@ namespace whiteice
       bool iszero() const;
       
       
-      inline T& operator[](const unsigned int index)
+      inline T& operator[](int index)
       { 
-#ifdef _GLIBCXX_DEBUG	
-	if(index >= DEFAULT_MODULAR_BASIS){
-	  whiteice::logging.error("superresolution::operator[]: index out of range");
-	  assert(0);
-	  throw std::out_of_range("superresolution index out of range");
-	}
-#endif
+	index %= DEFAULT_MODULAR_BASIS;
+	if(index < 0) index += DEFAULT_MODULAR_BASIS;
+	
 	return basis[index];
       }
       
       
-      inline const T& operator[](const unsigned int index) const
+      inline const T& operator[](int index) const
       {
-#ifdef _GLIBCXX_DEBUG	
-	if(index >= DEFAULT_MODULAR_BASIS){
-	  whiteice::logging.error("superresolution::operator[]: index out of range");
-	  assert(0);
-	  throw std::out_of_range("superresolution index out of range");
-	}
-#endif
+	index %= DEFAULT_MODULAR_BASIS;
+	if(index < 0) index += DEFAULT_MODULAR_BASIS;
 	
 	return basis[index];
       }

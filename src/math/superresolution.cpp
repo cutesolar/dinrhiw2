@@ -239,6 +239,7 @@ namespace whiteice
 
       return result;
     }
+
     
     
     // complex conjugate
@@ -856,7 +857,7 @@ namespace whiteice
 	whiteice::math::convert(b1[i], this->basis[i]);
       }
 
-      // calculates FFT of convolutions
+      // calculates FFT
       if(whiteice::math::basic_fft< double>(b1) == false)
 	throw illegal_operation("FFT failed");
 
@@ -877,7 +878,7 @@ namespace whiteice
 	whiteice::math::convert(b1[i], this->basis[i]);
       }
 
-      // calculates FFT of convolutions
+      // calculates inverse-FFT
       if(whiteice::math::basic_ifft< double >(b1) == false)
 	throw illegal_operation("FFT failed");
 
