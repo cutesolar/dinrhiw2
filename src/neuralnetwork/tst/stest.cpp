@@ -83,20 +83,30 @@ int main()
   // was: 4-10-10-10-4 network
   // now: 5-50-50-50-50-4 network
   std::vector<unsigned int> arch;  
-  arch.push_back(5);
-#if 0
-  arch.push_back(50);
-  arch.push_back(50);
-  arch.push_back(50);
-#endif
+  arch.push_back(10);
   
-  const unsigned int LAYERS = 100; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
+  const unsigned int LAYERS = 2; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
   
   for(unsigned int l=0;l<LAYERS;l++)
-    arch.push_back(15);
+    arch.push_back(20);
   
-  arch.push_back(5);
+  arch.push_back(10);
 
+  arch.clear();
+  arch.push_back(4);
+  arch.push_back(20);
+  arch.push_back(20);
+  arch.push_back(4);
+
+  /*
+  arch.clear();
+  arch.push_back(4);
+  arch.push_back(50);
+  arch.push_back(50);
+  arch.push_back(50);
+  arch.push_back(50);
+  arch.push_back(4);
+  */
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
   // rectifier don't work!!!
@@ -109,6 +119,13 @@ int main()
   snet.randomize();
   net.setResidual(true);
   snet.setResidual(true);
+
+  const bool BN = true;
+
+  if(BN){
+    net.setBatchNorm(true);
+    snet.setBatchNorm(true);
+  }
   
 
   std::cout << "net weights size: " << net.gradient_size() << std::endl;
@@ -136,12 +153,12 @@ int main()
   math::vertex< math::blas_real<double> > x, y;
   
   
-  const unsigned int NUMDATAPOINTS = 20;
-  
+  const unsigned int NUMDATAPOINTS = 1000; // was: 1000, 100 for testing purposes
+
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
 
     math::blas_real<double> sigma = 4.0;
-    math::blas_real<double> f = 3.14157, a = 1.1132, w = 7.342, one = 1.0;
+    math::blas_real<double> f = 10.0, a = 1.10, w = 10.0, one = 1.0;
 
     x.resize(4);
     prng.normal(x);
@@ -156,15 +173,15 @@ int main()
       y[1] = -math::pow(a, (x[0]/(math::abs(x[2])+one)) );
 
     y[2] = 0.0f;
-    if(x[1].c[0] >= 0.0f) y[2] += one;
+    if(x[1].c[0] > 0.0f) y[2] += one;
     else y[2] -= one;
-    if(x[3].c[0] >= 0.0f) y[2] += one;
+    if(x[3].c[0] > 0.0f) y[2] += one;
     else y[2] -= one;
     auto temp = math::cos(w*x[0]);
-    if(temp.c[0] >= 0.0f) y[2] += one;
+    if(temp.c[0] > 0.0f) y[2] += one;
     else y[2] -= one;
     
-    y[3] = x[1]/x[0] + x[2]*math::sqrt(math::abs(x[3])) + math::abs(x[3] - x[0]);
+    y[3] = x[1]/(math::abs(x[0])+one) + x[2]*math::sqrt(math::abs(x[3])) + math::abs(x[3] - x[0]);
 
     // std::cout << "x = " << x << std::endl;
     //std::cout << "y = " << y << std::endl;
@@ -211,35 +228,42 @@ int main()
     exit(-1);
   }
 
-
-  // use sorted data instead
+  
+#if 0
+  // use SHA-256 HASH data instead
   {
-    data2.load("sort-data.ds");
+    data2.load("hash-data.ds");
 
     // remove preprocessings from data
-    data2.convert(0);
-    data2.convert(1);
+    //data2.convert(0);
+    //data2.convert(1);
 
     data.clear();
-    data.createCluster("input", 5);
-    data.createCluster("output", 5);
+    data.createCluster("input", 10);
+    data.createCluster("output", 10);
     
     for(unsigned int i=0;i<data2.size(0);i++){
       x = data2.access(0, i);
       y = data2.access(1, i);
 
+      x = x/255.0; // convert to [0,1] valued data!
+
       whiteice::math::convert(sx, x);
       whiteice::math::convert(sy, y);
 
-      data.add(0, sx);
-      data.add(1, sy);
+      // SWAP THE PROBLEM TO BE INVERSE PROBLEM! sha256->message
+      data.add(0, sy);
+      data.add(1, sx);
     }
 
-    data.downsampleAll(100);
-
-    std::cout << "data.size(0): " << data.size(0) << std::endl;
-    std::cout << "data.size(1): " << data.size(1) << std::endl;
+    data.downsampleAll(1000);
+    
   }
+#endif
+
+  
+  std::cout << "data.size(0): " << data.size(0) << std::endl;
+  std::cout << "data.size(1): " << data.size(1) << std::endl;
 
   //////////////////////////////////////////////////////////////////////
   // next DO NNGradDescent<> && nnetwork<> to actually learn the data.
@@ -311,6 +335,12 @@ int main()
       snet.exportdata(weights);
       snet.exportdata(w0);
 
+      if(BN){
+	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > datav;
+	data.getData(0, datav);
+
+	assert(snet.calculateBatchNorm(datav) == true);
+      }
       
       for(unsigned int i=0;i<data.size(0);i++){
 
@@ -330,7 +360,7 @@ int main()
 	    //for(unsigned int k=0;k<ej.size();k++)
 	    //  error += ninv*ej[k]*math::conj(ej[k]);
 
-	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0])); // ABSOLUTE VALUE
 	  }
 	  
 	  // this works with pureLinear non-linearity
@@ -406,22 +436,7 @@ int main()
 	  sumgrad += ninv*grad;
       }
 
-#if 0
-      const math::superresolution<math::blas_real<double>,
-				  math::modular<unsigned int> > alpha(0.50f); // was: 1e-3f
-      const double alphaf = 0.50f;    
-
-      math::vertex< math::superresolution<math::blas_real<double>,
-					  math::modular<unsigned int> > > regularizer;
-
-      regularizer = weights;
-
-      for(unsigned int j=0;j<regularizer.size();j++){
-	for(unsigned int k=0;k<regularizer[0].size();k++){
-	  regularizer[j][k] *= alphaf;
-	}
-      }
-#endif
+      
 
       auto abserror = error;
       abserror[0] = abs(abserror[0]);
@@ -465,7 +480,7 @@ int main()
 	    //for(unsigned int k=0;k<ej.size();k++)
 	    //  error += ninv*ej[k]*math::conj(ej[k]);
 
-	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0]))/err.size();
+	    error += ninv*math::sqrt(ej[0]*math::conj(ej[0])); // ABSOLUTE VALUE
 	  }
 	}
 
@@ -479,6 +494,7 @@ int main()
 	} 
 
 	bool go_worse = false;
+#if 1
 	unsigned int r = rng.rand() % 40;
 
 	if(errors.size() > 0){
@@ -487,11 +503,13 @@ int main()
 	    mean_error += e;
 	  mean_error /= errors.size();
 	  
-	  if(r == 0 &&
-	     abserror2[0].real() < 2.5*mean_error &&
-	     abserror2[0].real() < 1000.0)
+	  if((r == 0 &&
+	     abserror2[0].real() < 1.5*mean_error &&
+	     abserror2[0].real() < 100.0) ||
+	     (abserror2-orig_error)[0] < 1e-5)
 	    go_worse = true;
 	}
+#endif
 
 	if(abserror2[0].real() < abserror[0].real() || go_worse){
 	  // error becomes smaller => found new better solution
@@ -525,7 +543,7 @@ int main()
 		<< " (lrate: " << lratef << ")" 
 		<< std::endl;
 
-      if(lratef < 0.01) lratef = 0.01;
+      if(lratef < 0.01) lratef = sqrt(lratef);
 
       error = abserror;
       

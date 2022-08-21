@@ -999,6 +999,14 @@ namespace whiteice
 #endif
     }
 
+    
+    template <typename T>
+    void vertex<T>::ones() // vertex = [1 1 1 1 1..]
+    {
+      for(unsigned int i=0;i<dataSize;i++)
+	data[i] = T(1.0f);
+    }
+    
 
     template <typename T>
     void vertex<T>::hermite() 

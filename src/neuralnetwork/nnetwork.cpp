@@ -67,6 +67,8 @@ namespace whiteice
     // residual = false;
     residual = true; // ENABLES residual neural networks as the default.
 
+    batchnorm = false;
+
     randomize();
   }
   
@@ -85,11 +87,16 @@ namespace whiteice
     bpdata = nn.bpdata;
     W      = nn.W;
     b      = nn.b;
+    bn_mu  = nn.bn_mu;
+    bn_sigma = nn.bn_sigma;
+    
     nonlinearity = nn.nonlinearity;
     frozen = nn.frozen;
     retain_probability = nn.retain_probability;
     dropout = nn.dropout;
     residual = nn.residual;
+    batchnorm = nn.batchnorm;
+    
   }
   
   
@@ -148,6 +155,8 @@ namespace whiteice
     // residual = false;
     residual = true; // ENABLES residual neural networks as the default.
 
+    batchnorm = false;
+
     randomize();
   }
   
@@ -172,9 +181,12 @@ namespace whiteice
     retain_probability = nn.retain_probability;
     dropout = nn.dropout;
     residual = nn.residual;
+    batchnorm = nn.batchnorm;
     
     W      = nn.W;
     b      = nn.b;
+    bn_mu  = nn.bn_mu;
+    bn_sigma = nn.bn_sigma;
     bpdata = nn.bpdata;
 
     inputValues = nn.inputValues;
@@ -631,6 +643,7 @@ namespace whiteice
 			      const T EXTRA_SCALING)
   {
     // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
+    // 0.25 was used as default for 2 layers! (no problem)
     const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values
     
     if(type == 0){
@@ -1965,8 +1978,15 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
 
       const T value = T(1.0f) + whiteice::math::exp(k*in);
-      
-      return whiteice::math::log(T(1.0f) + whiteice::math::exp(k*in))/k;
+
+      T output = whiteice::math::log(T(1.0f) + whiteice::math::exp(k*in))/k;
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == sigmoid){
       // non-linearity motivated by restricted boltzman machines..
@@ -1976,7 +1996,13 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
       
       T output = T(1.0f) / (T(1.0f) + math::exp(-in));
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == stochasticSigmoid){
       // non-linearity motivated by restricted boltzman machines..
@@ -2002,8 +2028,13 @@ namespace whiteice
 
       T output_value;
       whiteice::math::convert(output_value, T(value));
-      
-      return output_value;
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output_value - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output_value;
+      }
     }
     else if(nonlinearity[layer] == tanh){
 
@@ -2018,7 +2049,12 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
       const T output = a*tanhbx;
 
-      return output;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh10){
 
@@ -2033,7 +2069,12 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
       const T output = a*tanhbx;
 
-      return output;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == halfLinear){
       // tanh(x) + 0.5x: from a research paper statistically
@@ -2043,7 +2084,14 @@ namespace whiteice
 	const T b = T(2.0f/3.0f);
 	
 	if(abs(input) > abs(T(+10.0f))){
-	  return a*input/abs(input) + T(0.5f)*a*b*input;
+	  T output = a*input/abs(input) + T(0.5f)*a*b*input;
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
 	}
 	
 	// for real valued data
@@ -2052,23 +2100,53 @@ namespace whiteice
 	
 	const T e2x = whiteice::math::exp(T(2.0f)*b*input);
 	const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
-	const T output = a*tanhbx;
-	
-	return (output + T(0.5f)*a*b*input);
+	T output = a*tanhbx;
+	output = (output + T(0.5f)*a*b*input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
       
     }
     else if(nonlinearity[layer] == pureLinear){
-      return input; // all layers/neurons are linear..
+      T output = input; // all layers/neurons are linear..
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
     }
     else if(nonlinearity[layer] == rectifier){
 
       if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
 	 typeid(T) == typeid(whiteice::math::blas_real<double>)){
-	if(input.first().real() < 0.0f)
-	  return T(RELUcoef*input.first().real());
-	else
-	  return T(input.first().real());
+	if(input.first().real() < 0.0f){
+	  T output = T(RELUcoef*input.first().real());
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else{
+	  T output = T(input.first().real());
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
       }
       else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
 	      typeid(T) == typeid(whiteice::math::blas_complex<double>))
@@ -2085,7 +2163,14 @@ namespace whiteice
 	  out.imag(RELUcoef*out.imag());
 	}
 
-	return T(out);
+	T output = T(out);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
 #if 1
       else if(typeid(T) == typeid(whiteice::math::superresolution<
@@ -2098,21 +2183,54 @@ namespace whiteice
 	// extension of ReLU to superresolutional numbers [apply ReLU to each dimension]
 	
 	T output = input;
-	
-	for(unsigned int i=0;i<1/*output.size()*/;i++){
+
+#if 1
+	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
 	  if(output[i].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
+#endif
 
-	return output;
+#if 0
+	if(input[0].real() < 0.0f){
+	  output = T(RELUcoef)*input;
+	}
+	else{
+	  //return input;
+	}
+#endif
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
 #endif
       else{ // superresolution class [almost linear because superresolution numbers are non-linear already]
 	if(input[0].real() < 0.0f){
 	  T output = T(RELUcoef)*input;
-	  return output;
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	  
 	}
-	else return input;
+	else{
+	  T output = input;
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	  
+	}
 	
       }
     }
@@ -2146,8 +2264,15 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
 
       const T divider = T(1.0f) + whiteice::math::exp(-k*in);
-      
-      return T(1.0f)/divider;
+
+      T output = T(1.0f)/divider;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
 	
     else if(nonlinearity[layer] == sigmoid){
@@ -2158,7 +2283,13 @@ namespace whiteice
 
       T output = T(1.0f) + math::exp(-in);
       output = math::exp(-in) / (output*output);
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == stochasticSigmoid){
       // FIXME: what is "correct" derivate here? I guess we should calculate E{g'(x)} or something..
@@ -2171,7 +2302,14 @@ namespace whiteice
       // non-linearity motivated by restricted boltzman machines..
       T output = T(1.0f) + math::exp(-in);
       output = math::exp(-in) / (output*output);
-      return output;
+
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh){
 
@@ -2190,8 +2328,14 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 
       T output = a*b*(T(1.0f) - tanhbx*tanhbx);
+
       
-      return output;
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh10){
 
@@ -2210,8 +2354,13 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 
       T output = a*b*(T(1.0f) - tanhbx*tanhbx);
-      
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == halfLinear){
 
@@ -2221,8 +2370,16 @@ namespace whiteice
 	const T a = T(1.7159f); // suggested by Haykin's neural network book (1999)
 	const T b = T(2.0f/3.0f);
 	
-	if(abs(input.first()).first() > abs(T(+10.0f)).first())
-	  return T(0.0f) + T(0.5f)*a*b;
+	if(abs(input.first()).first() > abs(T(+10.0f)).first()){
+	  T output = T(0.0f) + T(0.5f)*a*b;
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
 	
 	// for real valued data
 	//if(input > T(10.0)) return T(0.0) + T(0.5)*a*b;
@@ -2232,21 +2389,51 @@ namespace whiteice
 	const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 	
 	T output = a*b*(T(1.0f) - tanhbx*tanhbx);
+	output = (output + T(0.5f)*a*b);
+
 	
-	return (output + T(0.5f)*a*b);
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }      
     }
     else if(nonlinearity[layer] == pureLinear){
-      return T(1.0f); // all layers/neurons are linear..
+      T output = T(1.0f); // all layers/neurons are linear..
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == rectifier){
 
       if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
 	 typeid(T) == typeid(whiteice::math::blas_real<double>)){
-	if(input.first().real() < 0.0f)
-	  return T(RELUcoef);
-	else
-	  return T(1.00f);
+	if(input.first().real() < 0.0f){
+	  T output = T(RELUcoef);
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else{
+	  T output = T(1.00f);
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
       }
       else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
 	      typeid(T) == typeid(whiteice::math::blas_complex<double>)){
@@ -2271,98 +2458,54 @@ namespace whiteice
 	  out /= (input.first());
 	else
 	  out /= (input.first() + epsilon);
+
+	T output = T(out);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
 	
-	return T(out);
       }
       else{ // superresolution
 
 	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
 	// this should mean that derivate exists because we are only non-linear in real line
 
+#if 1
+	// WRONG but WORKS BETTER!
+	
 	auto output = input;
 
 	if(input[0].real() < 0.0f)
 	  output = T(RELUcoef);
 	else
 	  output = T(1.0f);
-       
-	
-#if 0
-	auto fx = input, fxh = input;
-	auto h  = input;
-
-	T ministep = T(1e-6);
-
-	for(unsigned int i=0;i<h.size();i++){
-	  h[i].real(1.0f);
-	  h[i].imag(1.0f);
-	}
-
-	fxh += ministep*h;
-	const auto delta = ministep*h; // division
-
-	for(unsigned int i=0;i<fx.size();i++){
-	  if(fx[i].real() < 0.0f)
-	    fx[i].real(RELUcoef*fx[i].real());
-
-	  if(fx[i].imag() < 0.0f)
-	    fx[i].imag(RELUcoef*fx[i].imag());
-
-	  if(fxh[i].real() < 0.0f)
-	    fxh[i].real(RELUcoef*fxh[i].real());
-
-	  if(fxh[i].imag() < 0.0f)
-	    fxh[i].imag(RELUcoef*fxh[i].imag());
-	}
-
-	auto output = (fxh - fx)/delta;
-#endif	
-
-#if 0
-	auto output = input;
-	
-	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
-	    output[i].real(RELUcoef);
-	  else
-	    output[i].real(1.0f);
-
-	  if(output[i].imag() < 0.0f)
-	    output[i].imag(RELUcoef);
-	  else
-	    output[i].imag(1.0f);
-	}
 #endif
 
 #if 0
-	auto output = input;
+	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
+	const double epsilon = 1e-100;
 	
-	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
-	    output[i].real(RELUcoef*output[i].real());
-
-	  if(output[i].imag() < 0.0f)
-	    output[i].imag(RELUcoef*output[i].imag());
-	}
+	T h;
 	
-	const T epsilon = T(1e-6);
-	const T SMALL = T(1e-9);
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	T output = (nonlin(input+h, layer, neuron) - nonlin(h, layer, neuron))/h;
+#endif
 
-	const T absinput = abs(input);
-	T sumabs = T(0.0f);
-
-	for(unsigned int i=0;i<absinput.size();i++)
-	  sumabs[0] += absinput[i];
-
-	if(abs(sumabs[0]) > abs(SMALL[0])){
-	  output /= input;
+	// return output;
+	
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
 	}
 	else{
-	  output /= (input + epsilon);
+	  return output;
 	}
-#endif
 	
-	return output;
       }
       
     }
@@ -2372,6 +2515,7 @@ namespace whiteice
 
     return T(0.0);
   }
+
 
 
   template <typename T> // non-linearity used in neural network
@@ -2719,7 +2863,7 @@ namespace whiteice
     return T(0.0);
   }
 
-  
+
   
   
   template <typename T>
@@ -4404,6 +4548,125 @@ namespace whiteice
   {
     return residual;
   }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // batch normalization
+
+  template <typename T> 
+  void nnetwork<T>::setBatchNorm(const bool bn)
+  {
+    this->batchnorm = bn;
+
+    if(bn){
+      bn_sigma.resize(b.size());
+      bn_mu.resize(b.size());
+
+      for(unsigned int i=0;i<b.size();i++){
+	bn_mu[i].resize(b[i].size());
+	bn_sigma[i].resize(b[i].size());
+
+	bn_mu[i].zero();
+	bn_sigma[i].ones();
+      }
+    }
+  }
+
+  template <typename T>
+  bool nnetwork<T>::getBatchNorm()
+  {
+    return batchnorm;
+  }
+
+  
+  template <typename T>
+  bool nnetwork<T>::calculateBatchNorm(const std::vector< math::vertex<T> >& data)
+  {
+    if(batchnorm == false) return false;
+    if(data.size() <= 2) return false;
+
+    // resets batch normalization constants
+    {
+      bn_sigma.resize(b.size());
+      bn_mu.resize(b.size());
+      
+      for(unsigned int i=0;i<b.size();i++){
+	bn_mu[i].resize(b[i].size());
+	bn_sigma[i].resize(b[i].size());
+	
+	bn_mu[i].zero();
+	bn_sigma[i].ones();
+      }
+    }
+    
+
+    // calculates batch normalization constants using data
+
+    std::vector< math::vertex<T> > u;
+
+    for(unsigned int j=1;j<W.size();j++){
+      u.clear();
+
+      // calculates outputs for the data
+      for(const auto& v : data){
+
+	auto state = v;
+
+	math::vertex<T> skipValue;
+
+	if(residual) skipValue = state;
+
+	for(unsigned int l=0;l<j;l++){
+	    
+	  if(residual && (l % 2) == 0 && l != 0 && W[l].ysize() == skipValue.size())
+	    state = W[l]*state + b[l] + skipValue;
+	  else
+	    state = W[l]*state + b[l];
+	  
+	  for(unsigned int i=0;i<state.size();i++){
+	    state[i] = nonlin(state[i], l, i);
+	  }
+	  
+	  if(residual && (l % 2) == 0 && l != 0)
+	    skipValue = state;
+	}
+
+	u.push_back(state);
+      }
+
+      // calculates new mean and standard deviations
+      auto& mu = bn_mu[j-1];
+      auto& sigma = bn_sigma[j-1];
+      
+      mu.zero();
+      sigma.zero();
+
+      for(const auto& v : u){
+	mu += v;
+
+	for(unsigned int i=0;i<v.size();i++)
+	  sigma[i] += v[i]*v[i];
+      }
+
+      mu /= T(u.size());
+      sigma /= T(u.size());
+
+      T epsilon;
+      epsilon.ones();
+      epsilon = epsilon*T(1e-3);
+
+      for(unsigned int i=0;i<mu.size();i++){
+	sigma[i] -= mu[i]*mu[i];
+	sigma[i] += epsilon;
+	sigma[i] = whiteice::math::sqrt(sigma[i]);
+      }
+
+      
+    }
+
+    return true; 
+  }
+
+  
 
   /////////////////////////////////////////////////////////////////////////////
   

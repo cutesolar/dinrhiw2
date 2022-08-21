@@ -339,6 +339,14 @@ namespace whiteice
     void setResidual(const bool residual = true);
 
     bool getResidual() const;
+
+    
+    // batch normalization
+    void setBatchNorm(const bool bn = true);
+
+    bool getBatchNorm();
+
+    bool calculateBatchNorm(const std::vector< math::vertex<T> >& data);
     
     ////////////////////////////////////////////////////////////
   public:
@@ -384,7 +392,7 @@ namespace whiteice
     
     //whiteice::RNG<T> rng; // [use global rng instead]
 
-    bool residual; // true if residual neural networks (skip every 2 layers) if used
+    bool residual; // true if residual neural networks (skip every 2 layers) is used
     
     // architecture (eg. 3-2-6) info
     std::vector<unsigned int> arch;
@@ -399,6 +407,11 @@ namespace whiteice
     // vec(nnetwork) = [vec(W1) vec(b1) .. vec(Wi) vec(bi) .. vec(Wn) vec(bn)]
     std::vector< math::matrix<T> > W;
     std::vector< math::vertex<T> > b;
+
+    bool batchnorm; // true if batch normalization is used 
+
+    // Batch Normalization (BN) parameters
+    std::vector< math::vertex<T> > bn_mu, bn_sigma; // mean and standard-deviation
 
     // backpropagation data
     std::vector< math::vertex<T> > bpdata; // array of input and local field values

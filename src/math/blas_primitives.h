@@ -263,6 +263,9 @@ namespace whiteice
 	  (*this) = value;
 	  return (*this);
 	}
+
+	inline void zero(){ this->c[0] = T(0.0f); }
+	inline void ones(){ this->c[0] = T(1.0f); }
 	
 	
 	template <typename A>
@@ -625,6 +628,9 @@ namespace whiteice
 	  (*this) = value;
 	  return (*this);
 	}
+
+	inline void zero(){ this->c[0] = T(0.0f); this->c[1] = T(0.0f); }
+	inline void ones(){ this->c[0] = T(1.0f); this->c[1] = T(1.0f); }
 	
 	template <typename A>
 	friend blas_complex<A> operator*(const A& s, const blas_complex<A>& r) ;

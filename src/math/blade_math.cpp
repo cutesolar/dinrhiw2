@@ -1017,19 +1017,28 @@ namespace whiteice
 
       for(unsigned int i=0;i<z.size();i++)
 	whiteice::math::convert(z[i], x[i]);
-
+      
       z.fft();
       
       for(unsigned int i=0;i<z.size();i++)
 	z[i] = whiteice::math::sqrt(z[i]);
-
+      
       z.inverse_fft();
-
+      
       whiteice::math::superresolution<T,S> result;
-
+      
       for(unsigned int i=0;i<z.size();i++)
 	whiteice::math::convert(result[i], z[i]);
-
+      
+      // fixes sign to be mostly +
+      unsigned int plusses = 0;
+      for(unsigned int i=0;i<result.size();i++)
+	if(real(result[i]) >= T(0.0f)) plusses++;
+      
+      // change sign if there are more negative signs => mostly positive signs
+      if(plusses < (result.size()/2)) 
+	result = -result;
+      
       return result;
       
       

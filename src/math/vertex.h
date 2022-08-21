@@ -120,7 +120,8 @@ namespace whiteice
       T norm(unsigned int i, unsigned int j) const ;      
       
       bool normalize() ; // length = 1
-      void zero() ; // vertex = 0;
+      void zero(); // vertex = 0;
+      void ones(); // vertex = [1 1 1 1 1..]
 
       // hermitean transpose of the vector
       void hermite() ;
