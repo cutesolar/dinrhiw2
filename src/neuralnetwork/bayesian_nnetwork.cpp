@@ -556,6 +556,8 @@ namespace whiteice
 #define FNN_NONLINEARITY_CFGSTR     "FNN_NONLINEARITY"
 #define FNN_FROZEN_CFGSTR           "FNN_FROZEN"
 #define FNN_RESIDUAL_CFGSTR         "FNN_RESIDUAL"
+#define FNN_BATCH_NORM_CFGSTR       "FNN_BATCHNORM"
+#define FNN_BN_DATA_CFGSTR          "FNN_BN_DATA"
   
   // stores and loads bayesian nnetwork to a text file
   // (saves all samples into files)
@@ -572,6 +574,7 @@ namespace whiteice
       std::vector<float> floats;
       std::vector<std::string> strings;
       bool residual = false;
+      bool batchnorm = false;
       
       if(configuration.load(filename) == false)
 	return false;
@@ -597,7 +600,7 @@ namespace whiteice
 	ints.clear();
       } 
       
-      if(versionid != 3600) // v3.6 datafile
+      if(versionid != 3700) // v3.7 datafile (3.7 adds batch norm data)
 	return false;
       
       std::vector<unsigned int> arch;
@@ -702,6 +705,17 @@ namespace whiteice
 	else return false;
       }
 
+
+      // gets batch norm information for nnetwork
+      {
+	data = configuration.accessName(FNN_BATCH_NORM_CFGSTR, 0);
+
+	if(data.size() != 1) return false;
+	if(data[0] == T(0.0f)) batchnorm = false;
+	else if(data[0] == T(1.0f)) batchnorm = true;
+	else return false;
+      }
+
       
       
       // reads number of samples information
@@ -751,6 +765,18 @@ namespace whiteice
 	    delete nets[j];
 	  return false;
 	}
+
+	if(batchnorm){
+	  nets[index]->setBatchNorm(true);
+	  
+	  w = configuration.accessName(FNN_BN_DATA_CFGSTR, index);
+	  
+	  if(nets[index]->importBNdata(w) == false){
+	    for(unsigned int j=0;j<=index;j++)
+	      delete nets[j];
+	    return false;
+	  }
+	}
 	
 	floats.clear();
       }
@@ -792,7 +818,7 @@ namespace whiteice
       // writes version information
       {
 	// version number = integer/1000
-	ints.push_back(3600); // 3.600
+	ints.push_back(3700); // 3.700 (3.7 adds batch norm data)
 
 	configuration.createCluster(FNN_VERSION_CFGSTR, ints.size());
 	data.resize(ints.size());
@@ -944,6 +970,53 @@ namespace whiteice
 	}
 
 	configuration.add(configuration.getCluster(FNN_RESIDUAL_CFGSTR), data);
+      }
+
+      // batch norm neural network information
+      {
+	configuration.createCluster(FNN_BATCH_NORM_CFGSTR, 1);
+	
+	data.resize(1);
+	if(nnets[0]->getBatchNorm()){
+	  data[0] = T(1.0f);
+	}
+	else{
+	  data[0] = T(0.0f);
+	}
+
+	configuration.add(configuration.getCluster(FNN_BATCH_NORM_CFGSTR), data);
+      }
+      
+      
+      if(nnets[0]->getBatchNorm()){
+	// weights: we just convert everything to a big vertex vector and write it
+	math::vertex<T> w;
+	if(nnets[0]->exportBNdata(w) == false)
+    	  return false;
+	
+	configuration.createCluster(FNN_BN_DATA_CFGSTR, w.size());
+	
+	for(unsigned int index=0;index<nnets.size();index++)
+	{
+	  // char buffer[80];
+	  math::vertex<T> w;
+	  
+	  if(nnets[index]->exportBNdata(w) == false)
+	    return false;
+	  
+	  configuration.add(configuration.getCluster(FNN_BN_DATA_CFGSTR), w);
+	  
+	}
+	
+      }
+      else{
+	configuration.createCluster(FNN_BN_DATA_CFGSTR, 1);
+
+	math::vertex<T> w;
+	w.resize(1);
+	w[0] = T(0.0f);
+
+	configuration.add(configuration.getCluster(FNN_BN_DATA_CFGSTR), w);
       }
       
       return configuration.save(filename);

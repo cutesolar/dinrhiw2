@@ -362,8 +362,11 @@ namespace whiteice
     
     T inv_nonlin(const T& input, unsigned int layer, unsigned int neuron) const ; // inverse of non-linearity used [not really used]
     
-  private:
+    // exports and imports batch norm parameters to/from vertex [used by save() and load()]
+    bool exportBNdata(math::vertex<T>& v) const;
+    bool importBNdata(const math::vertex<T>& v);
 
+  private:
       
     inline void gemv_gvadd(unsigned int yd, unsigned int xd, 
 			   const T* W, T* x, T* y,

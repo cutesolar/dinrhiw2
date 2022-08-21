@@ -3825,6 +3825,9 @@ namespace whiteice
 #define FNN_TIMESTAMP_CFGSTR        "FNN_TIMESTAMP"
 #define FNN_RETAIN_CFGSTR           "FNN_RETAIN"
 #define FNN_RESIDUAL_CFGSTR         "FNN_RESIDUAL"
+  
+#define FNN_BATCH_NORM_CFGSTR       "FNN_BATCHNORM"
+#define FNN_BN_DATA_CFGSTR          "FNN_BN_DATA"
 
   //////////////////////////////////////////////////////////////////////
 
@@ -3840,7 +3843,7 @@ namespace whiteice
 	if(conf.createCluster(FNN_VERSION_CFGSTR, 1) == false) return false;
 	// version number = float
 	data.resize(1);
-	data[0] = T(3.100); // version 3.1
+	data[0] = T(3.200); // version 3.2 with BN data
 	if(conf.add(0, data) == false) return false;
       }
 
@@ -3931,6 +3934,29 @@ namespace whiteice
 	if(conf.createCluster(FNN_RESIDUAL_CFGSTR, data.size()) == false) return false;
 	if(conf.add(6, data) == false) return false;
       }
+      
+      // saves boolean flags (batch norm flag for now)
+      {
+	data.resize(1);
+	data[0] = T((float)this->batchnorm);
+
+	if(conf.createCluster(FNN_BATCH_NORM_CFGSTR, data.size()) == false) return false;
+	if(conf.add(7, data) == false) return false;
+      }
+
+      // weights: we just convert everything to a big vertex vector and write it
+      {
+	if(batchnorm){
+	  if(this->exportBNdata(data) == false) return false;
+	}
+	else{
+	  data.resize(1);
+	  data[0] = T(0.0f);
+	}
+	
+	if(conf.createCluster(FNN_BN_DATA_CFGSTR, data.size()) == false) return false;
+	if(conf.add(8, data) == false) return false;
+      }
 
       // timestamp
       {
@@ -3942,7 +3968,7 @@ namespace whiteice
 
 	if(conf.createCluster(FNN_TIMESTAMP_CFGSTR, timestamp.length()) == false)
 	  return false;
-	if(conf.add(7, timestamp) == false) return false;
+	if(conf.add(9, timestamp) == false) return false;
       }
 
       // don't save dropout or retain probability
@@ -3981,6 +4007,8 @@ namespace whiteice
       std::vector<bool> conf_frozen;
       T conf_retain = T(1.0);
       bool conf_residual = false;
+      bool conf_batchnorm = false;
+      whiteice::math::vertex<T> conf_bn_data;
       
       if(conf.load(filename) == false) return false;
 
@@ -3993,13 +4021,13 @@ namespace whiteice
 
 	conf_data = conf.access(cluster, 0);
 	
-	if(conf_data[0] != T(3.100)) // only handles version 3.1 files
+	if(conf_data[0] != T(3.200)) // only handles version 3.2 files (3.2 has batch norm info)
 	  return false;
       }
 
-      // checks number of clusters (8 in version 3.0 files)
+      // checks number of clusters (10 in version 3.2 files)
       {
-	if(conf.getNumberOfClusters() != 8) return false;
+	if(conf.getNumberOfClusters() != 10) return false;
       }
 
       // gets architecture information
@@ -4114,6 +4142,34 @@ namespace whiteice
 	else return false;
       }
 
+      // gets boolean parameters (batchnorm flag)
+      {
+	const unsigned int cluster = conf.getCluster(FNN_BATCH_NORM_CFGSTR);
+	if(cluster >= conf.getNumberOfClusters()) return false;
+	if(conf.size(cluster) != 1) return false; 
+	if(conf.dimension(cluster) != 1)
+	  return false; // only single parameter saved
+	
+	conf_data = conf.access(cluster, 0);
+
+	if(conf_data.size() != 1) return false;
+
+	if(conf_data[0] == T(0.0f)) conf_batchnorm = false;
+	else if(conf_data[0] == T(1.0f)) conf_batchnorm = true;
+	else return false;
+      }
+
+      // gets batch norm parameters vector
+      {
+	const unsigned int cluster = conf.getCluster(FNN_BN_DATA_CFGSTR);
+	if(cluster >= conf.getNumberOfClusters()) return false;
+	if(conf.size(cluster) != 1) return false; 
+	if(conf.dimension(cluster) < 2) return false; // bad weight size
+	
+	conf_bn_data = conf.access(cluster, 0);
+      }
+      
+
       // don't check timestamp metainformation
 
       // parameters where successfully loaded from the disk.
@@ -4150,9 +4206,16 @@ namespace whiteice
 	this->nonlinearity = conf_nonlins;
 	this->retain_probability = conf_retain;
 	this->residual = conf_residual;
-	
+	this->batchnorm = conf_batchnorm;
+
 	if(this->importdata(conf_weights) == false) // this should never fail
 	  return false;
+	
+	if(this->batchnorm){
+	  this->setBatchNorm(true);
+	  if(this->importBNdata(conf_bn_data) == false) return false;
+	}
+	
 	
 	dropout.clear(); // dropout is disabled in saved networks
       }
@@ -4171,7 +4234,8 @@ namespace whiteice
   }
 
   
-  //////////////////////////////////////////////////////////////////////  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////
   
   
   // exports and imports neural network parameters to/from vertex
@@ -4305,6 +4369,78 @@ namespace whiteice
   unsigned int nnetwork<T>::exportdatasize() const {
     return size;
   }
+
+  ////////////////////////////////////////////////////////////////////////////
+  
+  // exports and imports bathc norm parameters to/from vertex
+  template <typename T>
+  bool nnetwork<T>::exportBNdata(math::vertex<T>& v) const
+  {
+    if(batchnorm == false) return false;
+    
+    unsigned int bnsize = 0;
+    
+    for(unsigned int i=0;i<bn_mu.size();i++)
+      bnsize += bn_mu[i].size();
+
+    for(unsigned int i=0;i<bn_sigma.size();i++)
+      bnsize += bn_sigma[i].size();
+    
+    v.resize(bnsize);
+
+    unsigned int index = 0;
+
+    for(unsigned int l=0;l<getLayers();l++){
+      if(bn_mu[l].exportData(&v[index]) == false)
+	return false;
+
+      index += bn_mu[l].size();
+
+      if(bn_sigma[l].exportData(&(v[index])) == false)
+	return false;
+
+      index += bn_sigma[l].size();
+    }
+
+    return true;
+  }
+
+
+  // exports and imports batch norm parameters to/from vertex
+  template <typename T>
+  bool nnetwork<T>::importBNdata(const math::vertex<T>& v)
+  {
+    if(batchnorm == false) return false;
+    
+    unsigned int bnsize = 0;
+    
+    for(unsigned int i=0;i<bn_mu.size();i++)
+      bnsize += bn_mu[i].size();
+
+    for(unsigned int i=0;i<bn_sigma.size();i++)
+      bnsize += bn_sigma[i].size();
+
+    if(bnsize != v.size()) return false;
+    
+    unsigned int index = 0;
+
+    for(unsigned int l=0;l<getLayers();l++){
+      if(bn_mu[l].importData(&v[index]) == false)
+	return false;
+
+      index += bn_mu[l].size();
+
+      if(bn_sigma[l].importData(&(v[index])) == false)
+	return false;
+
+      index += bn_sigma[l].size();
+    }
+
+    return true;
+  }
+
+  
+  
 
   ////////////////////////////////////////////////////////////////////////////
 
