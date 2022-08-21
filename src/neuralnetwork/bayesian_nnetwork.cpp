@@ -178,7 +178,109 @@ namespace whiteice
     
     return true;
   }
+  
+  template <typename T>
+  bool bayesian_nnetwork<T>::importSamples(const whiteice::nnetwork<T>& nn,
+					   const std::vector< math::vertex<T> >& weights,
+					   const std::vector< math::vertex<T> >& bndatas)
+  {
+    if(weights.size() <= 0) return false;
+    if(weights.size() != bndatas.size()) return false;
+    
+    std::vector< nnetwork<T>* > nnnets;
+    nnnets.resize(weights.size());
 
+    for(unsigned int i=0;i<nnnets.size();i++){
+      nnnets[i] = new nnetwork<T>(nn); // FIXME handle alloc that FAILs..
+
+      nnnets[i]->setBatchNorm(true);
+      
+      if(nnnets[i]->importdata(weights[i]) == false){
+	for(unsigned int j=0;j<=i;j++){
+	  delete nnnets[i];
+	  nnnets[i] = NULL;
+	}
+	
+	return false;
+      }
+
+      if(nnnets[i]->importBNdata(bndatas[i]) == false){
+	for(unsigned int j=0;j<=i;j++){
+	  delete nnnets[i];
+	  nnnets[i] = NULL;
+	}
+	
+	return false;
+      }
+      
+    }
+
+    // remove old data
+    for(unsigned int i=0;i<this->nnets.size();i++){
+      if(this->nnets[i]){
+	delete this->nnets[i];
+	this->nnets[i] = NULL;
+      }
+    }
+
+    nnets.clear();
+
+    this->nnets = nnnets; // copies new pointers over old data
+
+    return true;
+  }
+
+  template <typename T>
+  bool bayesian_nnetwork<T>::exportSamples(whiteice::nnetwork<T>& nn, 
+					   std::vector< math::vertex<T> >& weights,
+					   std::vector< math::vertex<T> >& bndatas,
+					   int latestN) const
+  {
+    if(nnets.size() <= 0) return false;
+    if(latestN > (signed)nnets.size()) return false;
+    if(latestN <= 0) latestN = nnets.size();
+
+    nn = (*nnets[0]);
+
+    weights.resize(latestN);
+    bndatas.resize(latestN);
+
+    for(unsigned int i=(nnets.size() - latestN);i<nnets.size();i++){
+      if(nnets[i]->exportdata(weights[i]) == false){
+	weights.clear();
+	bndatas.clear();
+	return false;
+      }
+
+      if(nnets[i]->exportBNdata(bndatas[i]) == false){
+	weights.clear();
+	bndatas.clear();
+	return false;
+      }
+    }
+    
+    return true;
+  }
+
+  
+  template <typename T>
+  bool bayesian_nnetwork<T>::exportNetworks(std::vector< whiteice::nnetwork<T>* >& nnlist,
+					    int latestN) const
+  {
+    if(nnets.size() <= 0) return false;
+    if(latestN > (signed)nnets.size()) return false;
+    if(latestN <= 0) latestN = nnets.size();
+
+    nnlist.resize(latestN);
+
+    for(unsigned int i=(nnets.size() - latestN);i<nnets.size();i++){
+      nnlist[i] = new whiteice::nnetwork<T>(*nnets[i]);
+    }
+    
+    return true;
+  }
+  
+  
   template <typename T>
   bool bayesian_nnetwork<T>::getArchitecture(std::vector<unsigned int>& arch) const
   {

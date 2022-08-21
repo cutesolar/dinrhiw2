@@ -35,11 +35,24 @@ namespace whiteice
 
     bool importSamples(const whiteice::nnetwork<T>& nn,
 		       const std::vector< math::vertex<T> >& weights);
+
+    bool importSamples(const whiteice::nnetwork<T>& nn,
+		       const std::vector< math::vertex<T> >& weights,
+		       const std::vector< math::vertex<T> >& bndatas);
+      
     bool importNetwork(const nnetwork<T>& net);
 
     bool exportSamples(whiteice::nnetwork<T>& nn, 
 		       std::vector< math::vertex<T> >& weights,
 		       int latestN = 0) const;
+
+    bool exportSamples(whiteice::nnetwork<T>& nn, 
+		       std::vector< math::vertex<T> >& weights,
+		       std::vector< math::vertex<T> >& bndatas,
+		       int latestN = 0) const;
+
+    bool exportNetworks(std::vector< whiteice::nnetwork<T>* >& nnlist,
+			int latestN = 0) const;
 
     const whiteice::nnetwork<T>& getNetwork() const {
       assert(nnets.size()>0); return (*(nnets[0]));

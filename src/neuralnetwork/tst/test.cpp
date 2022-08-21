@@ -176,18 +176,21 @@ int main()
   srand(seed);
   
   try{
-    //nnetwork_entropy_test();
-    nnetwork_kl_divergence_test();
+    // nnetwork_entropy_test();
+
+    // nnetwork_kl_divergence_test();
+
+    bayesian_nnetwork_test();    
     
     // nnetwork_test();
     
-    // simple_vae_test();
+    // simple_vae_test(); // FAILS FOR NOW??
 
     // nnetwork_gradient_value_test(); // gradient_value() calculation works
 
     // kmboosting_test();
 
-    /// recurrent_nnetwork_test();
+    // recurrent_nnetwork_test();
     
     // simple_tsne_test(); // FIXME: has bugs
 
@@ -227,7 +230,7 @@ int main()
     
     // mixture_nnetwork_test();
 
-    bayesian_nnetwork_test();    
+    
 
     
     // dbn_test();
@@ -5446,6 +5449,7 @@ void nnetwork_complex_test()
     
     nn = new nnetwork< math::blas_complex<float> >(arch);    
     nn->randomize();
+    nn->setBatchNorm(true);
 
     nnetwork< math::blas_complex<float> >* copy = new nnetwork< math::blas_complex<float> >(*nn);
     
@@ -5471,21 +5475,25 @@ void nnetwork_complex_test()
     }
 
     math::vertex< math::blas_complex<float> > p1, p2;
+    math::vertex< math::blas_complex<float> > b1, b2;
     
-    if(nn->exportdata(p1) == false || copy->exportdata(p2) == false){
+    if(nn->exportdata(p1) == false || copy->exportdata(p2) == false || 
+       nn->exportBNdata(b1) == false || copy->exportBNdata(b2) == false){
       std::cout << "nnetwork exportdata failed." << std::endl;
       delete nn;
       delete copy;
       return;
     }
     
-    math::vertex< math::blas_complex<float> > e = p1 - p2;
+    math::vertex< math::blas_complex<float> > e1 = p1 - p2;
+    math::vertex< math::blas_complex<float> > e2 = b1 - b2;
     
     std::cout << "p1 = " << p1 << std::endl;
     std::cout << "p2 = " << p2 << std::endl;
-    std::cout << "e  = " << e << std::endl;
+    std::cout << "e1 = " << e1 << std::endl;
+    std::cout << "e2 = " << e2 << std::endl;
 
-    if(abs(e.norm()) > 0.001f){
+    if(abs(e1.norm()) > 0.001f || abs(e2.norm()) > 0.001f){
       std::cout << "ERROR: save() & load() failed in nnetwork!" << std::endl;
       delete nn;
       delete copy;
@@ -5938,7 +5946,7 @@ void nnetwork_test()
     std::cout << std::flush;
     
     nnetwork<>* nn;
-    math::vertex<> p1, p2;
+    math::vertex<> p1, p2, b1, b2;
     
     std::vector<unsigned int> arch;
     arch.push_back(18);
@@ -5952,6 +5960,7 @@ void nnetwork_test()
     
     nn = new nnetwork<>(arch);    
     nn->randomize();
+    nn->setBatchNorm(true);
 
     nn->exportdata(p1);
     std::cout << "nn weights after random init = " << p1 << std::endl;
@@ -5982,20 +5991,23 @@ void nnetwork_test()
     
 
     
-    if(nn->exportdata(p1) == false || copy->exportdata(p2) == false){
+    if(nn->exportdata(p1) == false || copy->exportdata(p2) == false ||
+       nn->exportBNdata(b1) == false || copy->exportBNdata(b2) == false){
       std::cout << "nnetwork exportdata failed." << std::endl;
       delete nn;
       delete copy;
       return;
     }
     
-    math::vertex<> e = p1 - p2;
+    math::vertex<> e1 = p1 - p2;
+    math::vertex<> e2 = b1 - b2;
     
     std::cout << "p1 = " << p1 << std::endl;
     std::cout << "p2 = " << p2 << std::endl;
-    std::cout << "e  = " << e << std::endl;
+    std::cout << "e1 = " << e1 << std::endl;
+    std::cout << "e2 = " << e2 << std::endl;
     
-    if(e.norm() > 0.001f){
+    if(e1.norm() > 0.001f || e2.norm() > 0.001f){
       std::cout << "ERROR: save() & load() failed in nnetwork!" << std::endl;
       delete nn;
       delete copy;
@@ -6769,9 +6781,12 @@ void bayesian_nnetwork_test()
     nn = new nnetwork<>(arch);
     nn->setNonlinearity(nl);
     nn->setFrozen(frozenLayers);
+    nn->setBatchNorm(true);
 
     std::vector< math::vertex<> > weights;
+    std::vector< math::vertex<> > bndatas;
     weights.resize(10);
+    bndatas.resize(10);
 
     for(unsigned int i=0;i<weights.size();i++){
       nn->randomize();
@@ -6779,9 +6794,14 @@ void bayesian_nnetwork_test()
 	std::cout << "ERROR: NN exportdata failed.\n";
 	return;
       }
+
+      if(nn->exportBNdata(bndatas[i]) == false){
+	std::cout << "ERROR: NN exportdata failed.\n";
+	return;
+      }
     }
     
-    if(bnn.importSamples(*nn, weights) == false){
+    if(bnn.importSamples(*nn, weights, bndatas) == false){
       std::cout << "ERROR: BNN importSamples() failed" << std::endl;
       return;
     }
@@ -6800,12 +6820,13 @@ void bayesian_nnetwork_test()
 
     std::vector<unsigned int> loaded_arch;
     std::vector< math::vertex<> > loaded_weights;
+    std::vector< math::vertex<> > loaded_bndatas;
     std::vector< nnetwork<>::nonLinearity > loaded_nl;
     std::vector<bool> loadedFrozenLayers;
 
     whiteice::nnetwork<> loaded_nn;
 
-    if(bnn2.exportSamples(loaded_nn, loaded_weights) == false){
+    if(bnn2.exportSamples(loaded_nn, loaded_weights, loaded_bndatas) == false){
       std::cout << "ERROR: BNN exportSamples() failed" << std::endl;
       return;
     }
@@ -6848,13 +6869,13 @@ void bayesian_nnetwork_test()
     }
 
     if(frozenLayers.size() != loadedFrozenLayers.size()){
-      std::cout << "ERROR: BNN frozen layers settings mismatch (1)" << std::endl;
+      std::cout << "ERROR: BNN frozen layers settings mismatch (1)." << std::endl;
       return;
     }
 
     for(unsigned int l=0;l<frozenLayers.size();l++){
       if(loadedFrozenLayers[l] != frozenLayers[l]){
-	std::cout << "ERROR: BNN frozen settings mismatch (2)" << std::endl;
+	std::cout << "ERROR: BNN frozen settings mismatch (2)." << std::endl;
 	return;
       }
     }
@@ -6863,7 +6884,17 @@ void bayesian_nnetwork_test()
       math::vertex<> e = loaded_weights[i] - weights[i];
 
       if(e.norm() > 0.01f){
-	std::cout << "ERROR: BNN weights value mismatch" << std::endl;
+	std::cout << "ERROR: BNN weights value mismatch." << std::endl;
+	return;
+      }
+    }
+
+
+    for(unsigned int i=0;i<loaded_bndatas.size();i++){
+      math::vertex<> e = loaded_bndatas[i] - bndatas[i];
+
+      if(e.norm() > 0.01f){
+	std::cout << "ERROR: BNN BN data vector value mismatch." << std::endl;
 	return;
       }
     }

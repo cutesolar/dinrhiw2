@@ -4164,12 +4164,12 @@ namespace whiteice
 	const unsigned int cluster = conf.getCluster(FNN_BN_DATA_CFGSTR);
 	if(cluster >= conf.getNumberOfClusters()) return false;
 	if(conf.size(cluster) != 1) return false; 
-	if(conf.dimension(cluster) < 2) return false; // bad weight size
+	if(conf.dimension(cluster) < 1) return false; // bad weight size
 	
 	conf_bn_data = conf.access(cluster, 0);
       }
-      
 
+      
       // don't check timestamp metainformation
 
       // parameters where successfully loaded from the disk.
