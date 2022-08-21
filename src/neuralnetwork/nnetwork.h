@@ -356,8 +356,8 @@ namespace whiteice
     inline T Dnonlin(const T& input, unsigned int layer, unsigned int neuron) const ; // derivate of non-linearity used in neural network
 
     // without dropout heuristic
-    inline T nonlin(const T& input, unsigned int layer) const;
-    inline T Dnonlin(const T& input, unsigned int layer) const;
+    inline T nonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const;
+    inline T Dnonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const;
 
     
     T inv_nonlin(const T& input, unsigned int layer, unsigned int neuron) const ; // inverse of non-linearity used [not really used]

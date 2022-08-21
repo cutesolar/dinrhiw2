@@ -524,7 +524,7 @@ namespace whiteice
       
       for(unsigned int i=0;i<state.size();i++){
 	if(dropout[l][i]) state[i] = T(0.0f);
-	else state[i] = nonlin(state[i], l);
+	else state[i] = nonlin_nodropout(state[i], l, i);
       }
       
       if(residual && (l % 2) == 0 && l != 0)
@@ -620,7 +620,7 @@ namespace whiteice
       
       for(unsigned int i=0;i<state.size();i++){
 	if(dropout[l][i]) state[i] = T(0.0f);
-	else state[i] = nonlin(state[i], l);
+	else state[i] = nonlin_nodropout(state[i], l, i);
       }
       
       if(residual && ((l % 2) == 0) && l != 0){
@@ -1434,7 +1434,7 @@ namespace whiteice
     for(unsigned int i=0;i<lgrad.size();i++){
       if(complex_data) lgrad[i].conj();
 
-      lgrad[i] *= Dnonlin(bpdata[layer+1][i], layer);
+      lgrad[i] *= Dnonlin_nodropout(bpdata[layer+1][i], layer, i);
     }
 
     grad.resize(size);
@@ -1461,7 +1461,7 @@ namespace whiteice
 	    for(unsigned int x=0;x<W[layer].xsize();x++){
 	      
 	      if(dropout[layer-1][x]) grad[gindex] = T(0.0f);
-	      else grad[gindex] = lgrad[y] * nonlin(bpdata[layer][x], layer-1);
+	      else grad[gindex] = lgrad[y] * nonlin_nodropout(bpdata[layer][x], layer-1, x);
 	      
 	      gindex++;
 	    }
@@ -1793,7 +1793,7 @@ namespace whiteice
 
       for(unsigned int i=0;i<getNeurons(l);i++){
 	if(dropout[l][i]) x[i] = T(0.0f);
-	else x[i] = nonlin(x[i], l);
+	else x[i] = nonlin_nodropout(x[i], l, i);
       }
 
       if(residual && (l % 2) == 0 && l != 0)
@@ -1813,7 +1813,7 @@ namespace whiteice
     lgrad.zero();
 
     for(unsigned int i=0;i<output_size();i++){
-      lgrad(i,i) = Dnonlin(v[l][i], l);
+      lgrad(i,i) = Dnonlin_nodropout(v[l][i], l, i);
     }
 
     unsigned int index = gradient_size();
@@ -1841,7 +1841,7 @@ namespace whiteice
 	    //#pragma omp parallel for schedule(auto)
 	    for(unsigned int k=0;k<grad.ysize();k++){
 	      if(dropout[l-1][i]) grad(k, iindex) = T(0.0f);
-	      else grad(k, iindex) = lgrad(k,j)*nonlin(v[l-1][i], l-1);
+	      else grad(k, iindex) = lgrad(k,j)*nonlin_nodropout(v[l-1][i], l-1, i);
 	    }
 	    
 	  }
@@ -1880,7 +1880,7 @@ namespace whiteice
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<lgrad.xsize();i++){
-	  const auto Df = dropout[l-1][i] ? T(0.0f) : Dnonlin(v[l-1][i], l-1);
+	  const auto Df = dropout[l-1][i] ? T(0.0f) : Dnonlin_nodropout(v[l-1][i], l-1, i);
 	  for(unsigned int j=0;j<lgrad.ysize();j++){
 	    lgrad(j,i) = temp(j,i)*Df;
 	  }
@@ -1894,7 +1894,7 @@ namespace whiteice
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<lgrad.xsize();i++){
-	  const auto Df = dropout[l-1][i] ? T(0.0f) : Dnonlin(v[l-1][i], l-1);
+	  const auto Df = dropout[l-1][i] ? T(0.0f) : Dnonlin_nodropout(v[l-1][i], l-1, i);
 	  for(unsigned int j=0;j<lgrad.ysize();j++){
 	    lgrad(j,i) = temp(j,i)*Df;
 	  }
@@ -2519,7 +2519,7 @@ namespace whiteice
 
 
   template <typename T> // non-linearity used in neural network
-  inline T nnetwork<T>::nonlin(const T& input, unsigned int layer) const 
+  inline T nnetwork<T>::nonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const 
   {
     // no dropout checking
     
@@ -2533,8 +2533,16 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
 
       const T value = T(1.0f) + whiteice::math::exp(k*in);
+
+      T output = whiteice::math::log(T(1.0f) + whiteice::math::exp(k*in))/k;
       
-      return whiteice::math::log(T(1.0f) + whiteice::math::exp(k*in))/k;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
     }
     else if(nonlinearity[layer] == sigmoid){
       // non-linearity motivated by restricted boltzman machines..
@@ -2544,7 +2552,13 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
       
       T output = T(1.0f) / (T(1.0f) + math::exp(-in));
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == stochasticSigmoid){
       // non-linearity motivated by restricted boltzman machines..
@@ -2568,10 +2582,15 @@ namespace whiteice
       if(abs(math::imag(out)) > rand_imag.first()){ value.imag(1.0f); }
       else{ value.imag(0.0f); }
 
-      T output_value;
-      whiteice::math::convert(output_value, T(value));
+      T output;
+      whiteice::math::convert(output, T(value));
       
-      return output_value;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh){
 
@@ -2586,7 +2605,12 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
       const T output = a*tanhbx;
 
-      return output;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh10){
 
@@ -2601,7 +2625,12 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
       const T output = a*tanhbx;
 
-      return output;
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == halfLinear){
       // tanh(x) + 0.5x: from a research paper statistically
@@ -2620,23 +2649,52 @@ namespace whiteice
 	
 	const T e2x = whiteice::math::exp(T(2.0f)*b*input);
 	const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
-	const T output = a*tanhbx;
+	T output = a*tanhbx;
+	output = (output + T(0.5f)*a*b*input);
 	
-	return (output + T(0.5f)*a*b*input);
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
       
     }
     else if(nonlinearity[layer] == pureLinear){
-      return input; // all layers/neurons are linear..
+      T output = input; // all layers/neurons are linear..
+      
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == rectifier){
 
       if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
 	 typeid(T) == typeid(whiteice::math::blas_real<double>)){
-	if(input.first().real() < 0.0f)
-	  return T(RELUcoef*input.first().real());
-	else
-	  return T(input.first().real());
+	if(input.first().real() < 0.0f){
+	  T output = T(RELUcoef*input.first().real());
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else{
+	  T output = T(input.first().real());
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
       }
       else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
 	      typeid(T) == typeid(whiteice::math::blas_complex<double>)){
@@ -2652,10 +2710,31 @@ namespace whiteice
 	  out.first().imag(RELUcoef*out.imag());
 	}
 
-	return T(out);
+	T output = T(out);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
       else{ // superresolution class
+	T output = input;
 
+	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
+	  if(output[i].real() < 0.0f)
+	    output[i] *= RELUcoef;
+	}
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+	
+#if 0
 	if(input[0].real() < 0.0f){
 	  const T output = T(RELUcoef)*input;
 	  return output;
@@ -2663,7 +2742,7 @@ namespace whiteice
 	else{
 	  return input;
 	}
-
+#endif
 	
       }
     }
@@ -2676,7 +2755,7 @@ namespace whiteice
   
   
   template <typename T> // derivate of non-linearity used in neural network
-  inline T nnetwork<T>::Dnonlin(const T& input, unsigned int layer) const 
+  inline T nnetwork<T>::Dnonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const 
   {
     // no dropout checking
 
@@ -2691,8 +2770,15 @@ namespace whiteice
 	in = abs(T(+20.0f))*in/abs(in);
 
       const T divider = T(1.0f) + whiteice::math::exp(-k*in);
+
+      T output = T(1.0f)/divider;
       
-      return T(1.0f)/divider;
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
 	
     else if(nonlinearity[layer] == sigmoid){
@@ -2703,7 +2789,13 @@ namespace whiteice
 
       T output = T(1.0f) + math::exp(-in);
       output = math::exp(-in) / (output*output);
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == stochasticSigmoid){
       // FIXME: what is "correct" derivate here? I guess we should calculate E{g'(x)} or something..
@@ -2716,7 +2808,14 @@ namespace whiteice
       // non-linearity motivated by restricted boltzman machines..
       T output = T(1.0f) + math::exp(-in);
       output = math::exp(-in) / (output*output);
-      return output;
+      
+      
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh){
 
@@ -2736,8 +2835,13 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 
       T output = a*b*(T(1.0f) - tanhbx*tanhbx);
-      
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == tanh10){
 
@@ -2757,8 +2861,13 @@ namespace whiteice
       const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 
       T output = a*b*(T(1.0f) - tanhbx*tanhbx);
-      
-      return output;
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == halfLinear){
 
@@ -2768,8 +2877,16 @@ namespace whiteice
 	const T a = T(1.7159f); // suggested by Haykin's neural network book (1999)
 	const T b = T(2.0f/3.0f);
 	
-	if(abs(input.first()).first() > abs(T(+10.0f)).first())
-	  return T(0.0f) + T(0.5f)*a*b;
+	if(abs(input.first()).first() > abs(T(+10.0f)).first()){
+	  T output = T(0.0f) + T(0.5f)*a*b;
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
 	
 	// for real valued data
 	//if(input > T(10.0)) return T(0.0) + T(0.5)*a*b;
@@ -2779,21 +2896,51 @@ namespace whiteice
 	const T tanhbx = (e2x - T(1.0f)) / (e2x + T(1.0f));
 	
 	T output = a*b*(T(1.0f) - tanhbx*tanhbx);
-	
-	return (output + T(0.5f)*a*b);
+	output = (output + T(0.5f)*a*b);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }      
     }
     else if(nonlinearity[layer] == pureLinear){
-      return T(1.0f); // all layers/neurons are linear..
+      T output = T(1.0f); // all layers/neurons are linear..
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
     }
     else if(nonlinearity[layer] == rectifier){
 
       if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
 	 typeid(T) == typeid(whiteice::math::blas_real<double>)){
-	if(input.first().real() < 0.0f)
-	  return T(RELUcoef);
-	else
-	  return T(1.00f);
+	if(input.first().real() < 0.0f){
+	  T output = T(RELUcoef);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else{
+	  T output = T(1.00f);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	  
+	}
       }
       else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
 	      typeid(T) == typeid(whiteice::math::blas_complex<double>)){
@@ -2818,8 +2965,16 @@ namespace whiteice
 	else
 	  out /= (input.first() + epsilon);
 
-	return T(out);
+	T output = T(out);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
+#if 0
       else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<float>,
 				  whiteice::math::modular<unsigned int> >) ||
@@ -2834,10 +2989,11 @@ namespace whiteice
 	for(unsigned int i=0;i<h.size();i++)
 	  h[i] = epsilon;
 	
-	const T output = (nonlin(input+h, layer) - nonlin(h, layer))/h;
+	const T output = (nonlin_nodropout(input+h, layer, neuron) - nonlin_nodropout(h, layer, neuron))/h;
 
 	return output;
       }
+#endif
       else{ // superresolution
 
 	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
@@ -2852,7 +3008,13 @@ namespace whiteice
 	  output = T(1.0f);
 	}
 	
-	return output;
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+	
       }
       
     }
@@ -3053,14 +3215,14 @@ namespace whiteice
 	for(unsigned int j=0;j<hgrad.ysize();j++){
 	  for(unsigned int i=0;i<hgrad.xsize();i++){
 	    if(dropout[l][j]) hgrad(j,i) = T(0.0f);
-	    else hgrad(j,i) *= Dnonlin(x[j], l);
+	    else hgrad(j,i) *= Dnonlin_nodropout(x[j], l, j);
 	  }
 	}
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<x.size();i++){
 	  if(dropout[l][i]) x[i] = T(0.0f);
-	  else x[i] = nonlin(x[i], l);
+	  else x[i] = nonlin_nodropout(x[i], l, i);
 	}
 	
 	grad = hgrad*grad;
@@ -3072,14 +3234,14 @@ namespace whiteice
 	for(unsigned int j=0;j<hgrad.ysize();j++){
 	  for(unsigned int i=0;i<hgrad.xsize();i++){
 	    if(dropout[l][j]) hgrad(j,i) = T(0.0f);
-	    else hgrad(j,i) *= Dnonlin(x[j], l);
+	    else hgrad(j,i) *= Dnonlin_nodropout(x[j], l, j);
 	  }
 	}
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<x.size();i++){
 	  if(dropout[l][i]) x[i] = T(0.0f);
-	  else x[i] = nonlin(x[i], l);
+	  else x[i] = nonlin_nodropout(x[i], l, i);
 	}
 
 	grad = hgrad*grad;
@@ -3092,14 +3254,14 @@ namespace whiteice
 	for(unsigned int j=0;j<hgrad.ysize();j++){
 	  for(unsigned int i=0;i<hgrad.xsize();i++){
 	    if(dropout[l][j]) hgrad(j,i) = T(0.0f);
-	    else hgrad(j,i) *= Dnonlin(x[j], l);
+	    else hgrad(j,i) *= Dnonlin_nodropout(x[j], l, j);
 	  }
 	}
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<x.size();i++){
 	  if(dropout[l][i]) x[i] = T(0.0f);
-	  else x[i] = nonlin(x[i], l);
+	  else x[i] = nonlin_nodropout(x[i], l, i);
 	}
 	
       }
