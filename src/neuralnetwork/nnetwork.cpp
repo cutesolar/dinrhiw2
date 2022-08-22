@@ -2487,14 +2487,15 @@ namespace whiteice
 
 #if 0
 	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
-	const double epsilon = 1e-100;
+	const double epsilon = 1e-30;
 	
 	T h;
 	
 	for(unsigned int i=0;i<h.size();i++)
 	  h[i] = epsilon;
 	
-	T output = (nonlin(input+h, layer, neuron) - nonlin(h, layer, neuron))/h;
+	T output = (nonlin(input+h, layer, neuron) -
+		    nonlin(input, layer, neuron))/h;
 #endif
 
 	// return output;
@@ -2999,6 +3000,9 @@ namespace whiteice
 	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
 	// this should mean that derivate exists because we are only non-linear in real line
 
+#if 1
+	// WRONG BUT WORKS BETTER!
+	
 	T output;
 
 	if(input[0].real() < 0.0f){
@@ -3007,6 +3011,20 @@ namespace whiteice
 	else{
 	  output = T(1.0f);
 	}
+#endif
+	
+#if 0
+	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
+	const double epsilon = 1e-30;
+	
+	T h;
+	
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	T output = (nonlin_nodropout(input+h, layer, neuron) -
+		    nonlin_nodropout(input, layer, neuron))/h;
+#endif
 	
 	if(batchnorm && layer != getLayers()-1){
 	  return output/bn_sigma[layer][neuron];
