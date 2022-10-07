@@ -13,6 +13,9 @@
 #include "NNGradDescent.h"
 #include "RNG.h"
 
+#include "SGD_snet.h" // superresolutional optimizer
+
+
 
 #undef __STRICT_ANSI__
 #include <fenv.h>
@@ -265,6 +268,54 @@ int main()
   std::cout << "data.size(0): " << data.size(0) << std::endl;
   std::cout << "data.size(1): " << data.size(1) << std::endl;
 
+
+  // SGD gradient descent code for superresolution..
+  if(1){
+
+    std::cout << "Stochastic Gradient Descent (SGD) optimizer for superreso neural networks."
+	      << std::endl;
+    
+    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, false);
+
+    math::superresolution<math::blas_real<double>,
+			  math::modular<unsigned int> > lrate(0.001f); // WAS: 0.05
+
+    math::vertex< math::superresolution<math::blas_real<double>,
+					math::modular<unsigned int> > > w0;
+
+    snet.exportdata(w0);
+
+    sgd.setAdaptiveLRate(false);
+    sgd.setSmartConvergenceCheck(false);
+
+    if(sgd.minimize(w0, lrate, 0, 1000) == false){
+      printf("ERROR: Cannot start SGD optimizer.\n");
+      return -1;
+    }
+
+    int old_iters = -1;
+
+    while(sgd.isRunning()){
+      sleep(1);
+
+      unsigned int iters = 0;
+
+      math::superresolution<math::blas_real<double>,
+			    math::modular<unsigned int> > error;
+
+      sgd.getSolutionStatistics(error, iters);
+
+      if(((int)iters) > old_iters){
+	std::cout << "iter: " << iters << " error: " << error[0] << std::endl;
+	old_iters = (int)iters;
+      }
+    }
+
+    return 0;
+  }
+  
+  
+
   //////////////////////////////////////////////////////////////////////
   // next DO NNGradDescent<> && nnetwork<> to actually learn the data.
   if(0)
@@ -339,7 +390,7 @@ int main()
       snet.exportdata(w0);
 
 
-      if(BN){
+      if(BN){ // batch normalization code..
 	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > datav;
 	batchdata.getData(0, datav);
 
@@ -465,7 +516,7 @@ int main()
 	
       }
 
-      
+      // std::cout << "sumgrad = " << sumgrad << std::endl;
 
       auto abserror = error;
       abserror[0] = abs(abserror[0]);

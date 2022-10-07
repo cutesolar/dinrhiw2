@@ -1,5 +1,5 @@
 /*
- * L-BFGS optimizer for full *recurrent* neural networks
+ * Stochastic Gradient Descent optimizer for full *recurrent* neural networks
  * 
  * dataset must have input x, output y clusters and episodes cluster
  * where we define i and end j for which training episodes end (input(i)..input(j-1))

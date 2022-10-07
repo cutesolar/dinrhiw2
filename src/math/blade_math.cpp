@@ -749,6 +749,9 @@ namespace whiteice
     }
 
 
+    
+
+
     bool convert(float& B,
 		 const superresolution< blas_complex<float>, modular<unsigned int> > A)
     {
@@ -987,7 +990,27 @@ namespace whiteice
       return true;
     }
 
+    bool convert(superresolution< blas_complex<double>, modular<unsigned int> >& B,
+		 const superresolution< blas_real<float>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = A[i].c[0];
+	B[i].c[1] = 0.0;
+      }
 
+      return true;
+    }
+    
+    bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
+		 const superresolution< blas_real<double>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i].c[0] = (float)(A[i].c[0]);
+	B[i].c[1] = 0.0f;
+      }
+
+      return true;
+    }
     
 
     bool convert(float& B, const complex<float> A){ B = (float)std::real(A); return true; }
@@ -1029,7 +1052,8 @@ namespace whiteice
       
       for(unsigned int i=0;i<z.size();i++)
 	whiteice::math::convert(result[i], z[i]);
-      
+
+#if 0
       // fixes sign to be mostly +
       unsigned int plusses = 0;
       for(unsigned int i=0;i<result.size();i++)
@@ -1038,6 +1062,15 @@ namespace whiteice
       // change sign if there are more negative signs => mostly positive signs
       if(plusses < (result.size()/2)) 
 	result = -result;
+#endif
+
+      // if most of the weight mass is negative we change the sign!
+      T mass = T(0.0f);
+      for(unsigned int i=0;i<result.size();i++)
+	mass += real(result[i]);
+
+      if(real(mass) < 0.0f)
+	result = -result; 
       
       return result;
       

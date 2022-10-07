@@ -304,10 +304,12 @@ namespace whiteice
 	grad = Ugrad(x);
 
 	x -= lrate*grad; // minimization
-
+	
 	heuristics(x);
 
 	const T ynew = getError(x);
+
+	// std::cout << "SGD::getError() = " << ynew << std::endl;
 
 	if(ynew < real_besty){
 	  no_improve_iterations = 0;
@@ -336,8 +338,8 @@ namespace whiteice
 	    lrate *= T(0.5f);
 	}
 
-	if(lrate < T(1e-20))
-	  lrate = T(1e-20);
+	if(lrate < T(1e-30))
+	  lrate = T(1e-30);
 	else if(lrate > T(1e20))
 	  lrate = T(1e20);
 
@@ -348,9 +350,9 @@ namespace whiteice
 	if(smart_convergence_check){
 	  errors.push_back(real_besty); // NOTE: getError() must return >= 0.0 values
 
-	  if(errors.size() >= 30){
+	  if(errors.size() >= 50){
 	  
-	    while(errors.size() > 30)
+	    while(errors.size() > 50)
 	      errors.pop_front();
 
 	    // make all values to be positive
@@ -382,7 +384,7 @@ namespace whiteice
 	    if(m > T(0.0f))
 	      r = s/m;
 
-	    if(r <= T(0.005f)){ // convergence: 0.1% st.dev. when compared to mean.
+	    if(r[0] <= T(0.005f)[0]){ // convergence: 0.1% st.dev. when compared to mean.
 	      solution_converged = true;
 	      break;
 	    }
@@ -413,10 +415,21 @@ namespace whiteice
     
     // explicit template instantations
     
-    template class SGD< float >;
-    template class SGD< double >;
+    //template class SGD< float >;
+    //template class SGD< double >;
+    
     template class SGD< blas_real<float> >;
     template class SGD< blas_real<double> >;    
+
+    
+    template class SGD< superresolution<
+			  blas_real<float>,
+			  modular<unsigned int> > >;
+    
+    template class SGD< superresolution<
+			  blas_real<double>,
+			  modular<unsigned int> > >;
+    
     
   };
 };

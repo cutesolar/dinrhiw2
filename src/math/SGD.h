@@ -12,6 +12,8 @@
 #include "vertex.h"
 #include "RNG.h"
 
+#include "superresolution.h"
+
 
 #ifndef __whiteice__SGD_h
 #define __whiteice__SGD_h
@@ -132,11 +134,18 @@ namespace whiteice
   namespace math
   {
     
-  extern template class SGD< float >;
-  extern template class SGD< double >;
-  extern template class SGD< blas_real<float> >;
-  extern template class SGD< blas_real<double> >;
+    //extern template class SGD< float >;
+    //extern template class SGD< double >;
+    extern template class SGD< blas_real<float> >;
+    extern template class SGD< blas_real<double> >;
+
+    extern template class SGD< superresolution<
+				 blas_real<float>,
+				 modular<unsigned int> > >;
     
+    extern template class SGD< superresolution<
+				 blas_real<double>,
+				 modular<unsigned int> > >;
   };
 };
 
