@@ -358,8 +358,10 @@ namespace whiteice
 	    this->bestx = x;
 	  }
 
+#if 0
 	  if(lrate[0] < 0.01)
 	    lrate[0] = sqrt(lrate[0]);
+#endif
 	}
 	else{
 	  if(mistep_go_worse > 0 && ynew[0] < (T(1.50)*besty)[0]){
@@ -368,7 +370,8 @@ namespace whiteice
 	    worse = true; 
 	  }
 	  else{
-	    x = old_x; // don't go to worse directions..
+	    if(ynew[0] > (T(1.50)*besty)[0])
+	      x = old_x; // don't go to worse directions..
 	  }
 	}
 

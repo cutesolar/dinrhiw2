@@ -101,7 +101,7 @@ int main()
   arch.push_back(20);
   arch.push_back(4);
 
-  
+  /*
   arch.clear();
   arch.push_back(4);
   arch.push_back(50);
@@ -109,7 +109,7 @@ int main()
   arch.push_back(50);
   arch.push_back(50);
   arch.push_back(4);
-  
+  */
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
   // rectifier don't work!!!
@@ -282,7 +282,7 @@ int main()
     whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit);
 
     math::superresolution<math::blas_real<double>,
-			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001
+			  math::modular<unsigned int> > lrate(0.0001f); // WAS: 0.0001, 0.01
 
     math::vertex< math::superresolution<math::blas_real<double>,
 					math::modular<unsigned int> > > w0;
