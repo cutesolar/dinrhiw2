@@ -292,7 +292,10 @@ namespace whiteice
       vertex<T> x(bestx);
       T real_besty = besty;
 
-      // T current_lrate = lrate;
+      const T lrate0 = lrate;
+      T mistep_lrate = lrate;
+      bool use_mistep_lrate = false;
+      int mistep_go_worse = 0;
       
       // stops if given number of iterations has passed or no improvements in N iters
       // or if instructed to stop. Additionally, in the loop there is convergence check
@@ -303,7 +306,33 @@ namespace whiteice
       {
 	grad = Ugrad(x);
 
-	x -= lrate*grad; // minimization
+	auto old_x = x;
+
+	auto lratef = lrate;
+
+	if(use_mistep_lrate){
+	  use_mistep_lrate = false;
+	  // x -= mistep_lrate*grad; // minimization
+
+	  lratef = mistep_lrate;
+
+	  //std::cout << "lrate = " << mistep_lrate << std::endl;
+	}
+	else{
+	  // x -= lrate*grad; // minimization
+
+	  //std::cout << "lrate = " << lrate << std::endl;
+	}
+
+	auto delta_grad = grad;
+
+	for(unsigned int j=0;j<grad.size();j++){
+	  for(unsigned int k=0;k<grad[0].size();k++){
+	    delta_grad[j][k] *= lratef[0];
+	  }
+	}
+
+	x -= delta_grad; 
 	
 	heuristics(x);
 
@@ -311,37 +340,76 @@ namespace whiteice
 
 	// std::cout << "SGD::getError() = " << ynew << std::endl;
 
-	if(ynew < real_besty){
+	if(ynew[0] < real_besty[0]){
 	  no_improve_iterations = 0;
 	}
 	else{
 	  no_improve_iterations++;
 	}
 	
-	if(ynew < besty || keepWorse){
+
+	bool worse = false;
+	
+	if(ynew[0] < besty[0] || keepWorse){
 	  {
 	    std::lock_guard<std::mutex> lock(solution_mutex);
 	    
 	    this->besty = ynew;
 	    this->bestx = x;
 	  }
+
+	  if(lrate[0] < 0.01)
+	    lrate[0] = sqrt(lrate[0]);
+	}
+	else{
+	  if(mistep_go_worse > 0 && ynew[0] < (T(1.50)*besty)[0]){
+	    // go worse direction [just once]
+	    mistep_go_worse--;
+	    worse = true; 
+	  }
+	  else{
+	    x = old_x; // don't go to worse directions..
+	  }
 	}
 
-	if(ynew < real_besty){ // results improved
+	if(ynew[0] < real_besty[0]){ // results improved
 	  real_besty = ynew;
 	  
-	  if(adaptive_lrate)
-	    lrate *= T(1.25f);
+	  if(adaptive_lrate) // increase learning rate by 10%
+	    lrate *= T(1.10f);
 	}
-	else{ // result didn't improve
-	  if(adaptive_lrate)
-	    lrate *= T(0.5f);
-	}
+	else{ // result didn't improve, quickly reduce learning rate by 50%
+	  if(adaptive_lrate){
+	    if(worse == false) lrate *= T(0.5f);
+	    else lrate *= T(1.10f); // go to worse direction so increase still lrate
 
-	if(lrate < T(1e-30))
-	  lrate = T(1e-30);
-	else if(lrate > T(1e20))
-	  lrate = T(1e20);
+	  }
+	}
+	
+	
+	
+	if(lrate[0] < T(1e-10)[0]){
+	  // lrate = T(1e-10);
+
+	  // resets LRATE and goes to worse direction
+	  T e = T(0.0f);
+	  e = T(0.35)*T(rng.uniform()) + T(0.15);
+	  
+	  mistep_lrate[0] = pow(lrate[0], e[0]);
+	  
+	  use_mistep_lrate = true;
+	  std::cout << "MISTEP LRATE: " << mistep_lrate << std::endl;
+	  lrate[0] = mistep_lrate[0];
+	  mistep_go_worse = 1;
+
+	  if((rng.rand()%100) < 10){ // 10% probability to reset x 
+	    x = bestx; // resets x too [don't work in practice]
+	    std::cout << "RESET X" << std::endl;
+	  }
+	}
+	else if(lrate > T(1e10)){
+	  lrate = T(1e10);
+	}
 
 	iterations++;
 

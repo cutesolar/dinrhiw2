@@ -101,7 +101,7 @@ int main()
   arch.push_back(20);
   arch.push_back(4);
 
-  /*
+  
   arch.clear();
   arch.push_back(4);
   arch.push_back(50);
@@ -109,7 +109,7 @@ int main()
   arch.push_back(50);
   arch.push_back(50);
   arch.push_back(4);
-  */
+  
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
   // rectifier don't work!!!
@@ -120,14 +120,16 @@ int main()
 
   net.randomize();
   snet.randomize();
-  net.setResidual(true);
-  snet.setResidual(true);
+  net.setResidual(false); // was: true
+  snet.setResidual(false);
 
   const bool BN = false; // batch normalization (on/off)
 
   if(BN){
     net.setBatchNorm(true);
     snet.setBatchNorm(true);
+
+    std::cout << "Enabling BatchNorm(alization) between neural network layers.." << std::endl;
   }
   
 
@@ -156,7 +158,7 @@ int main()
   math::vertex< math::blas_real<double> > x, y;
   
   
-  const unsigned int NUMDATAPOINTS = 1000; // was: 1000, 100 for testing purposes
+  const unsigned int NUMDATAPOINTS = 100; // was: 1000, 100 for testing purposes
 
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
 
@@ -274,21 +276,23 @@ int main()
 
     std::cout << "Stochastic Gradient Descent (SGD) optimizer for superreso neural networks."
 	      << std::endl;
+
+    const bool overfit = true;
     
-    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, false);
+    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit);
 
     math::superresolution<math::blas_real<double>,
-			  math::modular<unsigned int> > lrate(0.001f); // WAS: 0.05
+			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001
 
     math::vertex< math::superresolution<math::blas_real<double>,
 					math::modular<unsigned int> > > w0;
 
     snet.exportdata(w0);
 
-    sgd.setAdaptiveLRate(false);
-    sgd.setSmartConvergenceCheck(false);
+    sgd.setAdaptiveLRate(true); // was: false [adaptive don't work]
+    sgd.setSmartConvergenceCheck(false); // [too easy to stop for convergence]
 
-    if(sgd.minimize(w0, lrate, 0, 1000) == false){
+    if(sgd.minimize(w0, lrate, 0, 1000) == false){ // was: 200
       printf("ERROR: Cannot start SGD optimizer.\n");
       return -1;
     }
@@ -310,6 +314,8 @@ int main()
 	old_iters = (int)iters;
       }
     }
+
+    printf("SGD optimizer stopped.\n"); 
 
     return 0;
   }

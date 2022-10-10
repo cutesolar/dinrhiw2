@@ -3,6 +3,9 @@
 
 using namespace whiteice::math;
 
+// Batch Normalization dataset size
+#define BN_SIZE 1000
+
 namespace whiteice
 {
 
@@ -86,6 +89,34 @@ namespace whiteice
 
       whiteice::nnetwork< superresolution<T, modular<unsigned int> > > nnet(this->net);
       nnet.importdata(x);
+
+      
+      // batch normalization
+      if(nnet.getBatchNorm() && dtest.size(0) > 0){
+	// TODO: get only random 1000 data points and use only them
+	std::vector< math::vertex< math::superresolution< T, math::modular<unsigned int> > > > sdata;
+	std::vector< math::vertex<T> > data;
+	math::vertex< math::superresolution< T, math::modular<unsigned int> > > s;
+
+	// dtest.getData(0, data);
+
+	for(unsigned int i=0;i<BN_SIZE;i++){
+	  const unsigned int index = rng.rand() % dtest.size(0);
+	  data.push_back(dtest.access(0,index));
+	}
+	
+	s.resize(data[0].size());
+	
+	for(const auto& d : data){
+	  for(unsigned int i=0;i<d.size();i++)
+	    whiteice::math::convert(s[i],d[i]);
+	  
+	  sdata.push_back(s);
+	}
+	
+	assert(nnet.calculateBatchNorm(sdata) == true);
+      }
+      
       
 #pragma omp parallel shared(e)
       {
@@ -111,8 +142,10 @@ namespace whiteice
 	    
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
-	    
-	    threaded_error += math::sqrt(ej[0]*math::conj(ej[0])); // ABSOLUTE VALUE
+
+	    //for(unsigned int k=0;k<ej.size();k++)
+	    const unsigned int k = 0;
+	    threaded_error += math::sqrt(ej[k]*math::conj(ej[k])); // ABSOLUTE VALUE
 	  }
 	}
 	
@@ -141,6 +174,33 @@ namespace whiteice
     { 
       whiteice::nnetwork< superresolution<T, modular<unsigned int> > > nnet(this->net);
       nnet.importdata(x);
+
+      // batch normalization
+      if(nnet.getBatchNorm() && dtrain.size(0) > 0){
+	// TODO: get only random 1000 data points and use only them
+	std::vector< math::vertex< math::superresolution< T, math::modular<unsigned int> > > > sdata;
+	std::vector< math::vertex<T> > data;
+	math::vertex< math::superresolution< T, math::modular<unsigned int> > > s;
+	
+	// dtrain.getData(0, data);
+
+	for(unsigned int i=0;i<BN_SIZE;i++){
+	  const unsigned int index = rng.rand() % dtrain.size(0);
+	  data.push_back(dtrain.access(0,index));
+	}
+	
+	s.resize(data[0].size());
+	
+	for(const auto& d : data){
+	  for(unsigned int i=0;i<d.size();i++)
+	    whiteice::math::convert(s[i],d[i]);
+	  
+	  sdata.push_back(s);
+	}
+	
+	assert(nnet.calculateBatchNorm(sdata) == true);
+      }
+      
       
 #pragma omp parallel shared(e)
       {
@@ -166,8 +226,11 @@ namespace whiteice
 	    
 	  for(unsigned int j=0;j<err.size();j++){
 	    const auto& ej = err[j];
+
+	    //for(unsigned int k=0;k<ej.size();k++)
+	    const unsigned int k = 0;
+	    threaded_error += math::sqrt(ej[k]*math::conj(ej[k])); // ABSOLUTE VALUE
 	    
-	    threaded_error += math::sqrt(ej[0]*math::conj(ej[0])); // ABSOLUTE VALUE
 	  }
 	}
 	
@@ -205,6 +268,34 @@ namespace whiteice
     whiteice::nnetwork< superresolution<T, modular<unsigned int> > > snet(this->net);
     snet.importdata(x);
 
+    // batch normalization
+    if(snet.getBatchNorm() && dtrain.size(0) > 0){
+      // TODO: get only random 1000 data points and use only them
+      std::vector< math::vertex< math::superresolution< T, math::modular<unsigned int> > > > sdata;
+      std::vector< math::vertex<T> > data;
+      math::vertex< math::superresolution< T, math::modular<unsigned int> > > s;
+      
+      // dtrain.getData(0, data);
+      
+      for(unsigned int i=0;i<BN_SIZE;i++){
+	const unsigned int index = rng.rand() % dtrain.size(0);
+	data.push_back(dtrain.access(0,index));
+      }
+      
+      
+      s.resize(data[0].size());
+
+      for(const auto& d : data){
+	for(unsigned int i=0;i<d.size();i++)
+	  whiteice::math::convert(s[i],d[i]);
+
+	sdata.push_back(s);
+      }
+      
+      assert(snet.calculateBatchNorm(sdata) == true);
+    }
+
+    
     math::vertex< math::superresolution<T,
 					math::modular<unsigned int> > > sumgrad;
 
@@ -229,6 +320,16 @@ namespace whiteice
       
       threaded_grad.resize(snet.exportdatasize());
       threaded_grad.zero();
+
+      math::matrix< math::superresolution<T,
+					  math::modular<unsigned int> > > DF;
+      
+      math::matrix< math::superresolution<math::blas_complex<double>,
+					  math::modular<unsigned int> > > cDF;
+
+      math::vertex<
+	math::superresolution< math::blas_complex<double>,
+			       math::modular<unsigned int> > > ce, cerr;
       
 #pragma omp for nowait
       for(unsigned int i=0;i<dtrain.size(0);i++){
@@ -243,22 +344,10 @@ namespace whiteice
 	  snet.calculate(sx, err);
 	  err -= sy;
 	  
-	  
-	  // this works with pureLinear non-linearity
-	  math::matrix< math::superresolution<T,
-					      math::modular<unsigned int> > > DF;
-	  
-	  math::matrix< math::superresolution<math::blas_complex<double>,
-					      math::modular<unsigned int> > > cDF;
-	  
 	  snet.jacobian(sx, DF);
 	  cDF.resize(DF.ysize(), DF.xsize());
 	  
 	  // circular convolution in F-domain
-	  
-	  math::vertex<
-	    math::superresolution< math::blas_complex<double>,
-				   math::modular<unsigned int> > > ce, cerr;
 	  
 	  for(unsigned int j=0;j<DF.ysize();j++){
 	    for(unsigned int i=0;i<DF.xsize();i++){
@@ -334,15 +423,17 @@ namespace whiteice
   bool SGD_snet<T>::heuristics
   (math::vertex< superresolution<T, modular<unsigned int> > >& x) const
   {
+#if 0
     // box-values
-    // don't allow values larger than 10^2
+    // don't allow values larger than 10^4
     
     for(unsigned int i=0;i<x.size();i++){
       for(unsigned int k=0;k<x[i].size();k++){
-	if(x[i][k] > T(1e2)) x[i][k] = T(1e2);
-	else if(x[i][k] < T(-1e2)) x[i][k] = T(-1e2);
+	if(x[i][k] > T(1e4)) x[i][k] = T(1e4);
+	else if(x[i][k] < T(-1e4)) x[i][k] = T(-1e4);
       }
     }
+#endif
     
     return true;
   }
