@@ -626,7 +626,7 @@ namespace whiteice
   {
     if(index >= clusters.size())
       throw std::out_of_range("cluster index too big");
-    
+
     data = clusters[index].data;
     
     return true;
@@ -713,6 +713,14 @@ namespace whiteice
 #else
     fp = (FILE*)fopen(filename.c_str(), "rb");
 #endif
+
+    unsigned int NUMBER_SIZE = 1;
+    
+    {
+      T value = T(0.0f);
+      NUMBER_SIZE = value.size();
+    }
+    
     
     if(fp == 0) return false;
     if(feof(fp) || ferror(fp))
@@ -837,6 +845,7 @@ namespace whiteice
       unsigned int data_dimension = 0;
       unsigned int flags = 0;
       float d32_softmax = 0.0f;
+
       
       // reads basic cluster information
       
@@ -884,13 +893,14 @@ namespace whiteice
       //////////////////////////////////////////////////////////////////////
       // reads cluster statistics
 
-      float* buffer = (float*)calloc(2*clusters[i].data_dimension, 4);
+      float* buffer = (float*)calloc(2*clusters[i].data_dimension*NUMBER_SIZE, 4);
       
       if(flags & 0x01){
 	clusters[i].mean.resize(clusters[i].data_dimension);
 	clusters[i].variance.resize(clusters[i].data_dimension);
 	
-	if(fread(buffer, 4, 2*clusters[i].mean.size(), fp) != 2*clusters[i].mean.size())
+	if(fread(buffer, 4, 2*clusters[i].mean.size()*NUMBER_SIZE, fp) !=
+	   2*clusters[i].mean.size()*NUMBER_SIZE)
 	{
 	  clusters.resize(0);
 	  fclose(fp);
@@ -900,17 +910,21 @@ namespace whiteice
 	
 	
 	for(unsigned int j=0;j<clusters[i].mean.size();j++){
-	  if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
-	    whiteice::math::convert(clusters[i].mean[j], buffer[2*j]);
-	  }
-	  else{ // complex number (two values per number)
-	    auto value = whiteice::math::blas_complex<double>(buffer[2*j],buffer[2*j+1]);
-	    whiteice::math::convert(clusters[i].mean[j], value);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
+	      whiteice::math::convert(clusters[i].mean[j][k], buffer[2*j*NUMBER_SIZE+k]);
+	    }
+	    else{ // complex number (two values per number)
+	      auto value = whiteice::math::blas_complex<double>(buffer[2*j*NUMBER_SIZE+k],
+								buffer[2*j*NUMBER_SIZE+k+1]);
+	      whiteice::math::convert(clusters[i].mean[j][k], value);
+	    }
 	  }
 	}
 	
 	
-	if(fread(buffer, 4, 2*clusters[i].variance.size(), fp) != 2*clusters[i].variance.size())
+	if(fread(buffer, 4, 2*clusters[i].variance.size()*NUMBER_SIZE, fp) !=
+	   2*clusters[i].variance.size()*NUMBER_SIZE)
 	{
 	  clusters.resize(0);
 	  fclose(fp);
@@ -919,12 +933,15 @@ namespace whiteice
 	}
 	
 	for(unsigned int j=0;j<clusters[i].variance.size();j++){
-	  if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
-	    whiteice::math::convert(clusters[i].variance[j], buffer[2*j]);
-	  }
-	  else{ // complex number (two values per number)
-	    auto value = whiteice::math::blas_complex<double>(buffer[2*j],buffer[2*j+1]);
-	    whiteice::math::convert(clusters[i].variance[j], value);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
+	      whiteice::math::convert(clusters[i].variance[j][k], buffer[2*j*NUMBER_SIZE+k]);
+	    }
+	    else{ // complex number (two values per number)
+	      auto value = whiteice::math::blas_complex<double>(buffer[2*j*NUMBER_SIZE+k],
+								buffer[2*j*NUMBER_SIZE+k+1]);
+	      whiteice::math::convert(clusters[i].variance[j][k], value);
+	    }
 	  }
 	}
       }
@@ -935,7 +952,7 @@ namespace whiteice
 	
 	for(unsigned int a=0;a<data_dimension;a++){
 	  
-	  if(fread(buffer, 4, 2*data_dimension, fp) != 2*data_dimension){
+	  if(fread(buffer, 4, 2*data_dimension*NUMBER_SIZE, fp) != 2*data_dimension*NUMBER_SIZE){
 	    clusters.resize(0);
 	    fclose(fp);
 	    free(buffer);
@@ -943,12 +960,15 @@ namespace whiteice
 	  }
 	  
 	  for(unsigned int b=0;b<data_dimension;b++){
-	    if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
-	      whiteice::math::convert(clusters[i].Rxx(a,b), buffer[2*b]);
-	    }
-	    else{ // complex number (two values per number)
-	      auto value = whiteice::math::blas_complex<double>(buffer[2*b],buffer[2*b+1]);
-	      whiteice::math::convert(clusters[i].Rxx(a,b), value);
+	    for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	      if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
+		whiteice::math::convert(clusters[i].Rxx(a,b)[k], buffer[2*b*NUMBER_SIZE+k]);
+	      }
+	      else{ // complex number (two values per number)
+		auto value = whiteice::math::blas_complex<double>(buffer[2*b*NUMBER_SIZE+k],
+								  buffer[2*b*NUMBER_SIZE+k+1]);
+		whiteice::math::convert(clusters[i].Rxx(a,b)[k], value);
+	      }
 	    }
 	  }
 	}
@@ -998,7 +1018,7 @@ namespace whiteice
 	
 	for(unsigned int a=0;a<data_dimension;a++){
 	  
-	  if(fread(buffer, 4, 2*data_dimension, fp) != 2*data_dimension){
+	  if(fread(buffer, 4, 2*data_dimension*NUMBER_SIZE, fp) != 2*data_dimension*NUMBER_SIZE){
 	    clusters.resize(0);
 	    fclose(fp);
 	    free(buffer);
@@ -1006,12 +1026,15 @@ namespace whiteice
 	  }
 	  
 	  for(unsigned int b=0;b<data_dimension;b++){
-	    if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
-	      whiteice::math::convert(clusters[i].ICA(a,b), buffer[2*b]);
-	    }
-	    else{ // complex number (two values per number)
-	      auto value = whiteice::math::blas_complex<double>(buffer[2*b],buffer[2*b+1]);
-	      whiteice::math::convert(clusters[i].ICA(a,b), value);
+	    for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	      if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
+		whiteice::math::convert(clusters[i].ICA(a,b)[k], buffer[2*b*NUMBER_SIZE+k]);
+	      }
+	      else{ // complex number (two values per number)
+		auto value = whiteice::math::blas_complex<double>(buffer[2*b*NUMBER_SIZE+k],
+								  buffer[2*b*NUMBER_SIZE+k+1]);
+		whiteice::math::convert(clusters[i].ICA(a,b)[k], value);
+	      }
 	    }
 	  }
 	}
@@ -1028,7 +1051,8 @@ namespace whiteice
       
       for(unsigned int a=0;a<clusters[i].data.size();a++){
 	
-	if(fread(buffer, 4, 2*clusters[i].data_dimension, fp) != 2*clusters[i].data_dimension)
+	if(fread(buffer, 4, 2*clusters[i].data_dimension*NUMBER_SIZE, fp) !=
+	   2*clusters[i].data_dimension*NUMBER_SIZE)
 	{
 	  clusters.resize(0);
 	  fclose(fp);
@@ -1038,12 +1062,15 @@ namespace whiteice
 	
 	clusters[i].data[a].resize(data_dimension);
 	for(unsigned int b=0;b<data_dimension;b++){
-	  if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
-	    whiteice::math::convert(clusters[i].data[a][b], buffer[2*b]);
-	  }
-	  else{ // complex number (two values per number)
-	    auto value = whiteice::math::blas_complex<double>(buffer[2*b],buffer[2*b+1]);
-	    whiteice::math::convert(clusters[i].data[a][b], value);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    if(sizeof(abs(T(0.0f))) == sizeof(T(0.0f))){ // single value per number (real)
+	      whiteice::math::convert(clusters[i].data[a][b][k], buffer[2*b*NUMBER_SIZE+k]);
+	    }
+	    else{ // complex number (two values per number)
+	      auto value = whiteice::math::blas_complex<double>(buffer[2*b*NUMBER_SIZE+k],
+								buffer[2*b*NUMBER_SIZE+k+1]);
+	      whiteice::math::convert(clusters[i].data[a][b][k], value);
+	    }
 	  }
 	}
       }
@@ -1259,9 +1286,15 @@ namespace whiteice
 
       //////////////////////////////////////////////////////////////////////
       // writes cluster statistics
+
+      unsigned int NUMBER_SIZE = 1;
+
+      {
+	T value = T(0.0f);
+	NUMBER_SIZE = value.size();
+      }
       
-      
-      float* buffer = (float*)calloc(4, 2*clusters[i].data_dimension);
+      float* buffer = (float*)calloc(4, 2*clusters[i].data_dimension*NUMBER_SIZE);
 
       if(buffer == 0){
 	fclose(fp);
@@ -1272,14 +1305,17 @@ namespace whiteice
       
       if(flags & 0x01){
 	for(unsigned int j=0;j<clusters[i].mean.size();j++){
-	  auto realpart = math::real(clusters[i].mean[j]);
-	  auto imagpart = math::imag(clusters[i].mean[j]);
-	  
-	  math::convert(buffer[2*j+0], realpart);
-	  math::convert(buffer[2*j+1], imagpart);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    auto realpart = math::real(clusters[i].mean[j][k]);
+	    auto imagpart = math::imag(clusters[i].mean[j][k]);
+	    
+	    math::convert(buffer[2*j*NUMBER_SIZE+k+0], realpart);
+	    math::convert(buffer[2*j*NUMBER_SIZE+k+1], imagpart);
+	  }
 	}
 	
-	if(fwrite(buffer, 4, 2*clusters[i].mean.size(), fp) != 2*clusters[i].mean.size())
+	if(fwrite(buffer, 4, 2*clusters[i].mean.size()*NUMBER_SIZE, fp) !=
+	   2*clusters[i].mean.size()*NUMBER_SIZE)
 	  {
 	    fclose(fp);
 	    remove(filename.c_str());
@@ -1289,14 +1325,17 @@ namespace whiteice
 	
 	
 	for(unsigned int j=0;j<clusters[i].variance.size();j++){
-	  auto realpart = math::real(clusters[i].variance[j]);
-	  auto imagpart = math::imag(clusters[i].variance[j]);
-	  
-	  math::convert(buffer[2*j+0], realpart);
-	  math::convert(buffer[2*j+1], imagpart);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    auto realpart = math::real(clusters[i].variance[j][k]);
+	    auto imagpart = math::imag(clusters[i].variance[j][k]);
+	    
+	    math::convert(buffer[2*j*NUMBER_SIZE+k+0], realpart);
+	    math::convert(buffer[2*j*NUMBER_SIZE+k+1], imagpart);
+	  }
 	}
 	
-	if(fwrite(buffer, 4, 2*clusters[i].variance.size(), fp) != 2*clusters[i].variance.size())
+	if(fwrite(buffer, 4, 2*clusters[i].variance.size()*NUMBER_SIZE, fp) !=
+	   2*clusters[i].variance.size()*NUMBER_SIZE)
 	{
 	  remove(filename.c_str());
 	  fclose(fp);
@@ -1310,14 +1349,16 @@ namespace whiteice
 	for(unsigned int a=0;a<data_dimension;a++){
 	  
 	  for(unsigned int b=0;b<data_dimension;b++){
-	    auto realpart = math::real(clusters[i].Rxx(a,b));
-	    auto imagpart = math::imag(clusters[i].Rxx(a,b));
-	    
-	    math::convert(buffer[2*b+0], realpart);
-	    math::convert(buffer[2*b+1], imagpart);
+	    for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	      auto realpart = math::real(clusters[i].Rxx(a,b)[k]);
+	      auto imagpart = math::imag(clusters[i].Rxx(a,b)[k]);
+	      
+	      math::convert(buffer[2*b*NUMBER_SIZE+k+0], realpart);
+	      math::convert(buffer[2*b*NUMBER_SIZE+k+1], imagpart);
+	    }
 	  }
-	  
-	  if(fwrite(buffer, 4, 2*data_dimension, fp) != 2*data_dimension){
+
+	  if(fwrite(buffer, 4, 2*data_dimension*NUMBER_SIZE, fp) != 2*data_dimension*NUMBER_SIZE){
 	    remove(filename.c_str());
 	    fclose(fp);
 	    free(buffer);
@@ -1331,14 +1372,16 @@ namespace whiteice
 	for(unsigned int a=0;a<data_dimension;a++){
 	  
 	  for(unsigned int b=0;b<data_dimension;b++){
-	    auto realpart = math::real(clusters[i].ICA(a,b));
-	    auto imagpart = math::imag(clusters[i].ICA(a,b));
-	    
-	    math::convert(buffer[2*b+0], realpart);
-	    math::convert(buffer[2*b+1], imagpart);
+	    for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	      auto realpart = math::real(clusters[i].ICA(a,b)[k]);
+	      auto imagpart = math::imag(clusters[i].ICA(a,b)[k]);
+	      
+	      math::convert(buffer[2*b*NUMBER_SIZE+k+0], realpart);
+	      math::convert(buffer[2*b*NUMBER_SIZE+k+1], imagpart);
+	    }
 	  }
-	  
-	  if(fwrite(buffer, 4, 2*data_dimension, fp) != 2*data_dimension){
+
+	  if(fwrite(buffer, 4, 2*data_dimension*NUMBER_SIZE, fp) != 2*data_dimension*NUMBER_SIZE){
 	    remove(filename.c_str());
 	    fclose(fp);
 	    free(buffer);
@@ -1354,14 +1397,16 @@ namespace whiteice
       for(unsigned int a=0;a<clusters[i].data.size();a++){
 	
 	for(unsigned int b=0;b<data_dimension;b++){
-	  auto realpart = math::real(clusters[i].data[a][b]);
-	  auto imagpart = math::imag(clusters[i].data[a][b]);
-	  
-	  math::convert(buffer[2*b+0], realpart);
-	  math::convert(buffer[2*b+1], imagpart);
+	  for(unsigned int k=0;k<NUMBER_SIZE;k++){
+	    auto realpart = math::real(clusters[i].data[a][b][k]);
+	    auto imagpart = math::imag(clusters[i].data[a][b][k]);
+	    
+	    math::convert(buffer[2*b*NUMBER_SIZE+k+0], realpart);
+	    math::convert(buffer[2*b*NUMBER_SIZE+k+1], imagpart);
+	  }
 	}
 	
-	if(fwrite(buffer, 4, 2*data_dimension, fp) != 2*data_dimension){
+	if(fwrite(buffer, 4, 2*data_dimension*NUMBER_SIZE, fp) != 2*data_dimension*NUMBER_SIZE){
 	  remove(filename.c_str());
 	  fclose(fp);
 	  free(buffer);
@@ -1389,6 +1434,8 @@ namespace whiteice
 			       const bool writeHeaders,
 			       const bool raw) const 
   {
+    // FIXME exportAscii don't work with superresolutional numbers!
+    
     if(filename.length() <= 0)
       return false;
 
@@ -1478,6 +1525,8 @@ namespace whiteice
 			       const unsigned int LINES,
 			       const bool realData) 
   {
+    // FIXME importAscii don't work with superresolutional numbers!
+    
     std::vector< math::vertex<T> > import;
 
     if(cluster_index >= 0)
@@ -2703,8 +2752,8 @@ namespace whiteice
 			    whiteice::math::blas_complex<double>,
 			    whiteice::math::modular<unsigned int> > >;
   
-  template class dataset< float >;
-  template class dataset< double >;    
+  // template class dataset< float >;
+  // template class dataset< double >;    
   
 }
   

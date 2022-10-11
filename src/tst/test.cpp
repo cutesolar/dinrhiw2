@@ -42,6 +42,7 @@
 #include "dinrhiw.h"
 #endif
 
+#include "RNG.h"
 
 using namespace whiteice;
 
@@ -67,6 +68,10 @@ void test_dataset();
 void test_dataset_complex(); 
 
 void test_dataset_ica();
+
+void test_dataset_superreso(); // tests superresolutional number implementation [mostly save and load] 
+
+
 void test_uniqueid();
 void test_conffile();
 //void test_compression();
@@ -101,6 +106,8 @@ int main()
   printf("randomization seed is 0x%x\n", seed);
   srand(seed);
 
+  test_dataset_superreso();
+  
   test_dataset();
   test_dataset_ica();
 
@@ -195,6 +202,102 @@ private:
 
 ////////////////////////////////////////////////////////////
 
+// tests superresolutional number implementation [mostly save and load]
+void test_dataset_superreso()
+{
+  printf("DATASET SUPERRESOLUTIONAL NUMBERS TEST.\n");
+  
+  try{
+    using namespace whiteice;
+    using namespace whiteice::math;
+    
+    dataset< superresolution< blas_complex<double>, modular<unsigned int> > > data;
+    std::vector< vertex< superresolution< blas_complex<double>, modular<unsigned int> > > > list;
+    vertex< superresolution< blas_complex<double>, modular<unsigned int> > > v;
+
+    data.createCluster("test-sdata", 10);
+    
+    v.resize(data.dimension(0));
+
+    for(unsigned int i=0;i<100;i++){
+      for(unsigned int d=0;d<v.size();d++)
+	for(unsigned int k=0;k<v[d].size();k++)
+	  for(unsigned int l=0;l<v[d][k].size();l++)
+	    v[d][k][l] = rng.uniformf();
+      
+      list.push_back(v);
+    }
+
+    if(data.add(0, list) == false){
+      printf("ERROR: adding list of numbers to dataset FAILs.\n");
+      return;
+    }
+
+    if(data.save("sdata.dat") == false){
+      printf("ERROR: saving dataset FAILs.\n");
+      return;
+    }
+
+    dataset< superresolution< blas_complex<double>, modular<unsigned int> > > data2;
+    std::vector< vertex< superresolution< blas_complex<double>, modular<unsigned int> > > > list2;
+
+    if(data2.load("sdata.dat") == false){
+      printf("ERROR: loading dataset FAILs.\n");
+      return;
+    }
+
+    if(data2.getNumberOfClusters() != 1){
+      printf("ERROR: wrong number of clusters after load().\n");
+      return;
+    }
+
+    if(data2.dimension(0) != data.dimension(0)){
+      printf("ERROR: wrong data dimension after load().\n");
+      return;
+    }
+    
+    if(data2.getData(0, list2) == false){
+      printf("ERROR: getData() FAILs after load().\n");
+      return;
+    }
+
+    if(list.size() != list2.size()){
+      printf("ERROR: data sizes mismatch after load(save(x)).\n");
+      return;
+    }
+
+    if(list2[0].size() != list[0].size()){
+      printf("ERROR: data sizes mismatch (2) after load(save(x)).\n");
+      return;
+    }
+    
+    for(unsigned int i=0;i<list.size();i++){
+
+      auto u = list[i];
+      auto v = list2[i];
+      
+      for(unsigned int d=0;d<v.size();d++){
+	for(unsigned int k=0;k<v[d].size();k++){
+	  if(abs(u[d][k]-v[d][k]) > 0.0001f){
+	    printf("ERROR: data elements mismatch after load(save(x)).\n");
+	    return;
+	  }
+	}
+      }
+    }
+
+
+    printf("SUCCESS: load(save(x)) == x\n");
+    
+    return;
+  }
+  catch(std::exception& e){
+    std::cout << "ERROR: uncaught exception " << e.what() << std::endl;
+  }
+  
+}
+
+////////////////////////////////////////////////////////////
 
 void test_dataset_ica()
 {
@@ -1717,16 +1820,17 @@ void test_rbtree()
 void test_dataset()
 {
   printf("DATASET TESTS\n");
-  
+
+  using namespace whiteice::math;
   
   {
-    dataset<float>* A;
-    A = new dataset<float>(10);
+    dataset< blas_real<float> >* A;
+    A = new dataset< blas_real<float> >(10);
     delete A;
     
-    A = new dataset<float>(10);
+    A = new dataset< blas_real<float> >(10);
     
-    std::vector<math::vertex<float> > data;
+    std::vector<math::vertex< blas_real<float> > > data;
     data.resize(100);
     
     for(unsigned int i=0;i<data.size();i++){
@@ -1783,8 +1887,8 @@ void test_dataset()
   
   // save and loading test
   {
-    dataset<float>* A = 0;
-    std::vector<math::vertex<float> > data;
+    dataset< blas_real<float> >* A = 0;
+    std::vector<math::vertex< blas_real<float> > > data;
     data.resize(100);
     
     for(unsigned int i=0;i<data.size();i++){
@@ -1794,7 +1898,7 @@ void test_dataset()
     }
     
     
-    A = new dataset<float>(10);
+    A = new dataset< blas_real<float> >(10);
     
     if(A->add(data, true) == false){
       std::cout << "dataset error: adding new data failed." << std::endl;
@@ -1823,7 +1927,7 @@ void test_dataset()
     
     delete A;
     
-    A = new dataset<float>(10);
+    A = new dataset< blas_real<float> >(10);
     
     if(A->load("dataset.bin") == false){
       std::cout << "dataset error: data loading failed." << std::endl;
@@ -1837,6 +1941,7 @@ void test_dataset()
 	  std::cout << "dataset error: data corruption" << std::endl;
 	  j = data[i].size();
 	  i = 100;
+	  return;
 	}
       }
     }
@@ -1855,7 +1960,7 @@ void test_dataset()
   // added to version 1 
   // (other tests also work with dataset version 0)
   {
-    dataset<double> data;
+    dataset< blas_real<double> > data;
     
     // create N>10 clusters, sets N params
     
@@ -1995,8 +2100,8 @@ void test_dataset()
     for(unsigned int i=0;i<data.getNumberOfClusters();i++){
       unsigned int K = 100 + rand() % 100;
       
-      math::vertex<double> v;
-      std::vector< math::vertex<double> > grp;
+      math::vertex< blas_real<double> > v;
+      std::vector< math::vertex< blas_real<double> > > grp;
       v.resize(data.dimension(i));
       grp.resize(K/4 + 1);
       
@@ -2117,8 +2222,8 @@ void test_dataset()
     
     // check preprocess is ok
     for(unsigned int i=0;i<data.getNumberOfClusters();i++){
-      dataset<double>::data_normalization dn;
-      dn = (dataset<double>::data_normalization)(rand()%3);
+      dataset< blas_real<double> >::data_normalization dn;
+      dn = (dataset< blas_real<double> >::data_normalization)(rand()%3);
       
       if(data.size(i) > 2*data.dimension(i)){
 	// there is enough data for all preprocessing methods
@@ -2133,16 +2238,16 @@ void test_dataset()
 	  
 	  std::cout << "normalization method: ";
 	  
-	  if(dn == dataset<double>::dnMeanVarianceNormalization){
+	  if(dn == dataset< blas_real<double> >::dnMeanVarianceNormalization){
 	    std::cout << "dnMeanVarianceNormalization" << std::endl;
 	  }
-	  else if(dn == dataset<double>::dnSoftMax){
+	  else if(dn == dataset< blas_real<double> >::dnSoftMax){
 	    std::cout << "dnSoftMax" << std::endl;
 	  }
-	  else if(dn == dataset<double>::dnCorrelationRemoval){
+	  else if(dn == dataset< blas_real<double> >::dnCorrelationRemoval){
 	    std::cout << "dnCorrelationRemoval" << std::endl;
 	  }
-	  else if(dn == dataset<double>::dnLinearICA){
+	  else if(dn == dataset< blas_real<double> >::dnLinearICA){
 	    std::cout << "dnLinearICA" << std::endl;
 	  }	  
 	  else{
@@ -2172,7 +2277,7 @@ void test_dataset()
     fflush(stdout);
     
     for(unsigned int i=0;i<data.getNumberOfClusters();i++){
-      math::vertex<double> v, u, w;
+      math::vertex< blas_real<double> > v, u, w;
 
       ////////////////////////////////////////////////////////////////////////
       ////////////////////////////////////////////////////////////////////////
@@ -2226,26 +2331,26 @@ void test_dataset()
 	
 	std::cout << "FIXME: PCA preprocessing is known to be buggy!" << std::endl;
 	
-	std::vector<dataset<double>::data_normalization> pp;
+	std::vector<dataset< blas_real<double> >::data_normalization> pp;
 	
 	if(data.getPreprocessings(i, pp)){
 	  std::cout << "Preprocessings: " << std::endl;
 	  std::cout << std::flush;
 	  fflush(stdout);
 	  
-	  for(std::vector<dataset<double>::data_normalization>::iterator 
+	  for(std::vector<dataset< blas_real<double> >::data_normalization>::iterator 
 		j = pp.begin(); j != pp.end(); j++){
 	    // mean-variance norm
-	    if(*j == dataset<double>::dnMeanVarianceNormalization){
+	    if(*j == dataset< blas_real<double> >::dnMeanVarianceNormalization){
 	      std::cout << "mean-variance normalization" << std::endl;
 	    }
-	    else if(*j == dataset<double>::dnSoftMax){ // soft-max
+	    else if(*j == dataset< blas_real<double> >::dnSoftMax){ // soft-max
 	      std::cout << "soft-max normalization" << std::endl;
 	    }
-	    else if(*j == dataset<double>::dnCorrelationRemoval){ // PCA
+	    else if(*j == dataset< blas_real<double> >::dnCorrelationRemoval){ // PCA
 	      std::cout << "correlation-removal normalization" << std::endl;
 	    }
-	    else if(*j == dataset<double>::dnLinearICA){ // ICA
+	    else if(*j == dataset< blas_real<double> >::dnLinearICA){ // ICA
 	      std::cout << "independent components (ICA) normalization" << std::endl;
 	    }
 	  }
@@ -2317,8 +2422,8 @@ void test_dataset()
     // add N random clusters (use different add()s for adding all)
     
     for(unsigned int i=0;i<data.getNumberOfClusters();i++){
-      math::vertex<double> v;
-      std::vector< math::vertex<double> > grp;
+      math::vertex< blas_real<double> > v;
+      std::vector< math::vertex< blas_real<double> > > grp;
       
       v.resize(data.dimension(i) + rand()%100 + 1);
       if(data.add(i, v)){
@@ -2346,9 +2451,9 @@ void test_dataset()
     
     
     // make copy of multicluster dataset (compare)
-    dataset<double>* copy;
+    dataset< blas_real<double> >* copy;
     try{
-      copy = new dataset<double>(data);
+      copy = new dataset< blas_real<double> >(data);
     }
     catch(std::exception& e){
       std::cout << "dataset error: creating copy of dataset failed: "
@@ -2391,8 +2496,8 @@ void test_dataset()
       }
       
       
-      dataset<double>::iterator a = data.begin(i);
-      dataset<double>::iterator b = copy->begin(i);
+      dataset< blas_real<double> >::iterator a = data.begin(i);
+      dataset< blas_real<double> >::iterator b = copy->begin(i);
       
       while(a != data.end(i) && b != copy->end(i)){
 	if(*a != *b){
@@ -2478,12 +2583,12 @@ void test_dataset()
       }
       
       
-      dataset<double>::iterator a = data.begin(i);
-      dataset<double>::iterator b = copy->begin(i);
+      dataset< blas_real<double> >::iterator a = data.begin(i);
+      dataset< blas_real<double> >::iterator b = copy->begin(i);
       unsigned int counter = 0;
       
       while(a != data.end(i) && b != copy->end(i)){
-	math::vertex<double> delta(*b);
+	math::vertex< blas_real<double> > delta(*b);
 	delta -= *a;
 	
 	if(delta.norm() > 0.0001){
@@ -2528,13 +2633,13 @@ void test_dataset()
   {
     std::cout << "DATASET TESTING exportAscii() and importAscii()" << std::endl;
 
-    whiteice::dataset<float> test, loaded;
+    whiteice::dataset< blas_real<float> > test, loaded;
     const unsigned int DATADIM = 10;
 
     test.createCluster("test cluster with a longer name than usual", DATADIM);
     
     for(unsigned int i=0;i<1000;i++){
-      whiteice::math::vertex<float> v(test.dimension(0));
+      whiteice::math::vertex< blas_real<float> > v(test.dimension(0));
 
       for(unsigned int j=0;j<v.size();j++){
 	v[j] = (float)rand()/((float)RAND_MAX) - 0.5f;
@@ -2594,7 +2699,7 @@ void test_dataset()
 	
 	if(delta.norm() > 0.01f){
 	  printf("ERROR: data corrupted in importAscii(exportAscii(data)). Index %d. Error: %f\n",
-		 j, delta.norm());
+		 j, delta.norm().c[0]);
 	  error = true;
 	  break;
 	}
@@ -2632,7 +2737,7 @@ void test_dataset()
 
       if(error.norm() > 0.01f){
 	printf("ERROR: data corrupted in importAscii(exportAscii(data)) (2). Index %d. Error: %f\n",
-	       j, error.norm());
+	       j, error.norm().c[0]);
 	break;
       }
     }

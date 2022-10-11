@@ -338,8 +338,8 @@ namespace whiteice
 				   whiteice::math::blas_complex<double>,
 				   whiteice::math::modular<unsigned int> > >;
     
-  extern template class dataset< float >;
-  extern template class dataset< double >;
+  //extern template class dataset< float >;
+  //extern template class dataset< double >;
   
 }
 
