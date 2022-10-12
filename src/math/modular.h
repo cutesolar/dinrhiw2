@@ -13,7 +13,7 @@
 //#define DEFAULT_MODULAR_BASIS 8
 //#define DEFAULT_MODULAR_EXP   3 // (2^3 = 8 = 7+1)
 
-#define DEFAULT_MODULAR_BASIS 11 // was: 7 is prime!, was: 31 is prime!, now 11 is prime
+#define DEFAULT_MODULAR_BASIS 7 // was: 7 is prime!, was: 31 is prime!, now 11 is prime, was: 11, NOW: 7
 
 
 namespace whiteice

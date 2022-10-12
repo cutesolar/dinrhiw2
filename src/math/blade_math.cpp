@@ -1,4 +1,13 @@
 
+#define _ISOC11_SOURCE
+#define _GNU_SOURCE
+
+#include <cstdlib>
+#include <stdlib.h>
+
+#include "pocketfft_hdronly.h" // FFT algorithm
+
+
 
 #include "blade_math.h"
 #include "real.h"
@@ -6,6 +15,10 @@
 #include <cmath>
 #include <math.h>
 #include <gmp.h>
+
+using namespace pocketfft;
+
+
 
 namespace whiteice
 {  
@@ -1300,6 +1313,72 @@ namespace whiteice
       
       return result;
     }
+
+
+    
+    //////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
+    
+    
+    // slow arbitrary length signal FFT
+    template <typename T>
+    bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
+    {
+      const unsigned int LEN = v.size();
+
+      shape_t shape { LEN };
+      stride_t stride(1);
+
+      stride[0] = sizeof(T)*2;
+      size_t tmp = sizeof(T)*2;
+      tmp *= shape[0];
+
+      shape_t axes;
+      for(unsigned int i=0;i<shape.size();++i)
+	axes.push_back(i);
+
+      c2c(shape, stride, stride, axes, FORWARD,
+	  (std::complex<T>*)&(v[0]),
+	  (std::complex<T>*)&(v[0]),
+	  T(1.0));
+
+      return true;
+    }
+
+    
+    template <typename T>
+    bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
+    {
+      const unsigned int LEN = v.size();
+
+      shape_t shape { LEN };
+      stride_t stride(1);
+
+      stride[0] = sizeof(T)*2;
+      size_t tmp = sizeof(T)*2;
+      tmp *= shape[0];
+
+      shape_t axes;
+      for(unsigned int i=0;i<shape.size();++i)
+	axes.push_back(i);
+
+      c2c(shape, stride, stride, axes, BACKWARD,
+	  (std::complex<T>*)&(v[0]),
+	  (std::complex<T>*)&(v[0]),
+	  T(1.0/LEN));
+
+      return true;
+    }
+
+
+    template bool basic_fft<float>(vertex< whiteice::math::blas_complex<float> >& v);
+    template bool basic_ifft<float>(vertex< whiteice::math::blas_complex<float> >& v);
+
+    template bool basic_fft<double>(vertex< whiteice::math::blas_complex<double> >& v);
+    template bool basic_ifft<double>(vertex< whiteice::math::blas_complex<double> >& v); 
+
+    //////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
     
   }
 }

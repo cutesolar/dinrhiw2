@@ -30,10 +30,6 @@
 #include <complex>
 #include <string>
 
-#include "pocketfft_hdronly.h" // FFT algorithm
-
-using namespace pocketfft;
-
 
 #ifndef blade_math_h
 #define blade_math_h
@@ -2293,123 +2289,21 @@ namespace whiteice
 	return true;      
       }
 
-    
+
     // slow arbitrary length signal FFT
+
     template <typename T>
-    bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
-    {
-      const unsigned int LEN = v.size();
+    bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v);
 
-      shape_t shape { LEN };
-      stride_t stride(1);
-
-      stride[0] = sizeof(T)*2;
-      size_t tmp = sizeof(T)*2;
-      tmp *= shape[0];
-
-      shape_t axes;
-      for(unsigned int i=0;i<shape.size();++i)
-	axes.push_back(i);
-
-      c2c(shape, stride, stride, axes, FORWARD,
-	  (std::complex<T>*)&(v[0]),
-	  (std::complex<T>*)&(v[0]),
-	  T(1.0));
-
-      return true;
-
-#if 0
-      auto u = v;
-
-      const T r = 0.0;
-      const T i = 1.0;
-      const whiteice::math::blas_complex<T> imag(r,i);
-      const unsigned int N = v.size();
-
-      whiteice::math::blas_complex<T> w_k = 1.0f;
-      const whiteice::math::blas_complex<T> ww = whiteice::math::exp(imag*((-2.0*M_PI)/N));
-
-#pragma GCC unroll 11      
-      for(unsigned int k=0;k<N;k++){
-	v[k] = 0.0;
-
-	whiteice::math::blas_complex<T> w_nk = 1.0f;
-	//whiteice::math::blas_complex<T> w = whiteice::math::exp(imag*((-2.0*M_PI*k)/N));
-	const whiteice::math::blas_complex<T> w = w_k;
-
-#pragma GCC unroll 11	
-	for(unsigned int n=0;n<N;n++){
-	  //whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((-2.0*M_PI*k*n)/v.size()));
-	  v[k] += w_nk*u[n];
-	  w_nk *= w;
-	}
-
-	w_k *= ww;
-      }
-
-#endif
-      
-      return true;
-    }
-
+    template <typename T>
+    bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v);
     
-    template <typename T>
-    bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
-    {
-      const unsigned int LEN = v.size();
+    
+    extern template bool basic_fft<float>(vertex< whiteice::math::blas_complex<float> >& v);
+    extern template bool basic_ifft<float>(vertex< whiteice::math::blas_complex<float> >& v);
 
-      shape_t shape { LEN };
-      stride_t stride(1);
-
-      stride[0] = sizeof(T)*2;
-      size_t tmp = sizeof(T)*2;
-      tmp *= shape[0];
-
-      shape_t axes;
-      for(unsigned int i=0;i<shape.size();++i)
-	axes.push_back(i);
-
-      c2c(shape, stride, stride, axes, BACKWARD,
-	  (std::complex<T>*)&(v[0]),
-	  (std::complex<T>*)&(v[0]),
-	  T(1.0/LEN));
-
-      return true;
-
-      
-#if 0
-      auto u = v;
-
-      const T r = 0.0;
-      const T i = 1.0;
-      const whiteice::math::blas_complex<T> imag(r,i);
-      const unsigned int N = v.size();
-
-      whiteice::math::blas_complex<T> w_k = 1.0f;
-      const whiteice::math::blas_complex<T> ww = whiteice::math::exp(imag*((+2.0*M_PI)/N));
-
-#pragma GCC unroll 11
-      for(unsigned int k=0;k<N;k++){
-	v[k] = 0.0;
-
-	whiteice::math::blas_complex<T> w_nk = 1.0f;
-	const whiteice::math::blas_complex<T> w = w_k;
-
-#pragma GCC unroll 11	
-	for(unsigned int n=0;n<N;n++){
-	  //whiteice::math::blas_complex<T> w_nk = whiteice::math::exp(imag*((+2.0*M_PI*k*n)/v.size()));
-	  v[k] += w_nk*u[n];
-	  w_nk *= w;
-	}
-
-	w_k *= ww;
-
-	v[k] /= T(N);
-      }
-#endif
-      
-      return true;
-    }
+    extern template bool basic_fft<double>(vertex< whiteice::math::blas_complex<double> >& v);
+    extern template bool basic_ifft<double>(vertex< whiteice::math::blas_complex<double> >& v); 
     
     
   }

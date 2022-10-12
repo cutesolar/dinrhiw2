@@ -10,7 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <dinrhiw/dinrhiw.h>
+
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
+
 #include <exception>
 
 #include <string>

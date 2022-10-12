@@ -15,7 +15,7 @@ HOSTNAME=$(shell hostname -f)
 
 OPTIMIZE=@optimization_flags@
 
-CFLAGS = @CFLAGS@ $(OPTIMIZE) -Wno-deprecated -g -Wall -Wno-class-memaccess -I../lib/ @conf_flags@ @EXTRA_INCLUDEPATHS@ -D__HOSTNAME__=\"$(HOSTNAME)\" -D__USERNAME__=\"$(USERNAME)\"
+CFLAGS = @CFLAGS@ $(OPTIMIZE) -Wno-deprecated -g -Wall -Wno-class-memaccess -I../lib/ @conf_flags@ @EXTRA_INCLUDEPATHS@ -D__HOSTNAME__=\"$(HOSTNAME)\" -D__USERNAME__=\"$(USERNAME)\" `pkg-config dinrhiw --cflags`
 CXXFLAGS = @CXXFLAGS@ @CPPFLAGS@ $(CFLAGS)
 
 SOURCES = aescipher.cpp FileSource.cpp CryptoFileSource.cpp dataplot.cpp MMAP.cpp mapping.cpp \

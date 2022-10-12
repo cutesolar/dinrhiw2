@@ -53,6 +53,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cmath>
 #include <cstdlib>
+#include <stdlib.h>
 #include <stdexcept>
 #include <memory>
 #include <vector>
@@ -149,7 +150,7 @@ template<> struct VLEN<double> { static constexpr size_t val=2; };
 #endif
 #endif
 
-#if __cplusplus >= 201703L
+#if __cplusplus >= 201703L && defined(_GLIBCXX_HAVE_ALIGNED_ALLOC)
 inline void *aligned_alloc(size_t align, size_t size)
   {
   // aligned_alloc() requires that the requested size is a multiple of "align"

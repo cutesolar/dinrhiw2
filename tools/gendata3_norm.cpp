@@ -14,7 +14,8 @@
 #include <math.h>
 #include <assert.h>
 
-#include <dinrhiw/dinrhiw.h>
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
 
 #include <random>
 

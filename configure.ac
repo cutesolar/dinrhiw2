@@ -635,8 +635,8 @@ dnl  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address
 ])
 
 dnl enable newer C++ standards
-dnl OLD: optimization_flags="-std=c++17 $optimization_flags"
-optimization_flags="$optimization_flags"
+CFLAGS="-std=gnu++20 $CFLAGS"
+conf_flags="-std=gnu++20 $conf_flags `python3-config --cflags --embed`"
 
 dnl 
 dnl AC_ARG_ENABLE([profiling],
@@ -649,7 +649,7 @@ dnl
 
 
 EXTRA_INCLUDEPATHS="-I/usr/include/ $EXTRA_INCLUDEPATHS $BLAS_CFLAGS $EXTRA_DEFINES"
-EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++"
+EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++ `python3-config --libs --embed`"
 
 AC_SUBST([EXTRA_INCLUDEPATHS],[$EXTRA_INCLUDEPATHS])
 AC_SUBST([EXTRA_LIBPATHS],[$EXTRA_LIBPATHS])

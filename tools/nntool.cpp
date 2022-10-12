@@ -22,7 +22,9 @@
 #include <assert.h>
 
 
-#include <dinrhiw/dinrhiw.h>
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
+
 #include <exception>
 
 #include <vector>
@@ -2000,18 +2002,22 @@ int main(int argc, char** argv)
 		  << std::endl;
 
       if(sbnn){
+	
 	if(sbnn->load(nnfn) == false){
-	  delete snn;
-	  delete sbnn;
+	
+	  if(snn) delete snn;
+	  if(sbnn) delete sbnn;
 	  snn = NULL;
 	  sbnn = NULL;
 	}
       }
 
-      if(bnn){
+      if(bnn && sbnn == NULL){
+	
 	if(bnn->load(nnfn) == false){
-	  delete nn;
-	  delete bnn;
+	  
+	  if(nn) delete nn;
+	  if(bnn) delete bnn;
 	  nn = NULL;
 	  bnn = NULL;
 	}
@@ -2020,6 +2026,8 @@ int main(int argc, char** argv)
       if(bnn == NULL && sbnn == NULL){
 	std::cout << "Loading neural network failed." << std::endl;
 	return -1;
+      }
+      else{
       }
       
 

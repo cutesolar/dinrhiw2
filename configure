@@ -5432,12 +5432,13 @@ then :
 
 fi
 
-optimization_flags="$optimization_flags"
+CFLAGS="-std=gnu++20 $CFLAGS"
+conf_flags="-std=gnu++20 $conf_flags `python3-config --cflags --embed`"
 
 
 
 EXTRA_INCLUDEPATHS="-I/usr/include/ $EXTRA_INCLUDEPATHS $BLAS_CFLAGS $EXTRA_DEFINES"
-EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++"
+EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++ `python3-config --libs --embed`"
 
 EXTRA_INCLUDEPATHS=$EXTRA_INCLUDEPATHS
 

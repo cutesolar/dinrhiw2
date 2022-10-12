@@ -702,10 +702,19 @@ namespace whiteice
 	versionid = ints[0];
 	
 	ints.clear();
-      } 
-      
-      if(versionid != 3700) // v3.7 datafile (3.7 adds batch norm data)
-	return false;
+      }
+
+      if(typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> >) ||
+	 typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> >)){
+	
+	if(versionid != (3800 + 1)) // v3.8 datafile (3.8 adds superresolutional numbers which add 1 to version number) (3.7 adds batch norm data)
+	  return false;
+      }
+      else{
+
+	if(versionid != (3800 + 0)) // v3.8 datafile (3.8 adds superresolutional numbers which add 10.000 to version number) (3.7 adds batch norm data)
+	  return false;
+      }
       
       std::vector<unsigned int> arch;
       
@@ -930,7 +939,21 @@ namespace whiteice
       // writes version information
       {
 	// version number = integer/1000
-	ints.push_back(3700); // 3.700 (3.7 adds batch norm data)
+	
+	if(typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> >) ||
+	   typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> >)){
+
+	  // v3.8 datafile (3.8 adds superresolutional numbers which adds 1 to version number) (3.7 adds batch norm data)
+	  ints.push_back(3800 + 1);
+	  
+	}
+	else{
+	  // v3.8 datafile (3.8 adds superresolutional numbers which adds 1 to version number) (3.7 adds batch norm data)
+	  ints.push_back(3800 + 0);
+	}
+	      
+	
+	
 
 	configuration.createCluster(FNN_VERSION_CFGSTR, ints.size());
 	data.resize(ints.size());
