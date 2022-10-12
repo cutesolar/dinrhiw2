@@ -185,8 +185,8 @@ int main(int argc, char** argv)
     // tries to open data and nnfile
     
     // loads data
-    dataset< whiteice::math::blas_real<double> > data;
-    dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > sdata;
+    dataset< whiteice::math::blas_real<float> > data;
+    dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > sdata;
     bool stdinout_io = false;
     
     if(datafn.size() > 0){ // file input
@@ -320,12 +320,13 @@ int main(int argc, char** argv)
 
     // copies data to sdata too
     {
-      std::vector<dataset< math::blas_real<double> >::data_normalization> preprocessings;
+      std::vector<dataset< math::blas_real<float> >::data_normalization> preprocessings;
       
-      math::vertex< math::superresolution<math::blas_real<double>,
+      math::vertex< math::superresolution<math::blas_real<float>,
 					  math::modular<unsigned int> > > w;
 
       // data to sdata
+      sdata.clear();
       
       for(unsigned int c=0;c<data.getNumberOfClusters();c++){
 	
@@ -334,7 +335,7 @@ int main(int argc, char** argv)
 	for(unsigned int i=0;i<data.size(c);i++){
 	  
 	  auto v = data.access(c, i);
-	  data.invpreprocess(c, v);
+	  // data.invpreprocess(c, v);
 	  
 	  w.resize(v.size());
 	  
@@ -343,32 +344,35 @@ int main(int argc, char** argv)
 	  
 	  sdata.add(c, w, true);
 	}
-	
+
+	// dont't use preprocessings in sdata for now [buggy]
+#if 0
 	// add preprocessings to sdata that were in the original dataset
 	// [don't work very well currently]
 	
 	data.getPreprocessings(c, preprocessings);
 	
 	for(unsigned int i=0;i<preprocessings.size();i++){
-	  sdata.preprocess(c, (dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::data_normalization)(preprocessings[i]));
+	  sdata.preprocess(c, (dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::data_normalization)(preprocessings[i]));
 	}
+#endif
       }
       
     }
     
     
-    nnetwork< whiteice::math::blas_real<double> >* nn = new nnetwork< whiteice::math::blas_real<double> >(arch);
+    nnetwork< whiteice::math::blas_real<float> >* nn = new nnetwork< whiteice::math::blas_real<float> >(arch);
 
-    nnetwork< math::superresolution< math::blas_real<double>,
+    nnetwork< math::superresolution< math::blas_real<float>,
 				     math::modular<unsigned int> > >* snn =
-      new nnetwork< math::superresolution< math::blas_real<double>,
+      new nnetwork< math::superresolution< math::blas_real<float>,
 					   math::modular<unsigned int> > >(arch);
     
-    bayesian_nnetwork< whiteice::math::blas_real<double> >* bnn = new bayesian_nnetwork< whiteice::math::blas_real<double> >();
+    bayesian_nnetwork< whiteice::math::blas_real<float> >* bnn = new bayesian_nnetwork< whiteice::math::blas_real<float> >();
 
-    bayesian_nnetwork< math::superresolution< math::blas_real<double>,
+    bayesian_nnetwork< math::superresolution< math::blas_real<float>,
 					      math::modular<unsigned int> > >* sbnn =
-      new bayesian_nnetwork< math::superresolution< math::blas_real<double>,
+      new bayesian_nnetwork< math::superresolution< math::blas_real<float>,
 						    math::modular<unsigned int> > >();
    
     nn->setResidual(residual);
@@ -382,33 +386,33 @@ int main(int argc, char** argv)
     }
 
     
-    whiteice::nnetwork< whiteice::math::blas_real<double> >::nonLinearity nl =
-      whiteice::nnetwork< whiteice::math::blas_real<double> >::rectifier;
+    whiteice::nnetwork< whiteice::math::blas_real<float> >::nonLinearity nl =
+      whiteice::nnetwork< whiteice::math::blas_real<float> >::rectifier;
 
     if(linearnet) // only make sense when testing optimization
-      nl = whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear;
+      nl = whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear;
 
     {
       nn->setNonlinearity(nl);
       nn->setNonlinearity(nn->getLayers()-1,
-			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+			  whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
     }
 
-    whiteice::nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >::nonLinearity snl =
-      whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::rectifier;
+    whiteice::nnetwork< math::superresolution<math::blas_real<float>, math::modular<unsigned int> > >::nonLinearity snl =
+      whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::rectifier;
 
     if(linearnet) // only make sense when testing optimization
-      snl = whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear;
+      snl = whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear;
 
     {
       snn->setNonlinearity(snl);
       snn->setNonlinearity(nn->getLayers()-1,
-			   whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+			   whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
     }
 
     
     if(verbose && !stdinout_io){
-      math::vertex< whiteice::math::blas_real<double> > w;
+      math::vertex< whiteice::math::blas_real<float> > w;
       nn->exportdata(w);
       
       if(lmethod == "use"){
@@ -452,14 +456,14 @@ int main(int argc, char** argv)
       int v = 0;
       if(verbose) v = 1;
 
-      nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::sigmoid);
+      nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::sigmoid);
       nn->setNonlinearity(nn->getLayers()-1,
-			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+			  whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
 
       if(snn){
-	snn->setNonlinearity(whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::sigmoid);
+	snn->setNonlinearity(whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::sigmoid);
 	snn->setNonlinearity(nn->getLayers()-1,
-			     whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+			     whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
       }
       
       if(nn){
@@ -469,21 +473,21 @@ int main(int argc, char** argv)
 	}
 	
 	if(linearnet) // only make sense when testing optimization
-	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
 	else
-	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::rectifier);
+	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::rectifier);
 	nn->setNonlinearity(nn->getLayers()-1,
-			    whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+			    whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
       }
       else if(snn){
 	printf("FIXME: Superresolutional numbers don't support depp pretraining of neural network weights..\n");
 
 	if(linearnet) // only make sense when testing optimization
-	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
 	else
-	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::rectifier);
+	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::rectifier);
 	snn->setNonlinearity(snn->getLayers()-1,
-			     nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+			     nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
       }
       
     }
@@ -509,7 +513,7 @@ int main(int argc, char** argv)
 
       // also sets initial weights to be "orthogonal" against each other
       if(negfeedback){
-	math::blas_real<double> alpha = 0.5f;
+	math::blas_real<float> alpha = 0.5f;
 	negative_feedback_between_neurons(*nn, data, alpha);
       }
 #endif
@@ -521,16 +525,21 @@ int main(int argc, char** argv)
 
       if(sbnn->load(nnfn) == false){
 	if(bnn->load(nnfn) == false){
-	  std::cout << "ERROR: Loading neural network failed." << std::endl;
+	  std::cout << "ERROR: Loading neural network failed (bnn)." << std::endl;
 	  if(nn) delete nn;
 	  if(snn) delete snn;
 	  if(bnn) delete bnn;
 	  if(sbnn) delete sbnn;
 	  nn = NULL;
+	  snn = NULL;
+	  bnn = NULL;
+	  sbnn = NULL;
 	  return -1;
 	}
 	else{
+	  if(snn) delete snn;
 	  if(sbnn) delete sbnn;
+	  snn = NULL;
 	  sbnn = NULL;
 	}
       }
@@ -542,10 +551,10 @@ int main(int argc, char** argv)
       if(sbnn != NULL){
 
 	std::vector< math::vertex< math::superresolution<
-	  math::blas_real<double>,
+	  math::blas_real<float>,
 	  math::modular<unsigned int> > > > weights;
 	
-	nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > nnParams;
+	nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > nnParams;
 	
 	if(sbnn->exportSamples(nnParams, weights) == false){
 	  std::cout << "ERROR: Loading neural network failed." << std::endl;
@@ -610,8 +619,8 @@ int main(int argc, char** argv)
       }
       else{ // bnn != NULL
 
-	std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
-	nnetwork< whiteice::math::blas_real<double> > nnParams;
+	std::vector< math::vertex< whiteice::math::blas_real<float> > > weights;
+	nnetwork< whiteice::math::blas_real<float> > nnParams;
 	
 	if(bnn->exportSamples(nnParams, weights) == false){
 	  std::cout << "ERROR: Loading neural network failed." << std::endl;
@@ -668,14 +677,14 @@ int main(int argc, char** argv)
 
     // checks if we only need to calculate subnet (if there are frozen layers before the first non-frozen layer)
     
-    nnetwork< whiteice::math::blas_real<double> >* parent_nn = NULL;
-    bayesian_nnetwork< whiteice::math::blas_real<double> >* parent_bnn = NULL;
-    dataset< whiteice::math::blas_real<double> >* parent_data = NULL;
+    nnetwork< whiteice::math::blas_real<float> >* parent_nn = NULL;
+    bayesian_nnetwork< whiteice::math::blas_real<float> >* parent_bnn = NULL;
+    dataset< whiteice::math::blas_real<float> >* parent_data = NULL;
     unsigned int initialFrozen = 0;
 
-    nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >* parent_snn = NULL;
-    bayesian_nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >* parent_sbnn = NULL;
-    dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >* parent_sdata = NULL;
+    nnetwork< math::superresolution<math::blas_real<float>, math::modular<unsigned int> > >* parent_snn = NULL;
+    bayesian_nnetwork< math::superresolution<math::blas_real<float>, math::modular<unsigned int> > >* parent_sbnn = NULL;
+    dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >* parent_sdata = NULL;
     
     if(load == true && lmethod != "use" && lmethod != "minimize" && lmethod != "info")
     {
@@ -699,12 +708,12 @@ int main(int argc, char** argv)
 	if(verbose)
 	  printf("Optimizing subnet (%d parameters in neural network)..\n", nn->exportdatasize());
 
-	parent_data = new dataset< whiteice::math::blas_real<double> >(data);
-	parent_sdata = new dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >(sdata);
+	parent_data = new dataset< whiteice::math::blas_real<float> >(data);
+	parent_sdata = new dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >(sdata);
 
 	const unsigned int newInputDimension = nn->getInputs(0);
-	std::vector< math::vertex< math::blas_real<double> > > samples; // new input samples
-	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > ssamples; // new input samples
+	std::vector< math::vertex< math::blas_real<float> > > samples; // new input samples
+	std::vector< math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > > ssamples; // new input samples
 
 	for(unsigned int i=0;i<data.size(0);i++){
 	  parent_nn->input() = data.access(0, i);
@@ -742,21 +751,21 @@ int main(int argc, char** argv)
     //////////////////////////////////////////////////////////////////////////////////////////////////////
     else if(lmethod == "mix"){
       // mixture of experts
-      Mixture< whiteice::math::blas_real<double> > moe(2, SIMULATION_DEPTH, overfit, negfeedback); 
+      Mixture< whiteice::math::blas_real<float> > moe(2, SIMULATION_DEPTH, overfit, negfeedback); 
             
 
       time_t t0 = time(0);
       unsigned int counter = 0;
       unsigned int iterations = 0;
-      whiteice::math::blas_real<double> error = 1000.0;
-      whiteice::linear_ETA<double> eta;
+      whiteice::math::blas_real<float> error = 1000.0;
+      whiteice::linear_ETA<float> eta;
 
       if(samples > 0)
 	eta.start(0.0f, (double)samples);
 
       moe.minimize(*nn, data);
       
-      while(error > math::blas_real<double>(0.001f) &&
+      while(error > math::blas_real<float>(0.001f) &&
 	    (counter < secs || secs <= 0) && // compute max SECS seconds
 	    (iterations < samples || samples <= 0) && // or max samples
 	    moe.solutionConverged() == false && moe.isRunning() == true && // or until solution converged.. (or exit due error)
@@ -764,9 +773,9 @@ int main(int argc, char** argv)
       {
 	sleep(1);
 
-	std::vector< whiteice::math::vertex< whiteice::math::blas_real<double> > > weights;
-	std::vector< whiteice::math::blas_real<double> > errors;
-	std::vector< whiteice::math::blas_real<double> > percent;
+	std::vector< whiteice::math::vertex< whiteice::math::blas_real<float> > > weights;
+	std::vector< whiteice::math::blas_real<float> > errors;
+	std::vector< whiteice::math::blas_real<float> > percent;
 	unsigned int changes = 0;
 	
 	moe.getSolution(weights, errors, percent, iterations, changes);
@@ -817,10 +826,10 @@ int main(int argc, char** argv)
     else if(lmethod == "bbrbm" || lmethod == "gbrbm"){
       // greedely learns Bernoulli-Bernoulli RBM or Gaussian-Bernoulli RBM
       // where the last layer is linear predictor/regression layer
-      nl = whiteice::nnetwork< whiteice::math::blas_real<double> >::sigmoid;
-      nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::sigmoid);
+      nl = whiteice::nnetwork< whiteice::math::blas_real<float> >::sigmoid;
+      nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::sigmoid);
       nn->setNonlinearity(nn->getLayers()-1,
-			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+			  whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
 
       // the idea here is that we train N-M-output neural network where M is much larger than input
       // RBM does non-linear transformation and calculates features which are then linearly combined.
@@ -878,17 +887,17 @@ int main(int argc, char** argv)
       }
 
       
-      rLBFGS_nnetwork< whiteice::math::blas_real<double> > bfgs(*nn, data, SIMULATION_DEPTH, overfit, negfeedback);
+      rLBFGS_nnetwork< whiteice::math::blas_real<float> > bfgs(*nn, data, SIMULATION_DEPTH, overfit, negfeedback);
 
       bfgs.setGradientOnly(true);
       
       {
 	time_t t0 = time(0);
 	unsigned int counter = 0;
-	math::blas_real<double> error = 1000.0f;
-	math::vertex< whiteice::math::blas_real<double> > w;
+	math::blas_real<float> error = 1000.0f;
+	math::vertex< whiteice::math::blas_real<float> > w;
 	unsigned int iterations = 0;
-	whiteice::linear_ETA<double> eta;
+	whiteice::linear_ETA<float> eta;
 
 	if(samples > 0)
 	  eta.start(0.0f, (double)samples);
@@ -898,7 +907,7 @@ int main(int argc, char** argv)
 	
 	bfgs.minimize(w);
 
-	while(error > math::blas_real<double>(0.001f) &&
+	while(error > math::blas_real<float>(0.001f) &&
 	      (counter < secs || secs <= 0) && // compute max SECS seconds
 	      (iterations < samples || samples <= 0) && // or max samples
 	      bfgs.solutionConverged() == false && bfgs.isRunning() == true && // or until solution converged.. (or exit due error)
@@ -1004,15 +1013,15 @@ int main(int argc, char** argv)
       }
 
       // FIXME add support for recursive neural networks
-      pLBFGS_nnetwork< whiteice::math::blas_real<double> > bfgs(*nn, data, overfit, negfeedback);
+      pLBFGS_nnetwork< whiteice::math::blas_real<float> > bfgs(*nn, data, overfit, negfeedback);
       
       {
 	time_t t0 = time(0);
 	unsigned int counter = 0;
-	math::blas_real<double> error = 1000.0f;
-	math::vertex< whiteice::math::blas_real<double> > w;
+	math::blas_real<float> error = 1000.0f;
+	math::vertex< whiteice::math::blas_real<float> > w;
 	unsigned int iterations = 0;
-	whiteice::linear_ETA<double> eta;
+	whiteice::linear_ETA<float> eta;
 
 	if(samples > 0)
 	  eta.start(0.0f, (double)samples);
@@ -1022,7 +1031,7 @@ int main(int argc, char** argv)
 	
 	bfgs.minimize(threads);
 
-	while(error > math::blas_real<double>(0.001f) &&
+	while(error > math::blas_real<float>(0.001f) &&
 	      (counter < secs || secs <= 0) && // compute max SECS seconds
 	      (iterations < samples || samples <= 0) && 
 	      !stopsignal)
@@ -1110,8 +1119,8 @@ int main(int argc, char** argv)
       // hack to test ultradeep
       // NOTE: brute-forcing does not really work..
       {
-	std::vector< math::vertex< whiteice::math::blas_real<double> > > input;
-	std::vector< math::vertex< whiteice::math::blas_real<double> > > output;
+	std::vector< math::vertex< whiteice::math::blas_real<float> > > input;
+	std::vector< math::vertex< whiteice::math::blas_real<float> > > output;
 	
 	data.getData(0, input);
 	data.getData(1, output);
@@ -1125,18 +1134,18 @@ int main(int argc, char** argv)
       }
 #endif
       
-      math::NNRandomSearch< whiteice::math::blas_real<double> > search;
+      math::NNRandomSearch< whiteice::math::blas_real<float> > search;
       search.startOptimize(data, arch, threads);
 
       
       {
 	time_t t0 = time(0);
 	unsigned int counter = 0;
-	math::blas_real<double> error = 100.0f;
+	math::blas_real<float> error = 100.0f;
 	unsigned int solutions = 0;
 	
 	
-	while(error > math::blas_real<double>(0.001f) &&
+	while(error > math::blas_real<float>(0.001f) &&
 	      counter < secs && // compute max SECS seconds
 	      !stopsignal) 
 	{
@@ -1188,7 +1197,7 @@ int main(int argc, char** argv)
       }
       
       
-      math::NNGradDescent< whiteice::math::blas_real<double> > grad(negfeedback);
+      math::NNGradDescent< whiteice::math::blas_real<float> > grad(negfeedback);
       grad.setUseMinibatch(true);
       grad.setOverfit(overfit);
       
@@ -1201,7 +1210,7 @@ int main(int argc, char** argv)
       {
 	time_t t0 = time(0);
 	unsigned int counter = 0;
-	math::blas_real<double> error = 100.0f;
+	math::blas_real<float> error = 100.0f;
 	unsigned int solutions = 0;
 	
 	
@@ -1256,7 +1265,7 @@ int main(int argc, char** argv)
       // convert net to snet
       {
 	for(unsigned int l=0;l<nn->getLayers();l++){
-	  snn->setNonlinearity(l, (whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::nonLinearity)(nn->getNonlinearity(l)));
+	  snn->setNonlinearity(l, (whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::nonLinearity)(nn->getNonlinearity(l)));
 	  snn->setFrozen(l, nn->getFrozen(l));
 	}
 
@@ -1270,21 +1279,21 @@ int main(int argc, char** argv)
 	}
       }
 
-      whiteice::SGD_snet< math::blas_real<double> > sgd(*snn, data, overfit);
+      whiteice::SGD_snet< math::blas_real<float> > sgd(*snn, data, overfit);
       
-      math::superresolution<math::blas_real<double>,
+      math::superresolution<math::blas_real<float>,
 			    math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001, 0.01
 
-      math::superresolution<math::blas_real<double>,
+      math::superresolution<math::blas_real<float>,
 			    math::modular<unsigned int> > error;
       
-      math::vertex< math::superresolution<math::blas_real<double>,
+      math::vertex< math::superresolution<math::blas_real<float>,
 					  math::modular<unsigned int> > > w0;
       
       snn->exportdata(w0);
       
       sgd.setAdaptiveLRate(true); // was: false [adaptive don't work]
-      sgd.setSmartConvergenceCheck(false); // [too easy to stop for convergence]
+      sgd.setSmartConvergenceCheck(true); // [too easy to stop for convergence]
       
       if(sgd.minimize(w0, lrate, 0, 1000) == false){ // was: 200
 	printf("ERROR: Cannot start SGD optimizer.\n");
@@ -1293,7 +1302,7 @@ int main(int argc, char** argv)
       
       int old_iters = -1;
       
-      while(sgd.isRunning()){
+      while(sgd.isRunning() && !stopsignal){
 	sleep(1);
 	
 	unsigned int iters = 0;
@@ -1309,7 +1318,7 @@ int main(int argc, char** argv)
       printf("SGD Optimizer stopped.\n");
 
       {
-	std::vector< math::vertex< math::superresolution< math::blas_real<double>,
+	std::vector< math::vertex< math::superresolution< math::blas_real<float>,
 							  math::modular<unsigned int> > > > best_weights_list;
 
 	unsigned int iters = 0;
@@ -1345,12 +1354,12 @@ int main(int argc, char** argv)
 	CROSSVALIDATION_K = 10;
       }
       
-      std::vector< math::vertex< whiteice::math::blas_real<double> > > best_weights_list;
+      std::vector< math::vertex< whiteice::math::blas_real<float> > > best_weights_list;
       auto initial_nn = *nn;
       
       
-      math::vertex< whiteice::math::blas_real<double> > best_weights;
-      whiteice::RNG< whiteice::math::blas_real<double> > rng(true); // hardware random number generator
+      math::vertex< whiteice::math::blas_real<float> > best_weights;
+      whiteice::RNG< whiteice::math::blas_real<float> > rng(true); // hardware random number generator
 
       for(unsigned int cvdk=0;cvdk<CROSSVALIDATION_K && stopsignal == false;cvdk++){
 	if(CROSSVALIDATION_K > 1)
@@ -1364,7 +1373,7 @@ int main(int argc, char** argv)
 	}
 	
 	// divide data to training and testing sets
-	dataset< whiteice::math::blas_real<double> > dtrain, dtest;
+	dataset< whiteice::math::blas_real<float> > dtrain, dtest;
 	
 	dtrain  = data;
 	dtest   = data;
@@ -1378,15 +1387,15 @@ int main(int argc, char** argv)
 	  const unsigned int r = (rng.rand() % 10); // was & 3
 	  
 	  if(r < 9){ // 90% go to training data (was: 80%, 75%, 50%)
-	    math::vertex< whiteice::math::blas_real<double> > in  = data.access(0,i);
-	    math::vertex< whiteice::math::blas_real<double> > out = data.access(1,i);
+	    math::vertex< whiteice::math::blas_real<float> > in  = data.access(0,i);
+	    math::vertex< whiteice::math::blas_real<float> > out = data.access(1,i);
 	    
 	    dtrain.add(0, in,  true);
 	    dtrain.add(1, out, true);
 	  }
 	  else if(r == 9){ // 10% go to testing data (was: 10%, 25%, 50%)
-	    math::vertex< whiteice::math::blas_real<double> > in  = data.access(0,i);
-	    math::vertex< whiteice::math::blas_real<double> > out = data.access(1,i);
+	    math::vertex< whiteice::math::blas_real<float> > in  = data.access(0,i);
+	    math::vertex< whiteice::math::blas_real<float> > out = data.access(1,i);
 	    
 	    dtest.add(0, in,  true);
 	    dtest.add(1, out, true);	    
@@ -1409,18 +1418,18 @@ int main(int argc, char** argv)
 
 	// 1. normal gradient descent optimization using dtrain dataset
 	{
-	  //math::vertex< whiteice::math::blas_real<double> > grad, err, weights;
-	  math::vertex< whiteice::math::blas_real<double> > weights;	  
+	  //math::vertex< whiteice::math::blas_real<float> > grad, err, weights;
+	  math::vertex< whiteice::math::blas_real<float> > weights;	  
 	  time_t t0 = time(0);
 	  unsigned int counter = 0;
-	  math::blas_real<double> error, mean_ratio;
-	  math::blas_real<double> prev_error;
-	  math::blas_real<double> lrate = math::blas_real<double>(0.05f);
-	  math::blas_real<double> delta_error = 0.0f;	  
+	  math::blas_real<float> error, mean_ratio;
+	  math::blas_real<float> prev_error;
+	  math::blas_real<float> lrate = math::blas_real<float>(0.05f);
+	  math::blas_real<float> delta_error = 0.0f;	  
 
-	  math::blas_real<double> minimum_error = 10000000000.0f;
+	  math::blas_real<float> minimum_error = 10000000000.0f;
 	  
-	  std::list< math::blas_real<double> > ratios;
+	  std::list< math::blas_real<float> > ratios;
 
 	  // early stopping if error has not decreased within MAX_NOIMPROVE_ITERS iterations of training
 	  int noimprovement_counter = 0; // used to diagnosize stuck to local minimum (no overfitting allowed)
@@ -1436,7 +1445,7 @@ int main(int argc, char** argv)
 	  prev_error = 1000.0f;
 	  mean_ratio = 1.0f;
 
-	  whiteice::linear_ETA<double> eta;
+	  whiteice::linear_ETA<float> eta;
 	  if(samples > 0)
 	    eta.start(0.0f, (double)samples);
 	  
@@ -1450,7 +1459,7 @@ int main(int argc, char** argv)
 	    while(ratios.size() > 10)
 	      ratios.pop_front();
 	    
-	    math::blas_real<double> inv = 1.0f;
+	    math::blas_real<float> inv = 1.0f;
 
 	    if(ratios.size() > 0) inv = 1.0f/ratios.size();
 	    
@@ -1481,8 +1490,8 @@ int main(int argc, char** argv)
 	    // exports weights, weights -= lrate*gradient
 	    // imports weights back
 
-	    math::vertex< whiteice::math::blas_real<double> > sumgrad;
-	    math::blas_real<double> ninv = 1.0/SAMPLE_SIZE;
+	    math::vertex< whiteice::math::blas_real<float> > sumgrad;
+	    math::blas_real<float> ninv = 1.0/SAMPLE_SIZE;
 
 	    sumgrad.resize(nn->gradient_size());
 	    sumgrad.zero();
@@ -1490,10 +1499,10 @@ int main(int argc, char** argv)
 
 #pragma omp parallel shared(sumgrad)
 	    {
-	      nnetwork< math::blas_real<double> > net(*nn);
-	      //nnetwork< math::blas_real<double> >& net = *nn;
-	      math::vertex< whiteice::math::blas_real<double> > grad(nn->gradient_size()), err(nn->output_size());
-	      math::vertex< whiteice::math::blas_real<double> > sgrad(nn->gradient_size());
+	      nnetwork< math::blas_real<float> > net(*nn);
+	      //nnetwork< math::blas_real<float> >& net = *nn;
+	      math::vertex< whiteice::math::blas_real<float> > grad(nn->gradient_size()), err(nn->output_size());
+	      math::vertex< whiteice::math::blas_real<float> > sgrad(nn->gradient_size());
 	      sgrad.zero();
 	      grad.zero();
 	      err.zero();							     
@@ -1531,10 +1540,10 @@ int main(int argc, char** argv)
 	    
 	    
 	    lrate = 1.0;
-	    math::vertex< whiteice::math::blas_real<double> > w;
+	    math::vertex< whiteice::math::blas_real<float> > w;
 
 	    do{	      
-	      lrate = 0.5*lrate;
+	      lrate = 0.5f*lrate;
 	      w = weights;
 	      w -= lrate*sumgrad;
 
@@ -1543,7 +1552,7 @@ int main(int argc, char** argv)
 	      
 	      if(negfeedback){
 		// using negative feedback heuristic
-		math::blas_real<double> alpha = 0.5f;
+		math::blas_real<float> alpha = 0.5f;
 		negative_feedback_between_neurons(*nn, dtrain, alpha);	      
 	      }
 	      
@@ -1552,9 +1561,9 @@ int main(int argc, char** argv)
 	      // calculates error from the testing dataset (should use train?)
 #pragma omp parallel shared(error)
 	      {
-		math::vertex< whiteice::math::blas_real<double> > err;
-		math::blas_real<double> e = 0.0;
-		nnetwork< math::blas_real<double> > net(*nn);
+		math::vertex< whiteice::math::blas_real<float> > err;
+		math::blas_real<float> e = 0.0;
+		nnetwork< math::blas_real<float> > net(*nn);
 		
 #pragma omp for nowait schedule(dynamic)		
 		for(unsigned int i=0;i<dtrain.size(0);i++){
@@ -1568,7 +1577,7 @@ int main(int argc, char** argv)
 		  net.calculate(input, output); // thread-safe
 		  err = dtrain.access(1, index) - output;
 		  
-		  e += (err*err)[0] / math::blas_real<double>((double)err.size());
+		  e += (err*err)[0] / math::blas_real<float>((double)err.size());
 		}
 
 #pragma omp critical (mvowefnigihgRERE)
@@ -1579,7 +1588,7 @@ int main(int argc, char** argv)
 	      
 	      
 	      error /= dtrain.size(0);
-	      error *= math::blas_real<double>(0.5f); // missing scaling constant
+	      error *= math::blas_real<float>(0.5f); // missing scaling constant
 
 	      // if the error is negative (error increases)
 	      // we try again with smaller lrate
@@ -1597,15 +1606,15 @@ int main(int argc, char** argv)
 
 	    // check if error has decreased in testing set (early stopping)
 	    {
-	      whiteice::math::blas_real<double> test_error = 0.0;
+	      whiteice::math::blas_real<float> test_error = 0.0;
 	      nn->importdata(weights);
 
 	      // calculates error from the testing dataset (should use train?)
 #pragma omp parallel shared(test_error)
 	      {
-		math::vertex< whiteice::math::blas_real<double> > err;
-		math::blas_real<double> e = 0.0;
-		nnetwork< math::blas_real<double> > net(*nn);
+		math::vertex< whiteice::math::blas_real<float> > err;
+		math::blas_real<float> e = 0.0;
+		nnetwork< math::blas_real<float> > net(*nn);
 		
 #pragma omp for nowait schedule(dynamic)		
 		for(unsigned int i=0;i<dtest.size(0);i++){
@@ -1619,7 +1628,7 @@ int main(int argc, char** argv)
 		  net.calculate(input, output); // thread-safe
 		  err = dtest.access(1, index) - output;
 		  
-		  e += (err*err)[0] / math::blas_real<double>((double)err.size());
+		  e += (err*err)[0] / math::blas_real<float>((double)err.size());
 		}
 
 #pragma omp critical (korwepojwogGEVET)
@@ -1630,7 +1639,7 @@ int main(int argc, char** argv)
 	      
 	      
 	      test_error /= dtest.size(0);
-	      test_error *= math::blas_real<double>(0.5f); // missing scaling constant
+	      test_error *= math::blas_real<float>(0.5f); // missing scaling constant
 
 	      
 	      // check if we have new best solution
@@ -1645,7 +1654,7 @@ int main(int argc, char** argv)
 	    }
 	    
 	    
-	    math::blas_real<double> ratio = error / minimum_error;
+	    math::blas_real<float> ratio = error / minimum_error;
 	    ratios.push_back(ratio);
 
 	    if(secs > 0){
@@ -1728,7 +1737,7 @@ int main(int argc, char** argv)
       }
 
       
-      // whiteice::HMC_convergence_check< whiteice::math::blas_real<double> > hmc(*nn, data, adaptive);
+      // whiteice::HMC_convergence_check< whiteice::math::blas_real<float> > hmc(*nn, data, adaptive);
       unsigned int ptlayers =
 	(unsigned int)(math::log(data.size(0))/math::log(1.25));
       
@@ -1740,11 +1749,11 @@ int main(int argc, char** argv)
       // need for speed: (we downsample
       
 
-      whiteice::HMC< whiteice::math::blas_real<double> > hmc(*nn, data, adaptive);
-      // whiteice::UHMC< whiteice::math::blas_real<double> > hmc(*nn, data, adaptive);
+      whiteice::HMC< whiteice::math::blas_real<float> > hmc(*nn, data, adaptive);
+      // whiteice::UHMC< whiteice::math::blas_real<float> > hmc(*nn, data, adaptive);
       
-      // whiteice::PTHMC< whiteice::math::blas_real<double> > hmc(ptlayers, *nn, data, adaptive);
-      whiteice::linear_ETA<double> eta;
+      // whiteice::PTHMC< whiteice::math::blas_real<float> > hmc(ptlayers, *nn, data, adaptive);
+      whiteice::linear_ETA<float> eta;
       
       time_t t0 = time(0);
       unsigned int counter = 0;
@@ -1807,7 +1816,7 @@ int main(int argc, char** argv)
       // (keeps only 50% latest samples) so we ignore initial tail
       // to high probability distribution
       {
-	bnn = new bayesian_nnetwork< whiteice::math::blas_real<double> >();
+	bnn = new bayesian_nnetwork< whiteice::math::blas_real<float> >();
 	
 	unsigned int savedSamples = 1;
 	if(hmc.getNumberOfSamples() > 1){
@@ -1851,13 +1860,14 @@ int main(int argc, char** argv)
 	delete nn;
 	delete bnn;
 	nn = NULL;
+	bnn = NULL;
 	return -1;
       }
       
       // loads nnetwork weights from BNN
       {
-	std::vector< math::vertex< math::blas_real<double> > > weights;
-	nnetwork< whiteice::math::blas_real<double> > nnParam;
+	std::vector< math::vertex< math::blas_real<float> > > weights;
+	nnetwork< whiteice::math::blas_real<float> > nnParam;
 	
 	if(bnn->exportSamples(nnParam, weights) == false){
 	  std::cout << "Loading neural network failed." << std::endl;
@@ -1876,22 +1886,22 @@ int main(int argc, char** argv)
 	}
 	
 	delete nn;
-	nn = new nnetwork< whiteice::math::blas_real<double> >(nnParam);
+	nn = new nnetwork< whiteice::math::blas_real<float> >(nnParam);
 
 	*nn = nnParam;
 	nn->importdata(weights[(rand() % weights.size())]);;
       }
       
-      nnetwork_function< whiteice::math::blas_real<double> > nf(*nn);
-      GA3< whiteice::math::blas_real<double> > ga(&nf);
+      nnetwork_function< whiteice::math::blas_real<float> > nf(*nn);
+      GA3< whiteice::math::blas_real<float> > ga(&nf);
 
       time_t t0 = time(0);
       unsigned int counter = 0;
       
       ga.minimize();
       
-      whiteice::math::vertex< whiteice::math::blas_real<double> > s;
-      math::blas_real<double> r;
+      whiteice::math::vertex< whiteice::math::blas_real<float> > s;
+      math::blas_real<float> r;
       
       while(((ga.getGenerations() < samples && samples > 0) || (counter < secs && secs > 0)) && !stopsignal){
 	r = ga.getBestSolution(s);
@@ -1990,14 +2000,30 @@ int main(int argc, char** argv)
 		  << std::endl;
 
       if(sbnn){
-
 	if(sbnn->load(nnfn) == false){
-	  std::cout << "Loading neural network failed." << std::endl;
 	  delete snn;
 	  delete sbnn;
 	  snn = NULL;
-	  return -1;
+	  sbnn = NULL;
 	}
+      }
+
+      if(bnn){
+	if(bnn->load(nnfn) == false){
+	  delete nn;
+	  delete bnn;
+	  nn = NULL;
+	  bnn = NULL;
+	}
+      }
+
+      if(bnn == NULL && sbnn == NULL){
+	std::cout << "Loading neural network failed." << std::endl;
+	return -1;
+      }
+      
+
+      if(sbnn){
 
 	const int RDIM1 = ((int)sbnn->inputSize()) - ((int)sdata.dimension(0));
 	const int RDIM2 = ((int)sbnn->outputSize()) - ((int)sdata.dimension(1));
@@ -2079,13 +2105,13 @@ int main(int argc, char** argv)
 	
 	if(compare_clusters == true){
 	  
-	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error1 = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
-	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error2 = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
-	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > c = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.5f);
-	  math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > err;
+	  math::superresolution< math::blas_real<float>, math::modular<unsigned int> > error1 = math::superresolution< math::blas_real<float>, math::modular<unsigned int> >(0.0f);
+	  math::superresolution< math::blas_real<float>, math::modular<unsigned int> > error2 = math::superresolution< math::blas_real<float>, math::modular<unsigned int> >(0.0f);
+	  math::superresolution< math::blas_real<float>, math::modular<unsigned int> > c = math::superresolution< math::blas_real<float>, math::modular<unsigned int> >(0.5f);
+	  math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > err;
 	  
-	  whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > single_snn(*snn);
-	  std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > sweights;
+	  whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > single_snn(*snn);
+	  std::vector< math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > > sweights;
 	  
 	  sbnn->exportSamples(single_snn, sweights);
 	  auto w = sweights[0];
@@ -2094,7 +2120,7 @@ int main(int argc, char** argv)
 	  for(auto& wi : sweights)
 	    w += wi;
 	  
-	  w /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(sweights.size()); // E[w]
+	  w /= math::superresolution< math::blas_real<float>, math::modular<unsigned int> >(sweights.size()); // E[w]
 	  
 	  
 	  {
@@ -2135,7 +2161,7 @@ int main(int argc, char** argv)
 	    exit(-1);
 	  }
 	  
-	  whiteice::linear_ETA<double> eta;
+	  whiteice::linear_ETA<float> eta;
 	  
 	  if(sdata.size(0) > 0)
 	    eta.start(0.0f, (double)sdata.size(0));
@@ -2144,8 +2170,8 @@ int main(int argc, char** argv)
 	  
 	  for(unsigned int i=0;i<sdata.size(0) && !stopsignal;i++){
 	    
-	    math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > out1;
-	    math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > rdim;
+	    math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > out1;
+	    math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > rdim;
 	    
 	    rdim.resize(sbnn->inputSize() - sdata.dimension(0));
 	    rdim.zero();
@@ -2154,7 +2180,7 @@ int main(int argc, char** argv)
 	    err = sdata.access(1,i) - out1;
 	    
 	    for(unsigned int i=0;i<err.size();i++)
-	      error1 += c*(err[i]*err[i]) / math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((double)err.size());
+	      error1 += c*(err[i][0]*err[i][0]) / math::superresolution< math::blas_real<float>, math::modular<unsigned int> >((double)err.size());
 	    
 	    single_snn.input().zero();
 	    single_snn.output().zero();
@@ -2182,7 +2208,7 @@ int main(int argc, char** argv)
 	    err = sdata.access(1, i) - out1;
 	    
 	    for(unsigned int i=0;i<err.size();i++)
-	      error2 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	      error2 += c*(err[i][0]*err[i][0]) / math::blas_real<float>((double)err.size());
 	    
 	    eta.update((double)(i+1));
 
@@ -2199,12 +2225,12 @@ int main(int argc, char** argv)
 	  printf("\n"); fflush(stdout);
 	  
 	  if(counter > 0){
-	    error1 /= math::blas_real<double>((double)counter);
-	    error2 /= math::blas_real<double>((double)counter);
+	    error1 /= math::blas_real<float>((double)counter);
+	    error2 /= math::blas_real<float>((double)counter);
 	  }
 	  
-	  std::cout << "Average error in dataset (E[f(x|w)]): " << error1 << std::endl;
-	  std::cout << "Average error in dataset (f(x|E[w])): " << error2 << std::endl;
+	  std::cout << "Average error in dataset (E[f(x|w)]): " << error1[0] << std::endl;
+	  std::cout << "Average error in dataset (f(x|E[w])): " << error2[0] << std::endl;
 	}
 	
 	else{
@@ -2217,15 +2243,15 @@ int main(int argc, char** argv)
 	    sdata.setName(0, "input");
 	    sdata.setName(1, "output");
 	    
-	    whiteice::linear_ETA<double> eta;
+	    whiteice::linear_ETA<float> eta;
 	    
 	    if(sdata.size(0) > 0)
 	      eta.start(0.0f, (double)sdata.size(0));
 	    
 	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
 	      
-	      math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > out;
-	      math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > var;
+	      math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > out;
+	      math::vertex< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > > var;
 	      
 	      eta.update((double)i);
 	      
@@ -2255,11 +2281,11 @@ int main(int argc, char** argv)
 	    sdata.setName(2, "output_stddev");
 	    
 	    for(unsigned int i=0;i<sdata.size(0) && !stopsignal;i++){
-	      math::vertex< math::superresolution< math::blas_real<double>,
+	      math::vertex< math::superresolution< math::blas_real<float>,
 						   math::modular<unsigned int> > > out;
-	      math::vertex< math::superresolution< math::blas_real<double>,
+	      math::vertex< math::superresolution< math::blas_real<float>,
 						   math::modular<unsigned int> > > var;
-	      math::matrix< math::superresolution< math::blas_real<double>,
+	      math::matrix< math::superresolution< math::blas_real<float>,
 						   math::modular<unsigned int> > > cov;
 	      
 	      sbnn->calculate(sdata.access(0, i), out, cov, SIMULATION_DEPTH, 0);
@@ -2288,22 +2314,27 @@ int main(int argc, char** argv)
 
 	  // convert sdata to data
 	  {
-	    data.clear();
+	    // data.clear();
 	    
-	    std::vector< dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::data_normalization > preprocessings;
+	    std::vector< dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::data_normalization > preprocessings;
 	    
-	    math::vertex< math::blas_real<double> > w;
+	    math::vertex< math::blas_real<float> > w;
 	    
-	    // data to sdata
+	    // sdata to data
 	    
 	    for(unsigned int c=0;c<sdata.getNumberOfClusters();c++){
-	      
-	      data.createCluster(sdata.getName(c), sdata.dimension(c));
+
+	      data.clearData(c);
+
+	      if(data.dimension(c) != sdata.dimension(c)){
+		printf("ERROR: dataset dimensions mismatch.\n");
+		return -1;
+	      }
 	      
 	      for(unsigned int i=0;i<sdata.size(c);i++){
 		
 		auto v = sdata.access(c, i);
-		sdata.invpreprocess(c, v);
+		//sdata.invpreprocess(c, v);
 		
 		w.resize(v.size());
 	  
@@ -2315,12 +2346,17 @@ int main(int argc, char** argv)
 	
 	      // add preprocessings to data that were in the original dataset sdata
 	      // [don't work very well currently]
+
+	      data.repreprocess(c);
+	      
+#if 0
 	      
 	      sdata.getPreprocessings(c, preprocessings);
 	
 	      for(unsigned int i=0;i<preprocessings.size();i++){
-		data.preprocess(c, (dataset< math::blas_real<double> >::data_normalization)(preprocessings[i]));
+		data.preprocess(c, (dataset< math::blas_real<float> >::data_normalization)(preprocessings[i]));
 	      }
+#endif
 	    }
 	  }
 
@@ -2338,14 +2374,6 @@ int main(int argc, char** argv)
       }
       else if(bnn){
 	
-	if(bnn->load(nnfn) == false){
-	  std::cout << "Loading neural network failed." << std::endl;
-	  delete nn;
-	  delete bnn;
-	  nn = NULL;
-	  return -1;
-	}
-
 	const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
 	const int RDIM2 = ((int)bnn->outputSize()) - ((int)data.dimension(1));
 	
@@ -2425,16 +2453,16 @@ int main(int argc, char** argv)
 	
 	
 	if(compare_clusters == true){
-	  math::blas_real<double> error1 = math::blas_real<double>(0.0f);
-	  math::blas_real<double> error2 = math::blas_real<double>(0.0f);
-	  math::blas_real<double> c = math::blas_real<double>(0.5f);
-	  math::vertex< whiteice::math::blas_real<double> > err;
+	  math::blas_real<float> error1 = math::blas_real<float>(0.0f);
+	  math::blas_real<float> error2 = math::blas_real<float>(0.0f);
+	  math::blas_real<float> c = math::blas_real<float>(0.5f);
+	  math::vertex< whiteice::math::blas_real<float> > err;
 	  
-	  whiteice::nnetwork< whiteice::math::blas_real<double> > single_nn(*nn);
-	  std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
+	  whiteice::nnetwork< whiteice::math::blas_real<float> > single_nn(*nn);
+	  std::vector< math::vertex< whiteice::math::blas_real<float> > > weights;
 	  
 	  bnn->exportSamples(single_nn, weights);
-	  math::vertex< whiteice::math::blas_real<double> > w = weights[0];
+	  math::vertex< whiteice::math::blas_real<float> > w = weights[0];
 	  w.zero();
 	  
 	  for(auto& wi : weights)
@@ -2481,7 +2509,7 @@ int main(int argc, char** argv)
 	    exit(-1);
 	  }
 	  
-	  whiteice::linear_ETA<double> eta;
+	  whiteice::linear_ETA<float> eta;
 	  
 	  if(data.size(0) > 0)
 	    eta.start(0.0f, (double)data.size(0));
@@ -2489,8 +2517,8 @@ int main(int argc, char** argv)
 	  unsigned int counter = 0; // number of points calculated..
 	  
 	  for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	    math::vertex< whiteice::math::blas_real<double> > out1;
-	    math::vertex< whiteice::math::blas_real<double> > rdim;
+	    math::vertex< whiteice::math::blas_real<float> > out1;
+	    math::vertex< whiteice::math::blas_real<float> > rdim;
 	    
 	    rdim.resize(bnn->inputSize() - data.dimension(0));
 	    rdim.zero();
@@ -2499,7 +2527,7 @@ int main(int argc, char** argv)
 	    err = data.access(1,i) - out1;
 	    
 	    for(unsigned int i=0;i<err.size();i++)
-	      error1 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	      error1 += c*(err[i]*err[i]) / math::blas_real<float>((double)err.size());
 	    
 	    single_nn.input().zero();
 	    single_nn.output().zero();
@@ -2527,7 +2555,7 @@ int main(int argc, char** argv)
 	    err = data.access(1, i) - out1;
 	    
 	    for(unsigned int i=0;i<err.size();i++)
-	      error2 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	      error2 += c*(err[i]*err[i]) / math::blas_real<float>((double)err.size());
 	    
 	    eta.update((double)(i+1));
 
@@ -2544,8 +2572,8 @@ int main(int argc, char** argv)
 	  printf("\n"); fflush(stdout);
 	  
 	  if(counter > 0){
-	    error1 /= math::blas_real<double>((double)counter);
-	    error2 /= math::blas_real<double>((double)counter);
+	    error1 /= math::blas_real<float>((double)counter);
+	    error2 /= math::blas_real<float>((double)counter);
 	  }
 	  
 	  std::cout << "Average error in dataset (E[f(x|w)]): " << error1 << std::endl;
@@ -2562,14 +2590,14 @@ int main(int argc, char** argv)
 	    data.setName(0, "input");
 	    data.setName(1, "output");
 	    
-	    whiteice::linear_ETA<double> eta;
+	    whiteice::linear_ETA<float> eta;
 	    
 	    if(data.size(0) > 0)
 	      eta.start(0.0f, (double)data.size(0));
 	    
 	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	      math::vertex< whiteice::math::blas_real<double> > out;
-	      math::vertex< whiteice::math::blas_real<double> > var;
+	      math::vertex< whiteice::math::blas_real<float> > out;
+	      math::vertex< whiteice::math::blas_real<float> > var;
 	      
 	      eta.update((double)i);
 	      
@@ -2599,9 +2627,9 @@ int main(int argc, char** argv)
 	    data.setName(2, "output_stddev");
 	    
 	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	      math::vertex< whiteice::math::blas_real<double> > out;
-	      math::vertex< whiteice::math::blas_real<double> > var;
-	      math::matrix< whiteice::math::blas_real<double> > cov;
+	      math::vertex< whiteice::math::blas_real<float> > out;
+	      math::vertex< whiteice::math::blas_real<float> > var;
+	      math::matrix< whiteice::math::blas_real<float> > cov;
 	      
 	      bnn->calculate(data.access(0, i), out, cov, SIMULATION_DEPTH, 0);
 	      
@@ -2718,20 +2746,27 @@ int main(int argc, char** argv)
         
     if(lmethod != "use" && lmethod != "minimize" && lmethod != "info"){
 
+      bool use_superreso = false;
+
       if(sbnn){
-	if(sbnn->save(nnfn) == false){
-	  std::cout << "Saving neural network data failed." << std::endl;
-	  delete sbnn;
-	  return -1;
-	}
-	else{
-	  if(verbose)
-	    std::cout << "Saving neural network data: " << nnfn << std::endl;
+	if(sbnn->getNumberOfSamples() > 0){
+	  if(sbnn->save(nnfn) == false){
+	    std::cout << "Saving neural network data failed (sbnn)." << std::endl;
+	    delete sbnn;
+	    return -1;
+	  }
+	  else{
+	    use_superreso = true;
+	    if(verbose)
+	      std::cout << "Saving neural network data: " << nnfn << std::endl;
+	  }
 	}
       }
-      else if(bnn){
+
+	
+      if(bnn && use_superreso == false){
 	if(bnn->save(nnfn) == false){
-	  std::cout << "Saving neural network data failed." << std::endl;
+	  std::cout << "Saving neural network data failed (bnn)." << std::endl;
 	  delete bnn;
 	  return -1;
 	}
