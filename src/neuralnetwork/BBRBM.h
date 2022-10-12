@@ -164,8 +164,8 @@ class BBRBM {
 };
 
  
- extern template class BBRBM< float >;
- extern template class BBRBM< double >;
+  // extern template class BBRBM< float >;
+  // extern template class BBRBM< double >;
  extern template class BBRBM< math::blas_real<float> >;
  extern template class BBRBM< math::blas_real<double> >;
  

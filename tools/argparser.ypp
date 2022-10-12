@@ -5,15 +5,16 @@
  *
  * ARG     = OPTIONS* [ENDOPT] [DATA] [ARCH] NNFILE [LMETHOD]
  * OPTIONS = "--no-init" | "-v" | "--help" | "--version" | --"overfit"
- *           "--time" <number> | "--load" | "--samples <NUMBER>" | "--recurrent <NUMBER>"
- *           "--threads <number>" | --data <number> | --"adaptive" | --"negfb" | --deep=binary | --deep=gaussian | --noresidual | --dropout | --crossvalidation
+ *           "--time" <number> | "--load" | "--samples <NUMBER>" | "--recurrent <NUMBER>" | 
+ *           "--threads <number>" | --data <number> | --"adaptive" | --"negfb" | --deep=binary | 
+ *           "--deep=gaussian" | --noresidual | --dropout | --crossvalidation | --batchnorm
  * ENDOPT  = "--"
  * DATA    = <filename>
  * ARCH    = AC(-AC)*-AC
  * AC      = <number> | "?"
  * NNFILE  = <filename>
  * LMETHOD = MBASIC 
- * MBASIC  = use | random | grad | lbfgs | bayes | pgrad | plbfgs | minimize | mix | bbrbm | gbrbm | edit | info
+ * MBASIC  = use | random | grad | sgrad | lbfgs | bayes | pgrad | plbfgs | minimize | mix | bbrbm | gbrbm | edit | info
  * 
  */
 
@@ -43,6 +44,7 @@
     bool residual;
     bool dropout;
     bool crossvalidation;
+    bool batchnorm;
     bool noinit;
     bool hasTIME;
     unsigned int secs;
@@ -95,6 +97,7 @@
 %token <str> OPT_DROPOUT
 %token <str> OPT_NORESIDUAL
 %token <str> OPT_CROSSVALIDATION
+%token <str> OPT_BATCHNORM
 %token <str> OPT_LOAD
 %token <str> OPT_HELP
 %token <str> OPT_VERBOSE
@@ -112,6 +115,7 @@
 %token <str> LM_MINIMIZE
 %token <str> LM_PARALLELGRAD
 %token <str> LM_GRAD
+%token <str> LM_SGRAD
 %token <str> LM_PLBFGS
 %token <str> LM_LBFGS
 %token <str> LM_RANDOM
@@ -158,6 +162,7 @@ option:	OPT_NOINIT             { __info.noinit   = true; }
       | OPT_DROPOUT            { __info.dropout  = true; }
       | OPT_NORESIDUAL         { __info.residual  = false; }
       | OPT_CROSSVALIDATION    { __info.crossvalidation = true; }
+      | OPT_CROSSVALIDATION    { __info.batchnorm = true; }
       | OPT_HELP               { __info.help     = true; }
       | OPT_LOAD               { __info.load     = true; }
       | OPT_VERBOSE            { __info.verbose  = true; }
@@ -195,6 +200,7 @@ mbasic: LM_USE      { __info.method = $1; }
       | LM_INFO     { __info.method = $1; }
       | LM_MINIMIZE { __info.method = $1; }
       | LM_GRAD     { __info.method = $1; }
+      | LM_SGRAD    { __info.method = $1; }
       | LM_PLBFGS   { __info.method = $1; }      
       | LM_LBFGS    { __info.method = $1; }
       | LM_PARALLELGRAD { __info.method = $1; }
@@ -266,6 +272,7 @@ void parse_commandline(int argc, char** argv,
 		       bool& residual,
 		       bool& dropout,
 		       bool& crossvalidation,
+		       bool& batchnorm, 
 		       bool& help,
 		       bool& verbose)
 {
@@ -282,6 +289,7 @@ void parse_commandline(int argc, char** argv,
   residual = true;
   dropout = false;
   crossvalidation = false;
+  batchnorm = false;
   deep = 0;
   
   // handles simple params 
@@ -312,7 +320,7 @@ void parse_commandline(int argc, char** argv,
     p.name = "--no-init"; p.code = OPT_NOINIT;
     cmdparamslist.push_back(p);
     p.name = "--overfit"; p.code = OPT_OVERFIT;
-    cmdparamslist.push_back(p);    
+    cmdparamslist.push_back(p);
     p.name = "--adaptive"; p.code = OPT_ADAPTIVE;
     cmdparamslist.push_back(p);    
     p.name = "--negfb"; p.code = OPT_NEGFEEDBACK;
@@ -326,6 +334,8 @@ void parse_commandline(int argc, char** argv,
     p.name = "--dropout"; p.code = OPT_DROPOUT;
     cmdparamslist.push_back(p);
     p.name = "--crossvalidation"; p.code = OPT_CROSSVALIDATION;
+    cmdparamslist.push_back(p);
+    p.name = "--batchnorm"; p.code = OPT_BATCHNORM;
     cmdparamslist.push_back(p);
     p.name = "--help"; p.code = OPT_HELP;
     cmdparamslist.push_back(p);
@@ -353,6 +363,8 @@ void parse_commandline(int argc, char** argv,
     p.name = "minimize"; p.code = LM_MINIMIZE;
     cmdparamslist.push_back(p);
     p.name = "grad"; p.code = LM_GRAD;
+    cmdparamslist.push_back(p);
+    p.name = "sgrad"; p.code = LM_SGRAD;
     cmdparamslist.push_back(p);
     p.name = "plbfgs"; p.code = LM_PLBFGS;
     cmdparamslist.push_back(p);
@@ -398,6 +410,7 @@ void parse_commandline(int argc, char** argv,
   __info.residual   = true;
   __info.dropout    = false;
   __info.crossvalidation = false;
+  __info.batchnorm  = false;
   __info.isRecurrent = false;
   __info.method     = "use";
   
@@ -517,6 +530,7 @@ void parse_commandline(int argc, char** argv,
     residual    = __info.residual;
     dropout     = __info.dropout;
     crossvalidation = __info.crossvalidation;
+    batchnorm   = __info.batchnorm;
     
     lmethod = __info.method;
     lmods   = __info.mods;

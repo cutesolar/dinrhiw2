@@ -522,6 +522,32 @@ namespace whiteice
     }
 
 
+    bool convert(int& B, const math::superresolution< math::blas_real<float>, math::modular<unsigned int> > A)
+    {
+      B = (int)(A[0].c[0]);
+      return true;
+    }
+
+    bool convert(int& B, const math::superresolution< math::blas_real<double>, math::modular<unsigned int> > A)
+    {
+      B = (int)(A[0].c[0]);
+      return true;
+    }
+
+    bool convert(math::superresolution< math::blas_real<float>, math::modular<unsigned int> >& B, const int A)
+    {
+      B.zero();
+      B[0].c[0] = A;
+      return true;
+    }
+
+    bool convert(math::superresolution< math::blas_real<double>, math::modular<unsigned int> >& B, const int A)
+    {
+      B.zero();
+      B[0].c[0] = A;
+      return true;
+    }
+
 
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
 		 const superresolution< blas_real<float>, modular<unsigned int> > A)

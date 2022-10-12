@@ -1328,8 +1328,8 @@ namespace whiteice {
   bool HMM::load(const std::string& filename) 
   {
     try{
-      whiteice::dataset<double> configuration;
-      math::vertex<double> data;
+      whiteice::dataset< math::blas_real<double> > configuration;
+      math::vertex< math::blas_real<double> > data;
 
       std::vector<int> ints;
       std::vector<float> floats;
@@ -1391,7 +1391,7 @@ namespace whiteice {
 
 	PI.resize(arch[1]);
 	for(unsigned int i=0;i<arch[1];i++)
-	  PI[i] = data[i];
+	  PI[i] = data[i].c[0];
       }
 
       // gets A parameter
@@ -1409,7 +1409,7 @@ namespace whiteice {
 	for(unsigned int j=0;j<arch[1];j++){
 	  loadA[j].resize(arch[1]);
 	  for(unsigned int i=0;i<arch[1];i++,index++){
-	    loadA[j][i] = data[index];
+	    loadA[j][i] = data[index].c[0];
 	  }
 	}
 	  
@@ -1432,7 +1432,7 @@ namespace whiteice {
 	  for( unsigned int i=0;i<arch[1];i++){
 	    loadB[j][i].resize(arch[0]);
 	    for(unsigned int k=0;k<arch[0];k++, index++){
-	      loadB[j][i][k] = data[index];
+	      loadB[j][i][k] = data[index].c[0];
 	    }
 	  }
 	}
@@ -1490,8 +1490,8 @@ namespace whiteice {
   bool HMM::save(const std::string& filename) const 
   {
     try{
-      whiteice::dataset<double> configuration;
-      math::vertex<double> data;
+      whiteice::dataset< math::blas_real<double> > configuration;
+      math::vertex< math::blas_real<double> > data;
       
       std::vector<int> ints;
       std::vector<float> floats;

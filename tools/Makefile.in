@@ -35,7 +35,7 @@ MMAP_OBJECTS = MMAP.o mapping.o
 MMAP_TARGET  = ftest
 MMAP_LIBS = ../lib/libdinrhiw.a @EXTRA_LIBS@ -lgmp
 
-NNTOOLS_OBJECTS = nntool.o argparser.tab.o cpuid_threads.o
+NNTOOLS_OBJECTS = argparser.tab.o nntool.o cpuid_threads.o
 NNTOOLS_TARGET  = nntool
 NNTOOLS_LIBS    = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 

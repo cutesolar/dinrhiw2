@@ -3,7 +3,7 @@
  * a feedforward neural network
  * optimizer command line tool.
  * 
- * (C) Copyright Tomas Ukkonen 2004, 2005, 2014-2021
+ * (C) Copyright Tomas Ukkonen 2004, 2005, 2014-2022
  *
  *************************************************************
  * 
@@ -90,8 +90,9 @@ int main(int argc, char** argv)
     unsigned int deep = 0;
     bool residual = true;
     bool dropout = false;
-    bool crossvalidation = false;    
-
+    bool crossvalidation = false;
+    bool batchnorm = false;
+    
     // minimum norm error ||y-f(x)|| gradient instead of MSE ||y-f(x)||^2
     bool MNE = true;
 
@@ -144,12 +145,18 @@ int main(int argc, char** argv)
 		      residual,
 		      dropout,
 		      crossvalidation,
+		      batchnorm,
 		      help,
 		      verbose);
     srand(time(0));
 
     if(secs <= 0 && samples <= 0) // no time limit
       samples = 2000; // we take 2000 samples/tries as the default
+
+    if(batchnorm){
+      printf("FIXME: batchnorm is not implemented in nntool/dinrhiw fully yet.\n");
+      help = true;
+    }
 
     if(help){ // prints command line usage information
       print_usage(true);
@@ -179,6 +186,7 @@ int main(int argc, char** argv)
     
     // loads data
     dataset< whiteice::math::blas_real<double> > data;
+    dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > sdata;
     bool stdinout_io = false;
     
     if(datafn.size() > 0){ // file input
@@ -308,12 +316,63 @@ int main(int argc, char** argv)
 	printf("Simple recurrent neural network (leaky rectifier).\n");
       }
     }
-    
 
+
+    // copies data to sdata too
+    {
+      std::vector<dataset< math::blas_real<double> >::data_normalization> preprocessings;
+      
+      math::vertex< math::superresolution<math::blas_real<double>,
+					  math::modular<unsigned int> > > w;
+
+      // data to sdata
+      
+      for(unsigned int c=0;c<data.getNumberOfClusters();c++){
+	
+	sdata.createCluster(data.getName(c), data.dimension(c));
+	
+	for(unsigned int i=0;i<data.size(c);i++){
+	  
+	  auto v = data.access(c, i);
+	  data.invpreprocess(c, v);
+	  
+	  w.resize(v.size());
+	  
+	  for(unsigned int k=0;k<v.size();k++)
+	    whiteice::math::convert(w[k], v[k]);
+	  
+	  sdata.add(c, w, true);
+	}
+	
+	// add preprocessings to sdata that were in the original dataset
+	// [don't work very well currently]
+	
+	data.getPreprocessings(c, preprocessings);
+	
+	for(unsigned int i=0;i<preprocessings.size();i++){
+	  sdata.preprocess(c, (dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::data_normalization)(preprocessings[i]));
+	}
+      }
+      
+    }
+    
+    
     nnetwork< whiteice::math::blas_real<double> >* nn = new nnetwork< whiteice::math::blas_real<double> >(arch);
+
+    nnetwork< math::superresolution< math::blas_real<double>,
+				     math::modular<unsigned int> > >* snn =
+      new nnetwork< math::superresolution< math::blas_real<double>,
+					   math::modular<unsigned int> > >(arch);
+    
     bayesian_nnetwork< whiteice::math::blas_real<double> >* bnn = new bayesian_nnetwork< whiteice::math::blas_real<double> >();
+
+    bayesian_nnetwork< math::superresolution< math::blas_real<double>,
+					      math::modular<unsigned int> > >* sbnn =
+      new bayesian_nnetwork< math::superresolution< math::blas_real<double>,
+						    math::modular<unsigned int> > >();
    
     nn->setResidual(residual);
+    snn->setResidual(residual);
 
     if(verbose){
       if(dropout && residual) printf("Using residual neural network with dropout heuristics.\n");
@@ -322,7 +381,7 @@ int main(int argc, char** argv)
       else printf("Using normal neural network.\n");
     }
 
-    // was sigmoid!!
+    
     whiteice::nnetwork< whiteice::math::blas_real<double> >::nonLinearity nl =
       whiteice::nnetwork< whiteice::math::blas_real<double> >::rectifier;
 
@@ -333,6 +392,18 @@ int main(int argc, char** argv)
       nn->setNonlinearity(nl);
       nn->setNonlinearity(nn->getLayers()-1,
 			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+    }
+
+    whiteice::nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >::nonLinearity snl =
+      whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::rectifier;
+
+    if(linearnet) // only make sense when testing optimization
+      snl = whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear;
+
+    {
+      snn->setNonlinearity(snl);
+      snn->setNonlinearity(nn->getLayers()-1,
+			   whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
     }
 
     
@@ -367,6 +438,7 @@ int main(int argc, char** argv)
       printf("Resampling dataset down to %d datapoints.\n", dataSize);
 
       data.downsampleAll(dataSize);
+      sdata.downsampleAll(dataSize);
     }
 
     if((lmethod != "use" && lmethod != "minimize") && deep > 0){
@@ -384,17 +456,35 @@ int main(int argc, char** argv)
       nn->setNonlinearity(nn->getLayers()-1,
 			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
 
-      if(deep_pretrain_nnetwork(nn, data, binary, v, &running) == false){
-	printf("ERROR: deep pretraining of nnetwork failed.\n");
-	return -1;
+      if(snn){
+	snn->setNonlinearity(whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::sigmoid);
+	snn->setNonlinearity(nn->getLayers()-1,
+			     whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
       }
+      
+      if(nn){
+	if(deep_pretrain_nnetwork(nn, data, binary, v, &running) == false){
+	  printf("ERROR: deep pretraining of nnetwork failed.\n");
+	  return -1;
+	}
+	
+	if(linearnet) // only make sense when testing optimization
+	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+	else
+	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::rectifier);
+	nn->setNonlinearity(nn->getLayers()-1,
+			    whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+      }
+      else if(snn){
+	printf("FIXME: Superresolutional numbers don't support depp pretraining of neural network weights..\n");
 
-      if(linearnet) // only make sense when testing optimization
-	nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
-      else
-	nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<double> >::rectifier);
-      nn->setNonlinearity(nn->getLayers()-1,
-			  whiteice::nnetwork< whiteice::math::blas_real<double> >::pureLinear);
+	if(linearnet) // only make sense when testing optimization
+	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+	else
+	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::rectifier);
+	snn->setNonlinearity(snn->getLayers()-1,
+			     nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::pureLinear);
+      }
       
     }
     /*
@@ -403,7 +493,8 @@ int main(int argc, char** argv)
      */
     else if((lmethod != "use" && lmethod != "minimize") && no_init == false && load == false)
     {
-      nn->randomize();
+      if(nn) nn->randomize();
+      if(snn) snn->randomize();
       
 #if 0
       if(verbose)
@@ -428,62 +519,151 @@ int main(int argc, char** argv)
       if(verbose)
 	std::cout << "Loading the previous network data from the disk." << std::endl;
 
-      if(bnn->load(nnfn) == false){
-	std::cout << "ERROR: Loading neural network failed." << std::endl;
-	if(nn) delete nn;
+      if(sbnn->load(nnfn) == false){
+	if(bnn->load(nnfn) == false){
+	  std::cout << "ERROR: Loading neural network failed." << std::endl;
+	  if(nn) delete nn;
+	  if(snn) delete snn;
+	  if(bnn) delete bnn;
+	  if(sbnn) delete sbnn;
+	  nn = NULL;
+	  return -1;
+	}
+	else{
+	  if(sbnn) delete sbnn;
+	  sbnn = NULL;
+	}
+      }
+      else{ // we use sbnn (superresolutional numbers)
 	if(bnn) delete bnn;
-	nn = NULL;
-	return -1;
+	bnn = NULL;
       }
 
-      std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
-      nnetwork< whiteice::math::blas_real<double> > nnParams;
+      if(sbnn != NULL){
 
-      if(bnn->exportSamples(nnParams, weights) == false){
-	std::cout << "ERROR: Loading neural network failed." << std::endl;
-	if(nn) delete nn;
-	if(bnn) delete bnn;
-	nn = NULL;
-	return -1;
-      }
-
-      if(lmethod != "info"){
-	std::vector<unsigned int> loadedArch;
-	nnParams.getArchitecture(loadedArch);
+	std::vector< math::vertex< math::superresolution<
+	  math::blas_real<double>,
+	  math::modular<unsigned int> > > > weights;
 	
-	if(arch.size() != loadedArch.size()){
-	  std::cout << "ERROR: Mismatch between loaded network architecture and parameter architecture." << std::endl;
+	nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > nnParams;
+	
+	if(sbnn->exportSamples(nnParams, weights) == false){
+	  std::cout << "ERROR: Loading neural network failed." << std::endl;
+	  if(nn) delete nn;
+	  if(snn) delete snn;
+	  if(bnn) delete bnn;
+	  if(sbnn) delete sbnn;
+	  nn = NULL;
+	  bnn = NULL;
+	  sbnn = NULL;
+	  return -1;
+	}
+	
+	if(lmethod != "info"){
+	  std::vector<unsigned int> loadedArch;
+	  nnParams.getArchitecture(loadedArch);
+	  
+	  if(arch.size() != loadedArch.size()){
+	    std::cout << "ERROR: Mismatch between loaded network architecture and parameter architecture." << std::endl;
+	    if(nn) delete nn;
+	    if(snn) delete snn;
+	    if(bnn) delete bnn;
+	    if(sbnn) delete sbnn;
+	    nn = NULL;
+	    bnn = NULL;
+	    sbnn = NULL;
+	    return -1;
+	  }
+	
+	  for(unsigned int i=0;i<arch.size();i++){
+	    if(arch[i] != loadedArch[i]){
+	      std::cout << "ERROR: Mismatch between loaded network architecture and parameter architecture." << std::endl;
+	      if(nn) delete nn;
+	      if(snn) delete snn;
+	      if(bnn) delete bnn;
+	      if(sbnn) delete sbnn;
+	      nn = NULL;
+	      bnn = NULL;
+	      sbnn = NULL;
+	      return -1;
+	    }
+	  }
+	}
+	
+
+	*snn = nnParams;
+	
+	// just pick one randomly if there are multiple ones
+	unsigned int index = 0;
+	if(weights.size() > 1)
+	  index = rand() % weights.size();
+	
+	if(snn->importdata(weights[index]) == false){
+	  std::cout << "ERROR: Loading neural network failed (incorrect network architecture?)." << std::endl;
+	  if(nn) delete nn;
+	  if(snn) delete snn;
+	  if(bnn) delete bnn;
+	  if(sbnn) delete sbnn;
+	  return -1;
+	}
+	
+      }
+      else{ // bnn != NULL
+
+	std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
+	nnetwork< whiteice::math::blas_real<double> > nnParams;
+	
+	if(bnn->exportSamples(nnParams, weights) == false){
+	  std::cout << "ERROR: Loading neural network failed." << std::endl;
 	  if(nn) delete nn;
 	  if(bnn) delete bnn;
 	  nn = NULL;
 	  return -1;
 	}
 	
-	for(unsigned int i=0;i<arch.size();i++){
-	  if(arch[i] != loadedArch[i]){
+	if(lmethod != "info"){
+	  std::vector<unsigned int> loadedArch;
+	  nnParams.getArchitecture(loadedArch);
+	  
+	  if(arch.size() != loadedArch.size()){
 	    std::cout << "ERROR: Mismatch between loaded network architecture and parameter architecture." << std::endl;
 	    if(nn) delete nn;
 	    if(bnn) delete bnn;
 	    nn = NULL;
 	    return -1;
 	  }
+	
+	  for(unsigned int i=0;i<arch.size();i++){
+	    if(arch[i] != loadedArch[i]){
+	      std::cout << "ERROR: Mismatch between loaded network architecture and parameter architecture." << std::endl;
+	      if(nn) delete nn;
+	      if(snn) delete snn;
+	      if(bnn) delete bnn;
+	      if(sbnn) delete sbnn;
+	      nn = NULL;
+	      return -1;
+	    }
+	  }
 	}
-      }
+	
 
-      *nn = nnParams;
-
-      // just pick one randomly if there are multiple ones
-      unsigned int index = 0;
-      if(weights.size() > 1)
-	index = rand() % weights.size();
-
-      if(nn->importdata(weights[index]) == false){
-	std::cout << "ERROR: Loading neural network failed (incorrect network architecture?)." << std::endl;
-	if(nn) delete nn;
-	if(bnn) delete bnn;
-	return -1;
-      }
+	*nn = nnParams;
+	
+	// just pick one randomly if there are multiple ones
+	unsigned int index = 0;
+	if(weights.size() > 1)
+	  index = rand() % weights.size();
+	
+	if(nn->importdata(weights[index]) == false){
+	  std::cout << "ERROR: Loading neural network failed (incorrect network architecture?)." << std::endl;
+	  if(nn) delete nn;
+	  if(snn) delete snn;
+	  if(bnn) delete bnn;
+	  if(sbnn) delete sbnn;
+	  return -1;
+	}
       
+      }
     }
 
     // checks if we only need to calculate subnet (if there are frozen layers before the first non-frozen layer)
@@ -492,6 +672,10 @@ int main(int argc, char** argv)
     bayesian_nnetwork< whiteice::math::blas_real<double> >* parent_bnn = NULL;
     dataset< whiteice::math::blas_real<double> >* parent_data = NULL;
     unsigned int initialFrozen = 0;
+
+    nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >* parent_snn = NULL;
+    bayesian_nnetwork< math::superresolution<math::blas_real<double>, math::modular<unsigned int> > >* parent_sbnn = NULL;
+    dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >* parent_sdata = NULL;
     
     if(load == true && lmethod != "use" && lmethod != "minimize" && lmethod != "info")
     {
@@ -503,37 +687,56 @@ int main(int argc, char** argv)
       if(initialFrozen > 0){
 	subnet = true;
 	parent_nn = nn;
+	parent_snn = snn; 
 	parent_bnn = bnn;
+	parent_sbnn = sbnn;
 
 	nn = nn->createSubnet(initialFrozen); // create subnet by skipping the first N layers
-	bnn = bnn->createSubnet(initialFrozen); // create subnet by skipping the firsst N layers
+	snn = snn->createSubnet(initialFrozen); // create subnet by skipping the first N layers
+	if(bnn) bnn = bnn->createSubnet(initialFrozen); // create subnet by skipping the firsst N layers
+	if(sbnn) sbnn = sbnn->createSubnet(initialFrozen); // create subnet by skipping the firsst N layers
 
 	if(verbose)
 	  printf("Optimizing subnet (%d parameters in neural network)..\n", nn->exportdatasize());
 
 	parent_data = new dataset< whiteice::math::blas_real<double> >(data);
+	parent_sdata = new dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >(sdata);
 
 	const unsigned int newInputDimension = nn->getInputs(0);
 	std::vector< math::vertex< math::blas_real<double> > > samples; // new input samples
+	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > ssamples; // new input samples
 
 	for(unsigned int i=0;i<data.size(0);i++){
 	  parent_nn->input() = data.access(0, i);
 	  parent_nn->calculate(false, true); // collect samples per each layer
 	}
 
+	for(unsigned int i=0;i<sdata.size(0);i++){
+	  parent_snn->input() = sdata.access(0, i);
+	  parent_snn->calculate(false, true); // collect samples per each layer
+	}
+
 	parent_nn->getSamples(samples, initialFrozen);
+	parent_snn->getSamples(ssamples, initialFrozen);
 
 	data.resetCluster(0, "input", newInputDimension);
 	data.add(0, samples);
+	
+	sdata.resetCluster(0, "input", newInputDimension);
+	sdata.add(0, ssamples);
       }
       
     }
+    
     
     //////////////////////////////////////////////////////////////////////////////////////////////////////
     // learning or activation
     if(lmethod == "info"){
 
-      bnn->printInfo();
+      if(sbnn)
+	sbnn->printInfo();
+      else if(bnn)
+	bnn->printInfo();
       
     }
     //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1031,6 +1234,94 @@ int main(int argc, char** argv)
       
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    else if(lmethod == "sgrad"){
+      
+      if(verbose){
+	std::cout << "Starting neural network gradient descent optimizer [superresolutional/polynomial arithmetic numbers].."
+		  << std::endl;
+	if(overfit == false)
+	  std::cout << "Early stopping (testing dataset)." << std::endl;
+	else
+	  std::cout << "Overfitting to whole dataset (recommended)." << std::endl;
+      }
+
+      if(snn == NULL || nn == NULL){
+	std::cout << "ERROR: neural network data structure doesn't exist!" << std::endl;
+	return -1;
+      }
+
+
+      std::vector< std::vector<bool> > dropout_neurons;
+      
+      // convert net to snet
+      {
+	for(unsigned int l=0;l<nn->getLayers();l++){
+	  snn->setNonlinearity(l, (whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::nonLinearity)(nn->getNonlinearity(l)));
+	  snn->setFrozen(l, nn->getFrozen(l));
+	}
+
+	snn->setResidual(nn->getResidual());
+	snn->setBatchNorm(nn->getBatchNorm());
+	
+	if(dropout){
+	  printf("FIXME: dropout is not currently supported by SGD!\n");
+	  snn->setDropOut(dropout_neurons);
+	  return -1;
+	}
+      }
+
+      whiteice::SGD_snet< math::blas_real<double> > sgd(*snn, data, overfit);
+      
+      math::superresolution<math::blas_real<double>,
+			    math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001, 0.01
+
+      math::superresolution<math::blas_real<double>,
+			    math::modular<unsigned int> > error;
+      
+      math::vertex< math::superresolution<math::blas_real<double>,
+					  math::modular<unsigned int> > > w0;
+      
+      snn->exportdata(w0);
+      
+      sgd.setAdaptiveLRate(true); // was: false [adaptive don't work]
+      sgd.setSmartConvergenceCheck(false); // [too easy to stop for convergence]
+      
+      if(sgd.minimize(w0, lrate, 0, 1000) == false){ // was: 200
+	printf("ERROR: Cannot start SGD optimizer.\n");
+	return -1;
+      }
+      
+      int old_iters = -1;
+      
+      while(sgd.isRunning()){
+	sleep(1);
+	
+	unsigned int iters = 0;
+	
+	sgd.getSolutionStatistics(error, iters);
+	
+	if(((int)iters) > old_iters){
+	  std::cout << "iter: " << iters << " error: " << error[0] << std::endl;
+	  old_iters = (int)iters;
+	}
+      }
+
+      printf("SGD Optimizer stopped.\n");
+
+      {
+	std::vector< math::vertex< math::superresolution< math::blas_real<double>,
+							  math::modular<unsigned int> > > > best_weights_list;
+
+	unsigned int iters = 0;
+	sgd.getSolution(w0, error, iters);
+	best_weights_list.push_back(w0);
+	
+	// stores only the best weights found using gradient descent
+	sbnn->importSamples(*snn, best_weights_list);
+      }
+      
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     else if(lmethod == "grad"){
 
       if(SIMULATION_DEPTH > 1){
@@ -1405,6 +1696,8 @@ int main(int argc, char** argv)
 	best_weights_list.push_back(best_weights);
       }
 
+
+
       {
 	// stores only the best weights found using gradient descent
 	bnn->importSamples(*nn, best_weights_list);
@@ -1695,304 +1988,654 @@ int main(int argc, char** argv)
       if(verbose)
 	std::cout << "Activating loaded neural network configuration.."
 		  << std::endl;
-      
-      if(bnn->load(nnfn) == false){
-	std::cout << "Loading neural network failed." << std::endl;
-	delete nn;
-	delete bnn;
-	nn = NULL;
-	return -1;
-      }
 
-      const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
-      const int RDIM2 = ((int)bnn->outputSize()) - ((int)data.dimension(1));
-      
-      if(bnn->inputSize() != data.dimension(0) && SIMULATION_DEPTH == 1){
-	std::cout << "Neural network input dimension mismatch for input dataset ("
-		  << bnn->inputSize() << " != " << data.dimension(0) << ")"
-		  << std::endl;
-	delete bnn;
-	delete nn;
-	nn = NULL;
-	return -1;
-      }
-      else if((RDIM1 != RDIM2 || (RDIM1 <= 0 || RDIM2 <= 0)) && SIMULATION_DEPTH > 1){
-	std::cout << "Recurrent neural network input dimension mismatch for input dataset ("
-		  << bnn->inputSize() << " != " << data.dimension(0)+bnn->outputSize() << ")"
-		  << std::endl;
-	delete bnn;
-	delete nn;
-	nn = NULL;
-	return -1;
-      }
-      
-      
-      
-      bool compare_clusters = false;
-      
-      if(data.getNumberOfClusters() == 2){
-	if(data.size(0) > 0 && data.size(1) > 0 && 
-	   data.size(0) == data.size(1)){
-	  compare_clusters = true;
+      if(sbnn){
+
+	if(sbnn->load(nnfn) == false){
+	  std::cout << "Loading neural network failed." << std::endl;
+	  delete snn;
+	  delete sbnn;
+	  snn = NULL;
+	  return -1;
 	}
 
-	const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
+	const int RDIM1 = ((int)sbnn->inputSize()) - ((int)sdata.dimension(0));
+	const int RDIM2 = ((int)sbnn->outputSize()) - ((int)sdata.dimension(1));
+	
+	if(sbnn->inputSize() != data.dimension(0) && SIMULATION_DEPTH == 1){
+	  std::cout << "Neural network input dimension mismatch for input dataset ("
+		    << sbnn->inputSize() << " != " << sdata.dimension(0) << ")"
+		    << std::endl;
+	  delete sbnn;
+	  delete snn;
+	  snn = NULL;
+	  return -1;
+	}
+	else if((RDIM1 != RDIM2 || (RDIM1 <= 0 || RDIM2 <= 0)) && SIMULATION_DEPTH > 1){
+	  std::cout << "Recurrent neural network input dimension mismatch for input dataset ("
+		    << sbnn->inputSize() << " != " << sdata.dimension(0)+sbnn->outputSize() << ")"
+		    << std::endl;
+	  delete sbnn;
+	  delete snn;
+	  snn = NULL;
+	  return -1;
+	}
+	
+	
+	
+	bool compare_clusters = false;
+	
+	if(sdata.getNumberOfClusters() == 2){
+	  if(sdata.size(0) > 0 && sdata.size(1) > 0 && 
+	     sdata.size(0) == sdata.size(1)){
+	    compare_clusters = true;
+	  }
 	  
-	if(bnn->outputSize() != data.dimension(1)+RDIM1){
-	  std::cout << "Neural network output dimension mismatch for dataset ("
-		    << bnn->outputSize() << " != " << data.dimension(1) << ")"
-		    << std::endl;
-	  delete bnn;
-	  delete nn;
+	  const int RDIM1 = ((int)sbnn->inputSize()) - ((int)sdata.dimension(0));
+	  
+	  if(sbnn->outputSize() != sdata.dimension(1)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << sbnn->outputSize() << " != " << sdata.dimension(1) << ")"
+		      << std::endl;
+	    delete sbnn;
+	    delete snn;
+	    return -1;	    
+	  }
+	}
+	else if(sdata.getNumberOfClusters() == 3){
+	  if(sdata.size(0) > 0 && sdata.size(1) > 0 && 
+	     sdata.size(0) == data.size(1)){
+	    compare_clusters = true;
+	  }
+	  
+	  const int RDIM1 = ((int)sbnn->inputSize()) - ((int)sdata.dimension(0));
+	  
+	  if(sbnn->outputSize() != sdata.dimension(1)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << sbnn->outputSize() << " != " << sdata.dimension(1) << ")"
+		      << std::endl;
+	    delete sbnn;
+	    delete snn;
+	    return -1;	    
+	  }
+	  
+	  if(sbnn->outputSize() != sdata.dimension(2)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << sbnn->outputSize() << " != " << sdata.dimension(2) << ")"
+		      << std::endl;
+	    delete sbnn;
+	    delete snn;
+	    return -1;	    
+	  }
+	}
+	else{
+	  std::cout << "Unsupported number of data clusters in dataset: "
+		    << sdata.getNumberOfClusters() << std::endl;
+	  delete sbnn;
+	  delete snn;
 	  return -1;	    
 	}
+	
+	
+	if(compare_clusters == true){
+	  
+	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error1 = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
+	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error2 = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
+	  math::superresolution< math::blas_real<double>, math::modular<unsigned int> > c = math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.5f);
+	  math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > err;
+	  
+	  whiteice::nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > single_snn(*snn);
+	  std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > sweights;
+	  
+	  sbnn->exportSamples(single_snn, sweights);
+	  auto w = sweights[0];
+	  w.zero();
+	  
+	  for(auto& wi : sweights)
+	    w += wi;
+	  
+	  w /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(sweights.size()); // E[w]
+	  
+	  
+	  {
+	    std::vector<unsigned int> arch2;
+	    single_snn.getArchitecture(arch2);
+	    
+	    if(arch2.size() != arch.size()){
+	      printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout %d != %d).\n",
+		     (int)arch2.size(), (int)arch.size());
+	      delete sbnn;
+	      delete snn;
+	      exit(-1);
+	    }
+	    
+	    for(unsigned int i=0;i<arch.size();i++){
+	      if(arch2[i] != arch[i]){
+		printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout).\n");
+		for(unsigned int i=0;i<arch.size();i++)
+		  printf("%d ", arch[i]);
+		printf("\n");
+		
+		for(unsigned int i=0;i<arch2.size();i++)
+		  printf("%d ", arch2[i]);
+		printf("\n");
+		
+		delete sbnn;
+		delete snn;
+		exit(-1);
+	      }
+	    }
+	  }
+	  
+	  
+	  if(single_snn.importdata(w) == false){
+	    printf("ERROR: cannot import weights from bayesian nnetwork to a single network.\n");
+	    delete sbnn;
+	    delete snn;
+	    exit(-1);
+	  }
+	  
+	  whiteice::linear_ETA<double> eta;
+	  
+	  if(sdata.size(0) > 0)
+	    eta.start(0.0f, (double)sdata.size(0));
+	  
+	  unsigned int counter = 0; // number of points calculated..
+	  
+	  for(unsigned int i=0;i<sdata.size(0) && !stopsignal;i++){
+	    
+	    math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > out1;
+	    math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > rdim;
+	    
+	    rdim.resize(sbnn->inputSize() - sdata.dimension(0));
+	    rdim.zero();
+	    
+	    sbnn->calculate(sdata.access(0, i), out1, SIMULATION_DEPTH, 0);
+	    err = sdata.access(1,i) - out1;
+	    
+	    for(unsigned int i=0;i<err.size();i++)
+	      error1 += c*(err[i]*err[i]) / math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((double)err.size());
+	    
+	    single_snn.input().zero();
+	    single_snn.output().zero();
+	    single_snn.input().write_subvertex(sdata.access(0, i), 0);	  
+	    
+	    for(unsigned int d=0;d<SIMULATION_DEPTH;d++){
+	      if(SIMULATION_DEPTH > 1){
+		single_snn.input().write_subvertex(rdim, sdata.dimension(0));
+	      }
+	      
+	      single_snn.calculate(false, false);
+	      
+	      if(SIMULATION_DEPTH > 1){
+		single_snn.output().subvertex(rdim, sdata.dimension(1), rdim.size());
+	      }
+	    }
+	    
+	    if(SIMULATION_DEPTH > 1){
+	      single_snn.output().subvertex(out1, 0, sdata.dimension(1));
+	    }
+	    else{
+	      out1 = single_snn.output();
+	    }
+	    
+	    err = sdata.access(1, i) - out1;
+	    
+	    for(unsigned int i=0;i<err.size();i++)
+	      error2 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	    
+	    eta.update((double)(i+1));
+
+	    double percent = 100.0f*((double)i+1)/((double)sdata.size(0));
+	    double etamin  = eta.estimate()/60.0f;
+	    
+	    printf("\r                                                            \r");
+	    printf("%d/%d (%.1f%%) [ETA: %.1f minutes]", i+1, sdata.size(0), percent, etamin);
+	    fflush(stdout);
+	    
+	    counter++;
+	  }
+	  
+	  printf("\n"); fflush(stdout);
+	  
+	  if(counter > 0){
+	    error1 /= math::blas_real<double>((double)counter);
+	    error2 /= math::blas_real<double>((double)counter);
+	  }
+	  
+	  std::cout << "Average error in dataset (E[f(x|w)]): " << error1 << std::endl;
+	  std::cout << "Average error in dataset (f(x|E[w])): " << error2 << std::endl;
+	}
+	
+	else{
+	  std::cout << "Predicting data points.." << std::endl;
+	  
+	  if(sdata.getNumberOfClusters() == 2 && sdata.size(0) > 0){
+	    
+	    sdata.clearData(1);
+	    
+	    sdata.setName(0, "input");
+	    sdata.setName(1, "output");
+	    
+	    whiteice::linear_ETA<double> eta;
+	    
+	    if(sdata.size(0) > 0)
+	      eta.start(0.0f, (double)sdata.size(0));
+	    
+	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
+	      
+	      math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > out;
+	      math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > var;
+	      
+	      eta.update((double)i);
+	      
+	      double percent = 100.0 * ((double)(i+1))/((double)data.size(0));
+	      double etamin  = eta.estimate()/60.0f;
+	      
+	      printf("\r                                                            \r");
+	      printf("%d/%d (%.1f%%) [ETA %.1f minutes]", i+1, data.size(0), percent, etamin);
+	      fflush(stdout);
+	      
+	      sbnn->calculate(sdata.access(0, i),  out, SIMULATION_DEPTH, 0);
+	      
+	      // we do NOT preprocess the output but inject it directly into dataset
+	      sdata.add(1, out, true);
+	    }
+	    
+	    printf("\n");
+	    fflush(stdout);	  
+	  }
+	  else if(data.getNumberOfClusters() == 3 && data.size(0) > 0){
+	    
+	    sdata.clearData(1);
+	    sdata.clearData(2);
+	    
+	    sdata.setName(0, "input");
+	    sdata.setName(1, "output");
+	    sdata.setName(2, "output_stddev");
+	    
+	    for(unsigned int i=0;i<sdata.size(0) && !stopsignal;i++){
+	      math::vertex< math::superresolution< math::blas_real<double>,
+						   math::modular<unsigned int> > > out;
+	      math::vertex< math::superresolution< math::blas_real<double>,
+						   math::modular<unsigned int> > > var;
+	      math::matrix< math::superresolution< math::blas_real<double>,
+						   math::modular<unsigned int> > > cov;
+	      
+	      sbnn->calculate(sdata.access(0, i), out, cov, SIMULATION_DEPTH, 0);
+	      
+	      // we do NOT preprocess the output but inject it directly into dataset
+	      sdata.add(1, out, true);
+	      
+	      var.resize(cov.xsize());	    
+	      for(unsigned int j=0;j<cov.xsize();j++)
+		var[j] = math::sqrt(abs(cov(j,j))); // st.dev.
+	      
+	      sdata.add(2, var, true);
+	    }
+	  }
+	  else{
+	    printf("Bad dataset data (no data?)\n");
+	    exit(-1);
+	  }
+	  
+	  if(stopsignal){
+	    if(sbnn) delete bnn;
+	    if(snn)  delete nn;
+	    
+	    exit(-1);
+	  }
+
+	  // convert sdata to data
+	  {
+	    data.clear();
+	    
+	    std::vector< dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >::data_normalization > preprocessings;
+	    
+	    math::vertex< math::blas_real<double> > w;
+	    
+	    // data to sdata
+	    
+	    for(unsigned int c=0;c<sdata.getNumberOfClusters();c++){
+	      
+	      data.createCluster(sdata.getName(c), sdata.dimension(c));
+	      
+	      for(unsigned int i=0;i<sdata.size(c);i++){
+		
+		auto v = sdata.access(c, i);
+		sdata.invpreprocess(c, v);
+		
+		w.resize(v.size());
+	  
+		for(unsigned int k=0;k<v.size();k++)
+		  whiteice::math::convert(w[k], v[k]);
+	  
+		data.add(c, w, true);
+	      }
+	
+	      // add preprocessings to data that were in the original dataset sdata
+	      // [don't work very well currently]
+	      
+	      sdata.getPreprocessings(c, preprocessings);
+	
+	      for(unsigned int i=0;i<preprocessings.size();i++){
+		data.preprocess(c, (dataset< math::blas_real<double> >::data_normalization)(preprocessings[i]));
+	      }
+	    }
+	  }
+
+	  
+	  if(data.save(datafn) == true){
+	    std::cout << "Storing results to dataset file: " 
+		      << datafn << std::endl;
+	  }
+	  else{
+	    std::cout << "Storing results to dataset file FAILED." << std::endl;
+	  }
+	
+	}
+	
       }
-      else if(data.getNumberOfClusters() == 3){
-	if(data.size(0) > 0 && data.size(1) > 0 && 
-	   data.size(0) == data.size(1)){
-	  compare_clusters = true;
+      else if(bnn){
+	
+	if(bnn->load(nnfn) == false){
+	  std::cout << "Loading neural network failed." << std::endl;
+	  delete nn;
+	  delete bnn;
+	  nn = NULL;
+	  return -1;
 	}
 
 	const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
+	const int RDIM2 = ((int)bnn->outputSize()) - ((int)data.dimension(1));
 	
-	if(bnn->outputSize() != data.dimension(1)+RDIM1){
-	  std::cout << "Neural network output dimension mismatch for dataset ("
-		    << bnn->outputSize() << " != " << data.dimension(1) << ")"
+	if(bnn->inputSize() != data.dimension(0) && SIMULATION_DEPTH == 1){
+	  std::cout << "Neural network input dimension mismatch for input dataset ("
+		    << bnn->inputSize() << " != " << data.dimension(0) << ")"
 		    << std::endl;
+	  delete bnn;
+	  delete nn;
+	  nn = NULL;
+	  return -1;
+	}
+	else if((RDIM1 != RDIM2 || (RDIM1 <= 0 || RDIM2 <= 0)) && SIMULATION_DEPTH > 1){
+	  std::cout << "Recurrent neural network input dimension mismatch for input dataset ("
+		    << bnn->inputSize() << " != " << data.dimension(0)+bnn->outputSize() << ")"
+		    << std::endl;
+	  delete bnn;
+	  delete nn;
+	  nn = NULL;
+	  return -1;
+	}
+	
+	
+	
+	bool compare_clusters = false;
+	
+	if(data.getNumberOfClusters() == 2){
+	  if(data.size(0) > 0 && data.size(1) > 0 && 
+	     data.size(0) == data.size(1)){
+	    compare_clusters = true;
+	  }
+	  
+	  const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
+	  
+	  if(bnn->outputSize() != data.dimension(1)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << bnn->outputSize() << " != " << data.dimension(1) << ")"
+		      << std::endl;
+	    delete bnn;
+	    delete nn;
+	    return -1;	    
+	  }
+	}
+	else if(data.getNumberOfClusters() == 3){
+	  if(data.size(0) > 0 && data.size(1) > 0 && 
+	     data.size(0) == data.size(1)){
+	    compare_clusters = true;
+	  }
+	  
+	  const int RDIM1 = ((int)bnn->inputSize()) - ((int)data.dimension(0));
+	  
+	  if(bnn->outputSize() != data.dimension(1)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << bnn->outputSize() << " != " << data.dimension(1) << ")"
+		      << std::endl;
+	    delete bnn;
+	    delete nn;
+	    return -1;	    
+	  }
+	  
+	  if(bnn->outputSize() != data.dimension(2)+RDIM1){
+	    std::cout << "Neural network output dimension mismatch for dataset ("
+		      << bnn->outputSize() << " != " << data.dimension(2) << ")"
+		      << std::endl;
+	    delete bnn;
+	    delete nn;
+	    return -1;	    
+	  }
+	}
+	else{
+	  std::cout << "Unsupported number of data clusters in dataset: "
+		    << data.getNumberOfClusters() << std::endl;
 	  delete bnn;
 	  delete nn;
 	  return -1;	    
 	}
-
-	if(bnn->outputSize() != data.dimension(2)+RDIM1){
-	  std::cout << "Neural network output dimension mismatch for dataset ("
-		    << bnn->outputSize() << " != " << data.dimension(2) << ")"
-		    << std::endl;
-	  delete bnn;
-	  delete nn;
-	  return -1;	    
-	}
-      }
-      else{
-	std::cout << "Unsupported number of data clusters in dataset: "
-		  << data.getNumberOfClusters() << std::endl;
-	delete bnn;
-	delete nn;
-	return -1;	    
-      }
-
-      
-      if(compare_clusters == true){
-	math::blas_real<double> error1 = math::blas_real<double>(0.0f);
-	math::blas_real<double> error2 = math::blas_real<double>(0.0f);
-	math::blas_real<double> c = math::blas_real<double>(0.5f);
-	math::vertex< whiteice::math::blas_real<double> > err;
-	
-	whiteice::nnetwork< whiteice::math::blas_real<double> > single_nn(*nn);
-	std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
-	
-	bnn->exportSamples(single_nn, weights);
-	math::vertex< whiteice::math::blas_real<double> > w = weights[0];
-	w.zero();
-
-	for(auto& wi : weights)
-	  w += wi;
-
-	w /= weights.size(); // E[w]
 	
 	
-	{
-	  std::vector<unsigned int> arch2;
-	  single_nn.getArchitecture(arch2);
-
-	  if(arch2.size() != arch.size()){
-	    printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout %d != %d).\n",
-		   (int)arch2.size(), (int)arch.size());
+	if(compare_clusters == true){
+	  math::blas_real<double> error1 = math::blas_real<double>(0.0f);
+	  math::blas_real<double> error2 = math::blas_real<double>(0.0f);
+	  math::blas_real<double> c = math::blas_real<double>(0.5f);
+	  math::vertex< whiteice::math::blas_real<double> > err;
+	  
+	  whiteice::nnetwork< whiteice::math::blas_real<double> > single_nn(*nn);
+	  std::vector< math::vertex< whiteice::math::blas_real<double> > > weights;
+	  
+	  bnn->exportSamples(single_nn, weights);
+	  math::vertex< whiteice::math::blas_real<double> > w = weights[0];
+	  w.zero();
+	  
+	  for(auto& wi : weights)
+	    w += wi;
+	  
+	  w /= weights.size(); // E[w]
+	  
+	  
+	  {
+	    std::vector<unsigned int> arch2;
+	    single_nn.getArchitecture(arch2);
+	    
+	    if(arch2.size() != arch.size()){
+	      printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout %d != %d).\n",
+		     (int)arch2.size(), (int)arch.size());
+	      delete bnn;
+	      delete nn;
+	      exit(-1);
+	    }
+	    
+	    for(unsigned int i=0;i<arch.size();i++){
+	      if(arch2[i] != arch[i]){
+		printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout).\n");
+		for(unsigned int i=0;i<arch.size();i++)
+		  printf("%d ", arch[i]);
+		printf("\n");
+		
+		for(unsigned int i=0;i<arch2.size();i++)
+		  printf("%d ", arch2[i]);
+		printf("\n");
+		
+		delete bnn;
+		delete nn;
+		exit(-1);
+	      }
+	    }
+	  }
+	  
+	  
+	  if(single_nn.importdata(w) == false){
+	    printf("ERROR: cannot import weights from bayesian nnetwork to a single network.\n");
 	    delete bnn;
 	    delete nn;
 	    exit(-1);
 	  }
 	  
-	  for(unsigned int i=0;i<arch.size();i++){
-	    if(arch2[i] != arch[i]){
-	      printf("ERROR: cannot import weights from bayesian nnetwork to a single network (mismatch network layout).\n");
-	      for(unsigned int i=0;i<arch.size();i++)
-		printf("%d ", arch[i]);
-	      printf("\n");
-
-	      for(unsigned int i=0;i<arch2.size();i++)
-		printf("%d ", arch2[i]);
-	      printf("\n");
-	      
-	      delete bnn;
-	      delete nn;
-	      exit(-1);
-	    }
-	  }
-	}
-
-	
-	if(single_nn.importdata(w) == false){
-	  printf("ERROR: cannot import weights from bayesian nnetwork to a single network.\n");
-	  delete bnn;
-	  delete nn;
-	  exit(-1);
-	}
-
-	whiteice::linear_ETA<double> eta;
-	
-	if(data.size(0) > 0)
-	  eta.start(0.0f, (double)data.size(0));
-
-	unsigned int counter = 0; // number of points calculated..
-
-	for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	  math::vertex< whiteice::math::blas_real<double> > out1;
-	  math::vertex< whiteice::math::blas_real<double> > rdim;
-
-	  rdim.resize(bnn->inputSize() - data.dimension(0));
-	  rdim.zero();
-
-	  bnn->calculate(data.access(0, i), out1, SIMULATION_DEPTH, 0);
-	  err = data.access(1,i) - out1;
-	  
-	  for(unsigned int i=0;i<err.size();i++)
-	    error1 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
-
-	  single_nn.input().zero();
-	  single_nn.output().zero();
-	  single_nn.input().write_subvertex(data.access(0, i), 0);	  
-	  
-	  for(unsigned int d=0;d<SIMULATION_DEPTH;d++){
-	    if(SIMULATION_DEPTH > 1){
-	      single_nn.input().write_subvertex(rdim, data.dimension(0));
-	    }
-	    
-	    single_nn.calculate(false, false);
-
-	    if(SIMULATION_DEPTH > 1){
-	      single_nn.output().subvertex(rdim, data.dimension(1), rdim.size());
-	    }
-	  }
-	  
-	  if(SIMULATION_DEPTH > 1){
-	    single_nn.output().subvertex(out1, 0, data.dimension(1));
-	  }
-	  else{
-	    out1 = single_nn.output();
-	  }
-	  
-	  err = data.access(1, i) - out1;
-
-	  for(unsigned int i=0;i<err.size();i++)
-	    error2 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
-
-	  eta.update((double)(i+1));
-
-	  double percent = 100.0f*((double)i+1)/((double)data.size(0));
-	  double etamin  = eta.estimate()/60.0f;
-
-	  printf("\r                                                            \r");
-	  printf("%d/%d (%.1f%%) [ETA: %.1f minutes]", i+1, data.size(0), percent, etamin);
-	  fflush(stdout);
-
-	  counter++;
-	}
-
-	printf("\n"); fflush(stdout);
-
-	if(counter > 0){
-	  error1 /= math::blas_real<double>((double)counter);
-	  error2 /= math::blas_real<double>((double)counter);
-	}
-	
-	std::cout << "Average error in dataset (E[f(x|w)]): " << error1 << std::endl;
-	std::cout << "Average error in dataset (f(x|E[w])): " << error2 << std::endl;
-      }
-      
-      else{
-	std::cout << "Predicting data points.." << std::endl;
-	
-	if(data.getNumberOfClusters() == 2 && data.size(0) > 0){
-	  
-	  data.clearData(1);
-	  
-	  data.setName(0, "input");
-	  data.setName(1, "output");
-
 	  whiteice::linear_ETA<double> eta;
 	  
 	  if(data.size(0) > 0)
 	    eta.start(0.0f, (double)data.size(0));
-	
+	  
+	  unsigned int counter = 0; // number of points calculated..
+	  
 	  for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	    math::vertex< whiteice::math::blas_real<double> > out;
-	    math::vertex< whiteice::math::blas_real<double> > var;
+	    math::vertex< whiteice::math::blas_real<double> > out1;
+	    math::vertex< whiteice::math::blas_real<double> > rdim;
+	    
+	    rdim.resize(bnn->inputSize() - data.dimension(0));
+	    rdim.zero();
+	    
+	    bnn->calculate(data.access(0, i), out1, SIMULATION_DEPTH, 0);
+	    err = data.access(1,i) - out1;
+	    
+	    for(unsigned int i=0;i<err.size();i++)
+	      error1 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	    
+	    single_nn.input().zero();
+	    single_nn.output().zero();
+	    single_nn.input().write_subvertex(data.access(0, i), 0);	  
+	    
+	    for(unsigned int d=0;d<SIMULATION_DEPTH;d++){
+	      if(SIMULATION_DEPTH > 1){
+		single_nn.input().write_subvertex(rdim, data.dimension(0));
+	      }
+	      
+	      single_nn.calculate(false, false);
+	      
+	      if(SIMULATION_DEPTH > 1){
+		single_nn.output().subvertex(rdim, data.dimension(1), rdim.size());
+	      }
+	    }
+	    
+	    if(SIMULATION_DEPTH > 1){
+	      single_nn.output().subvertex(out1, 0, data.dimension(1));
+	    }
+	    else{
+	      out1 = single_nn.output();
+	    }
+	    
+	    err = data.access(1, i) - out1;
+	    
+	    for(unsigned int i=0;i<err.size();i++)
+	      error2 += c*(err[i]*err[i]) / math::blas_real<double>((double)err.size());
+	    
+	    eta.update((double)(i+1));
 
-	    eta.update((double)i);
-
-	    double percent = 100.0 * ((double)(i+1))/((double)data.size(0));
+	    double percent = 100.0f*((double)i+1)/((double)data.size(0));
 	    double etamin  = eta.estimate()/60.0f;
-
+	    
 	    printf("\r                                                            \r");
-	    printf("%d/%d (%.1f%%) [ETA %.1f minutes]", i+1, data.size(0), percent, etamin);
+	    printf("%d/%d (%.1f%%) [ETA: %.1f minutes]", i+1, data.size(0), percent, etamin);
 	    fflush(stdout);
 	    
-	    bnn->calculate(data.access(0, i),  out, SIMULATION_DEPTH, 0);
-	    
-	    // we do NOT preprocess the output but inject it directly into dataset
-	    data.add(1, out, true);
+	    counter++;
 	  }
-
-	  printf("\n");
-	  fflush(stdout);	  
-	}
-	else if(data.getNumberOfClusters() == 3 && data.size(0) > 0){
 	  
-	  data.clearData(1);
-	  data.clearData(2);
+	  printf("\n"); fflush(stdout);
 	  
-	  data.setName(0, "input");
-	  data.setName(1, "output");
-	  data.setName(2, "output_stddev");
-	  
-	  for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
-	    math::vertex< whiteice::math::blas_real<double> > out;
-	    math::vertex< whiteice::math::blas_real<double> > var;
-	    math::matrix< whiteice::math::blas_real<double> > cov;
-	    
-	    bnn->calculate(data.access(0, i), out, cov, SIMULATION_DEPTH, 0);
-	    
-	    // we do NOT preprocess the output but inject it directly into dataset
-	    data.add(1, out, true);
-
-	    var.resize(cov.xsize());	    
-	    for(unsigned int j=0;j<cov.xsize();j++)
-	      var[j] = math::sqrt(abs(cov(j,j))); // st.dev.
-	    
-	    data.add(2, var, true);
+	  if(counter > 0){
+	    error1 /= math::blas_real<double>((double)counter);
+	    error2 /= math::blas_real<double>((double)counter);
 	  }
-	}
-	else{
-	  printf("Bad dataset data (no data?)\n");
-	  exit(-1);
-	}
-
-	if(stopsignal){
-	  if(bnn) delete bnn;
-	  if(nn)  delete nn;
 	  
-	  exit(-1);
+	  std::cout << "Average error in dataset (E[f(x|w)]): " << error1 << std::endl;
+	  std::cout << "Average error in dataset (f(x|E[w])): " << error2 << std::endl;
 	}
 	
-	if(data.save(datafn) == true){
-	  std::cout << "Storing results to dataset file: " 
-		    << datafn << std::endl;
-	}
 	else{
-	  std::cout << "Storing results to dataset file FAILED." << std::endl;
-	}
+	  std::cout << "Predicting data points.." << std::endl;
+	  
+	  if(data.getNumberOfClusters() == 2 && data.size(0) > 0){
+	    
+	    data.clearData(1);
+	    
+	    data.setName(0, "input");
+	    data.setName(1, "output");
+	    
+	    whiteice::linear_ETA<double> eta;
+	    
+	    if(data.size(0) > 0)
+	      eta.start(0.0f, (double)data.size(0));
+	    
+	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
+	      math::vertex< whiteice::math::blas_real<double> > out;
+	      math::vertex< whiteice::math::blas_real<double> > var;
+	      
+	      eta.update((double)i);
+	      
+	      double percent = 100.0 * ((double)(i+1))/((double)data.size(0));
+	      double etamin  = eta.estimate()/60.0f;
+	      
+	      printf("\r                                                            \r");
+	      printf("%d/%d (%.1f%%) [ETA %.1f minutes]", i+1, data.size(0), percent, etamin);
+	      fflush(stdout);
+	      
+	      bnn->calculate(data.access(0, i),  out, SIMULATION_DEPTH, 0);
+	      
+	      // we do NOT preprocess the output but inject it directly into dataset
+	      data.add(1, out, true);
+	    }
+	    
+	    printf("\n");
+	    fflush(stdout);	  
+	  }
+	  else if(data.getNumberOfClusters() == 3 && data.size(0) > 0){
+	    
+	    data.clearData(1);
+	    data.clearData(2);
+	    
+	    data.setName(0, "input");
+	    data.setName(1, "output");
+	    data.setName(2, "output_stddev");
+	    
+	    for(unsigned int i=0;i<data.size(0) && !stopsignal;i++){
+	      math::vertex< whiteice::math::blas_real<double> > out;
+	      math::vertex< whiteice::math::blas_real<double> > var;
+	      math::matrix< whiteice::math::blas_real<double> > cov;
+	      
+	      bnn->calculate(data.access(0, i), out, cov, SIMULATION_DEPTH, 0);
+	      
+	      // we do NOT preprocess the output but inject it directly into dataset
+	      data.add(1, out, true);
+	      
+	      var.resize(cov.xsize());	    
+	      for(unsigned int j=0;j<cov.xsize();j++)
+		var[j] = math::sqrt(abs(cov(j,j))); // st.dev.
+	      
+	      data.add(2, var, true);
+	    }
+	  }
+	  else{
+	    printf("Bad dataset data (no data?)\n");
+	    exit(-1);
+	  }
+	  
+	  if(stopsignal){
+	    if(bnn) delete bnn;
+	    if(nn)  delete nn;
+	    
+	    exit(-1);
+	  }
+	  
+	  if(data.save(datafn) == true){
+	    std::cout << "Storing results to dataset file: " 
+		      << datafn << std::endl;
+	  }
+	  else{
+	    std::cout << "Storing results to dataset file FAILED." << std::endl;
+	  }
 	
+	}
       }
     }
 
@@ -2000,42 +2643,93 @@ int main(int argc, char** argv)
     // we have processed subnet and not the real data, we inject subnet data back into the master data structures
     if(subnet)
     {
-      // we attempt to inject subnet data structure starting from initialFrozen:th layer to parent net
-      if(parent_nn->injectSubnet(initialFrozen, nn) == false){
-	printf("ERROR: injecting subnet into larger master network FAILED (1).\n");
+      if(bnn){
+	// we attempt to inject subnet data structure starting from initialFrozen:th layer to parent net
+	if(parent_nn->injectSubnet(initialFrozen, nn) == false){
+	  printf("ERROR: injecting subnet into larger master network FAILED (1).\n");
+	  
+	  delete nn; delete bnn;
+	  delete parent_nn; delete parent_bnn;
+	  delete parent_data;
+	  
+	  return -1;
+	}
 	
-	delete nn; delete bnn;
-	delete parent_nn; delete parent_bnn;
-	delete parent_data;
+	if(parent_bnn->injectSubnet(initialFrozen, bnn) == false){
+	  printf("ERROR: injecting subnet into larger master network FAILED (2).\n");
+	  
+	  delete nn; delete bnn;
+	  delete parent_nn; delete parent_bnn;
+	  delete parent_data;
+	  
+	  return -1;
+	}
+      
+	delete nn;
+	delete bnn;
+	nn = parent_nn;
+	bnn = parent_bnn;
 	
-	return -1;
+	parent_nn = nullptr;
+	parent_bnn = nullptr;
+	
+	delete parent_data; // we do not need to keep parent data structure
+	parent_data = nullptr;
       }
 
-      if(parent_bnn->injectSubnet(initialFrozen, bnn) == false){
-	printf("ERROR: injecting subnet into larger master network FAILED (2).\n");
+      if(sbnn){
+	// superresolutional data structures
 	
-	delete nn; delete bnn;
-	delete parent_nn; delete parent_bnn;
-	delete parent_data;
+	// we attempt to inject subnet data structure starting from initialFrozen:th layer to parent net
+	if(parent_snn->injectSubnet(initialFrozen, snn) == false){
+	  printf("ERROR: injecting subnet into larger master network FAILED (1).\n");
+	  
+	  delete snn; delete sbnn;
+	  delete parent_snn; delete parent_sbnn;
+	  delete parent_sdata;
+	  
+	  return -1;
+	}
 	
-	return -1;
+	if(parent_sbnn->injectSubnet(initialFrozen, sbnn) == false){
+	  printf("ERROR: injecting subnet into larger master network FAILED (2).\n");
+	  
+	  delete snn; delete sbnn;
+	  delete parent_snn; delete parent_sbnn;
+	  delete parent_sdata;
+	  
+	  return -1;
+	}
+	
+	delete snn;
+	delete sbnn;
+	snn = parent_snn;
+	sbnn = parent_sbnn;
+	
+	parent_snn = nullptr;
+	parent_sbnn = nullptr;
+	
+	delete parent_sdata; // we do not need to keep parent data structure
+	parent_sdata = nullptr;
       }
       
-      delete nn;
-      delete bnn;
-      nn = parent_nn;
-      bnn = parent_bnn;
-
-      parent_nn = nullptr;
-      parent_bnn = nullptr;
-
-      delete parent_data; // we do not need to keep parent data structure
-      parent_data = nullptr;
     }
     
         
     if(lmethod != "use" && lmethod != "minimize" && lmethod != "info"){
-      if(bnn){
+
+      if(sbnn){
+	if(sbnn->save(nnfn) == false){
+	  std::cout << "Saving neural network data failed." << std::endl;
+	  delete sbnn;
+	  return -1;
+	}
+	else{
+	  if(verbose)
+	    std::cout << "Saving neural network data: " << nnfn << std::endl;
+	}
+      }
+      else if(bnn){
 	if(bnn->save(nnfn) == false){
 	  std::cout << "Saving neural network data failed." << std::endl;
 	  delete bnn;
@@ -2051,6 +2745,9 @@ int main(int argc, char** argv)
     
     if(bnn){ delete bnn; bnn = 0; }
     if(nn){ delete nn; nn = 0; }
+
+    if(sbnn){ delete sbnn; sbnn = 0; }
+    if(snn){ delete snn; snn  = 0; }
     
     
     return 0;
@@ -2107,19 +2804,20 @@ void print_usage(bool all)
   }
   
   
-  printf("Create, train and use neural network(s).\n\n");
+  printf("Create, train and use neural nets.\n\n");
   printf("-v                shows ETA and other details\n");
   printf("--help            shows this help\n");
   printf("--version         displays version and exits\n");
-  printf("--info            prints network architecture information\n");
+  printf("--info            prints net architecture information\n");
   printf("--no-init         don't use heuristics when initializing net\n");
   printf("--overfit         do not use early stopping/use whole data (grad,pgrad,lbfgs)\n");
-  printf("--deep=*          pretrains neural network as a RBM\n");
+  printf("--deep=*          pretrains neural net as a RBM\n");
   printf("                  (* = binary or gaussian input layer)\n");
   printf("--dropout         enable dropout heuristics (grad,pgrad)\n");
-  printf("--noresidual      disable residual neural network (grad,pgrad)\n");
+  printf("--noresidual      disable residual neural net (grad,pgrad)\n");
   printf("--crossvalidation random crossvalidation (K=10) (grad)\n");
-  printf("--recurrent N     simple recurrent network (lbfgs, use)\n");
+  printf("--batchnorm       batch normalization between layers [not implemented yet]\n");
+  printf("--recurrent N     simple recurrent net (lbfgs, use)\n");
   printf("--adaptive        adaptive step in bayesian HMC (bayes)\n");
   printf("--negfb           use negative feedback between neurons\n");
   printf("--load            use previously computed weights (grad,lbfgs,bayes)\n");
@@ -2129,15 +2827,16 @@ void print_usage(bool all)
   printf("--data N          only use N random samples of data\n");
   printf("[data]            dstool file containing data (binary file)\n");
   printf("[arch]            architecture of net (Eg. 3-10-9)\n");
-  printf("<nnfile>          used/loaded/saved neural network weights file\n");
-  printf("[lmethod]         method: use, random, grad, pgrad, bayes,\n"); 
+  printf("<nnfile>          used/loaded/saved neural net weights file\n");
+  printf("[lmethod]         method: use, random, grad, sgrad, pgrad, bayes,\n"); 
   printf("                  lbfgs, plbfgs, edit, (gbrbm, bbrbm, mix)\n");
   printf("                  edit edits net to have new architecture\n");
   printf("                  previous weights are preserved if possible\n");
+  printf("                  sgrad uses polynomial arithmetic numbers to optimize nn\n");
   printf("\n");
   printf("                  Ctrl-C shutdowns the program.\n");
   printf("\n");
-  printf("This program is distributed under GPL license.\n");
+  printf("This program is distributed under GPL license (the author keep full rights to code).\n");
   printf("<tomas.ukkonen@iki.fi> (other licenses available).\n");
   
 }

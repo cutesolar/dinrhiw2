@@ -106,8 +106,8 @@ namespace whiteice
   }
   
   
-  template class LBFGS_BBRBM< float >;
-  template class LBFGS_BBRBM< double >;
+  //template class LBFGS_BBRBM< float >;
+  //template class LBFGS_BBRBM< double >;
   template class LBFGS_BBRBM< math::blas_real<float> >;
   template class LBFGS_BBRBM< math::blas_real<double> >;
 

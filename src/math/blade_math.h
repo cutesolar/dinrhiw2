@@ -182,6 +182,12 @@ namespace whiteice
     bool convert(complex<blas_real<float> >& B, const blas_complex<float> A);
     bool convert(complex<blas_real<double> >& B, const blas_complex<double> A);
 
+
+    
+    bool convert(int& B, const math::superresolution< math::blas_real<float>, math::modular<unsigned int> > A);
+    bool convert(int& B, const math::superresolution< math::blas_real<double>, math::modular<unsigned int> > A);
+    bool convert(math::superresolution< math::blas_real<float>, math::modular<unsigned int> >& B, const int A);
+    bool convert(math::superresolution< math::blas_real<double>, math::modular<unsigned int> >& B, const int A);
     
     
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,

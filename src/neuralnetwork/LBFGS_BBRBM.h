@@ -47,8 +47,8 @@ namespace whiteice
     };
 
 
-  extern template class LBFGS_BBRBM< float >;
-  extern template class LBFGS_BBRBM< double >;
+  //extern template class LBFGS_BBRBM< float >;
+  //extern template class LBFGS_BBRBM< double >;
   extern template class LBFGS_BBRBM< math::blas_real<float> >;
   extern template class LBFGS_BBRBM< math::blas_real<double> >;
   

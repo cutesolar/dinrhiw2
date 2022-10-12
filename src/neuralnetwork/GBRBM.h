@@ -113,7 +113,7 @@ namespace whiteice {
   // sets temperature of the GB-RBM U(q) distribution.. As described in Cho et. al (2011) paper
   // 1 means we use RBM and 0 means most degrees of freedom [do not follow RBM parameters]
   bool setUTemperature(const T temperature);
-    T getUTemperature();
+  T getUTemperature();
   
   unsigned int qsize() const ; // size of q vector q = [a, b, z, vec(W)]
   
@@ -255,8 +255,8 @@ namespace whiteice {
 };
 
   
-  extern template class GBRBM< float >;
-  extern template class GBRBM< double >;
+  //extern template class GBRBM< float >;
+  //extern template class GBRBM< double >;
   extern template class GBRBM< math::blas_real<float> >;
   extern template class GBRBM< math::blas_real<double> >;
   

@@ -122,9 +122,10 @@ void HMC_GBRBM<T>::starting_position(math::vertex<T>& q) const
 
 
 
-template class HMC_GBRBM< float >;
-template class HMC_GBRBM< double >;
-template class HMC_GBRBM< math::blas_real<float> >;
-template class HMC_GBRBM< math::blas_real<double> >;
+  //template class HMC_GBRBM< float >;
+  //template class HMC_GBRBM< double >;
+  
+  template class HMC_GBRBM< math::blas_real<float> >;
+  template class HMC_GBRBM< math::blas_real<double> >;
 
 } /* namespace whiteice */

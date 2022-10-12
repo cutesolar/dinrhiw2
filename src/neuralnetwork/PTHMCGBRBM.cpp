@@ -53,10 +53,11 @@ std::shared_ptr< HMC_abstract<T> > PTHMC_GBRBM<T>::newHMC(bool storeSamples, boo
 	return std::make_shared< HMC_GBRBM<T> >(data, numHiddenNodes, storeSamples, adaptive);
 }
 
-template class PTHMC_GBRBM< float >;
-template class PTHMC_GBRBM< double >;
-template class PTHMC_GBRBM< math::blas_real<float> >;
-template class PTHMC_GBRBM< math::blas_real<double> >;
+  //template class PTHMC_GBRBM< float >;
+  //template class PTHMC_GBRBM< double >;
+  
+  template class PTHMC_GBRBM< math::blas_real<float> >;
+  template class PTHMC_GBRBM< math::blas_real<double> >;
 
 
 } /* namespace whiteice */

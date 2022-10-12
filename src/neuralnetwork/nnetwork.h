@@ -35,10 +35,10 @@ namespace whiteice
   class nnetwork
   {
   public:
-    
+
     enum nonLinearity
-      {
-       sigmoid = 0, // uses sigmoid non-linearity as the default (0) [output: [0,+1] input (-inf,inf)]
+    {
+      sigmoid = 0, // uses sigmoid non-linearity as the default (0) [output: [0,+1] input (-inf,inf)]
        stochasticSigmoid = 1, // clipped to 0/1 values.. (1)
        halfLinear = 2, // for deep networks (2) [f(x)=tanh(x) + 0.5x)
        pureLinear = 3, // for last-layer and comparing nnetworks (linear f(x)=x) (3)
@@ -47,8 +47,7 @@ namespace whiteice
        softmax = 6, // for complex neural networks: this derivates ok and is similar to ReLU rectifier
        tanh10 = 7, // for limiting output to [-10,+10] interval
        rectifierAndSquared = 8 // TODO not implemented yet: ReLU and x^2 squared non-linearity every other neuron
-      };
-    
+    };
     
     
     // creates useless 1x1 network. 

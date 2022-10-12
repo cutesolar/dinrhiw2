@@ -1394,8 +1394,8 @@ bool BBRBM<T>::save(const std::string& filename) const
   }
 
   
-  template class BBRBM< float >;
-  template class BBRBM< double >;
+  //template class BBRBM< float >;
+  //template class BBRBM< double >;
   template class BBRBM< math::blas_real<float> >;
   template class BBRBM< math::blas_real<double> >;
 

@@ -26,6 +26,7 @@ void parse_commandline(int argc, char** argv,
 		       bool& residual,
 		       bool& dropout,
 		       bool& crossvalidation,
+		       bool& batchnorm,
 		       bool& help, 
 		       bool& verbose);
 

@@ -27,7 +27,15 @@ namespace whiteice
   template <typename T = math::blas_real<float> >
     class dataset
     {
-      public:
+    public:
+      // data preprocessing methods
+      enum data_normalization { 
+	dnMeanVarianceNormalization, // zero mean, unit variance
+	dnSoftMax, // forces data to small interval
+	dnCorrelationRemoval, // PCA
+	dnLinearICA
+      };
+      
       
       // creates dataset with a given number of dimensions
       // data is a set of vectors
@@ -132,6 +140,8 @@ namespace whiteice
       /*
        * exports dataset values as ascii data without preprocessing (specified cluster)
        * if raw = true, do not remove preprocessings from data before saving
+       *
+       * FIXME: exportAscii() don't work with superresolutional numbers
        */
       bool exportAscii(const std::string& filename,
 		       const unsigned int cluster_index = 0,
@@ -150,6 +160,8 @@ namespace whiteice
        *       exportAscii() dumps data from a given cluster. 
        *                     However, if there is only a single
        *                     cluster then importAscii() can load data saved by exportAscii()
+       * 
+       * FIXME: importAscii() don't work with superresolutional numbers 
        */
       bool importAscii(const std::string& filename,
 		       const int cluster_index = -1, // -1 means create new cluster
@@ -182,15 +194,6 @@ namespace whiteice
       }
       
       
-      // data preprocessing methods
-      enum data_normalization { 
-	dnMeanVarianceNormalization, // zero mean, unit variance
-	dnSoftMax, // forces data to small interval
-	dnCorrelationRemoval, // PCA
-	dnLinearICA
-      }; 
-      
-      
       bool getPreprocessings(unsigned int cluster,
 			     std::vector<data_normalization>& preprocessings) const  ;
       
@@ -202,9 +205,9 @@ namespace whiteice
 
       // data preprocessing
       bool preprocess(unsigned int index,
-		      enum data_normalization norm = dnMeanVarianceNormalization) ;
+		      enum data_normalization norm = whiteice::dataset<T>::dnMeanVarianceNormalization) ;
       // index = 0
-      bool preprocess(enum data_normalization norm = dnMeanVarianceNormalization) ;
+      bool preprocess(enum data_normalization norm = whiteice::dataset<T>::dnMeanVarianceNormalization) ;
       
       // inverse preprocess everything, calculates new preprocessing parameters
       // and preprocesses everything with parameter data from the whole dataset

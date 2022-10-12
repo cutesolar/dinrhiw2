@@ -37,10 +37,11 @@ protected:
 
 };
 
-extern template class PTHMC_GBRBM< float >;
-extern template class PTHMC_GBRBM< double >;
-extern template class PTHMC_GBRBM< math::blas_real<float> >;
-extern template class PTHMC_GBRBM< math::blas_real<double> >;
+  //extern template class PTHMC_GBRBM< float >;
+  //extern template class PTHMC_GBRBM< double >;
+  
+  extern template class PTHMC_GBRBM< math::blas_real<float> >;
+  extern template class PTHMC_GBRBM< math::blas_real<double> >;
 
 } /* namespace whiteice */
 

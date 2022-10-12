@@ -388,8 +388,8 @@ namespace whiteice
 
 	  }
 	}
-	
-	
+
+
 	
 	if(lrate[0] < T(1e-10)[0]){
 	  // lrate = T(1e-10);
@@ -403,7 +403,7 @@ namespace whiteice
 	  use_mistep_lrate = true;
 	  std::cout << "MISTEP LRATE: " << mistep_lrate << std::endl;
 	  lrate[0] = mistep_lrate[0];
-	  mistep_go_worse = 1;
+	  mistep_go_worse = 2;
 
 	  if((rng.rand()%100) < 10){ // 10% probability to reset x 
 	    x = bestx; // resets x too [don't work in practice]

@@ -48,10 +48,11 @@ protected:
 };
 
 
-extern template class HMC_GBRBM< float >;
-extern template class HMC_GBRBM< double >;
-extern template class HMC_GBRBM< math::blas_real<float> >;
-extern template class HMC_GBRBM< math::blas_real<double> >;
+  //extern template class HMC_GBRBM< float >;
+  //extern template class HMC_GBRBM< double >;
+  
+  extern template class HMC_GBRBM< math::blas_real<float> >;
+  extern template class HMC_GBRBM< math::blas_real<double> >;
 
 } /* namespace whiteice */
 

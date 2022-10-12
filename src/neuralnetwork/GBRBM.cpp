@@ -2783,10 +2783,11 @@ T GBRBM<T>::reconstruct_gbrbm_data_error(const std::vector< math::vertex<T> >& s
 
 
 
-template class GBRBM< float >;
-template class GBRBM< double >;
-template class GBRBM< math::blas_real<float> >;
-template class GBRBM< math::blas_real<double> >;
+  //template class GBRBM< float >;
+  //template class GBRBM< double >;
+  
+  template class GBRBM< math::blas_real<float> >;
+  template class GBRBM< math::blas_real<double> >;
 
 
 
