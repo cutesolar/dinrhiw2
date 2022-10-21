@@ -555,6 +555,30 @@ else
 fi
 
 
+AC_MSG_CHECKING([for NVIDIA cuBLAS 11.8 library [SLOW] (Linux)])
+CUBLAS_FLAGS="`pkg-config cublas-11.8 --cflags --libs` `pkg-config cudart-11.8 --cflags --libs`"
+`g++ -o cublastest cublastest.cpp -DCUBLAS $CUBLAS_FLAGS > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_cublas" == "xno"],[
+     NVIDIACUBLAS="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     NVIDIACUBLAS="yes"x
+     BLAS_CFLAGS="-DCUBLAS `pkg-config cublas-11.8 --cflags` `pkg-config cudart-11.8 --cflags`"
+     BLAS_LIBS="`pkg-config cublas-11.8 --libs` `pkg-config cudart-11.8 --libs`"
+     AC_MSG_RESULT([yes, using pkg-config cublas-11.8 cudart-11.8])
+  ])
+else
+   AC_MSG_RESULT([no NVIDIA cuBLAS detected])
+   NVIDIACUBLAS="no"
+fi
+
+
+
+
+
 AC_ARG_ENABLE([nvblas],
 	AS_HELP_STRING([--disable-nvblas],[Disable NVIDIA NVBLAS library]))
 

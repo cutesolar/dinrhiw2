@@ -1,6 +1,6 @@
 
-#define _ISOC11_SOURCE
-#define _GNU_SOURCE
+//#define _ISOC11_SOURCE
+//#define _GNU_SOURCE
 
 #include <cstdlib>
 #include <stdlib.h>
