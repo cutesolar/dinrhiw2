@@ -767,10 +767,24 @@ namespace whiteice
       return false;
     }
 
-    // we only support version 2
-    if(version != 2){
-      fclose(fp);
-      return false;
+    // we only support version 2, superreso adds extra version id number 
+    
+    if(typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> >) ||
+       typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> >)){
+      
+      if(version != (2 + 0xBEEF0000)) // v3.8 datafile (3.8 adds superresolutional numbers which add 1 to version number) (3.7 adds batch norm data)
+      {
+	fclose(fp);
+	return false;
+      }
+    }
+    else{
+      
+      if(version != 2){
+	fclose(fp);
+	return false;
+      }
+      
     }
     
     
@@ -1160,7 +1174,15 @@ namespace whiteice
     // version 0 was initial version number for previous
     // version 1 did not support complex numbers
     // version 2 saves/loads values to disk as complex numbers
-    const unsigned int version = 2; 
+    unsigned int version = 2;
+
+    if(typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<float>, whiteice::math::modular<unsigned int> >) ||
+       typeid(T) == typeid(whiteice::math::superresolution< whiteice::math::blas_real<double>, whiteice::math::modular<unsigned int> >)){
+      // superreso use extended version number
+      version += 0xBEEF0000;
+    }
+
+    
     // dataset fileformat (not supported)
     const unsigned int cnum    = clusters.size();
 
@@ -1170,7 +1192,7 @@ namespace whiteice
       return false;
     }
 
-
+    
     if(fwrite(&version, 4, 1, fp) != 1){
       fclose(fp);
       remove(filename.c_str());
