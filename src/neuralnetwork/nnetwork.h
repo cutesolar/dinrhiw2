@@ -43,10 +43,11 @@ namespace whiteice
        halfLinear = 2, // for deep networks (2) [f(x)=tanh(x) + 0.5x)
        pureLinear = 3, // for last-layer and comparing nnetworks (linear f(x)=x) (3)
        tanh = 4, // tanh non-linearity (output: [-1,+1] (input: [-1,1])
-       rectifier = 5, // leaky ReLU f(x) = max(0.1x,x) - deep networks [biologically motivated]
+       rectifier = 5, // leaky ReLU f(x) = max(0.1x,x) - deep networks [biologically motivated, USE THIS]
        softmax = 6, // for complex neural networks: this derivates ok and is similar to ReLU rectifier
        tanh10 = 7, // for limiting output to [-10,+10] interval
-       rectifierAndSquared = 8 // TODO not implemented yet: ReLU and x^2 squared non-linearity every other neuron
+       rectifierAndSquared = 8, // TODO not implemented yet: ReLU and x^2 squared non-linearity every other neuron
+       hermite = 9 // Hermite polynomial (degree=3) alternating H_1(x), H_2(x), H_3(x) hermite polynomials between every 3rd neuron as non-linearity [without weight sharing as in the research paper]
     };
     
     

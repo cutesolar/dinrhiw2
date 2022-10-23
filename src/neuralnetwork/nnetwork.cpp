@@ -644,7 +644,7 @@ namespace whiteice
   {
     // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
     // 0.25 was used as default for 2 layers! (no problem)
-    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values
+    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
     
     if(type == 0){
       const whiteice::math::blas_complex<double> ar(2.0f,0.0f), br(1.0f, 0.0f);
@@ -2112,6 +2112,31 @@ namespace whiteice
       }
       
     }
+    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+
+      T output = input;
+
+      const unsigned int hermite_degree = 1 + (neuron % 3);
+
+      if(hermite_degree == 1){
+	output = T(2.0f)*input;
+      }
+      else if(hermite_degree == 2){
+	output = T(4.0f)*input*input - T(2.0f);
+      }
+      else if(hermite_degree == 3){
+	output = T(8.0f)*input*input*input - T(12.0f)*input;
+      }
+
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
+    }
     else if(nonlinearity[layer] == pureLinear){
       T output = input; // all layers/neurons are linear..
 
@@ -2186,7 +2211,7 @@ namespace whiteice
 
 #if 1
 	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
-	  if(output[i].real() < 0.0f)
+	  if(output[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 #endif
@@ -2400,6 +2425,31 @@ namespace whiteice
 	}
       }      
     }
+    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+
+      T output = input;
+
+      const unsigned int hermite_degree = 1 + (neuron % 3);
+
+      if(hermite_degree == 1){
+	output = T(2.0f);
+      }
+      else if(hermite_degree == 2){
+	output = T(8.0f)*input;
+      }
+      else if(hermite_degree == 3){
+	output = T(24.0f)*input*input - T(12.0f);
+      }
+
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
+    }
     else if(nonlinearity[layer] == pureLinear){
       T output = T(1.0f); // all layers/neurons are linear..
 
@@ -2476,7 +2526,7 @@ namespace whiteice
 
 #if 1
 	// WRONG but WORKS BETTER!
-	
+
 	auto output = input;
 
 	if(input[0].real() < 0.0f)
@@ -2662,6 +2712,31 @@ namespace whiteice
       }
       
     }
+    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+
+      T output = input;
+
+      const unsigned int hermite_degree = 1 + (neuron % 3);
+
+      if(hermite_degree == 1){
+	output = T(2.0f)*input;
+      }
+      else if(hermite_degree == 2){
+	output = T(4.0f)*input*input - T(2.0f);
+      }
+      else if(hermite_degree == 3){
+	output = T(8.0f)*input*input*input - T(12.0f)*input;
+      }
+
+
+      if(batchnorm && layer != getLayers()-1){
+	return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
+    }    
     else if(nonlinearity[layer] == pureLinear){
       T output = input; // all layers/neurons are linear..
       
@@ -2724,7 +2799,7 @@ namespace whiteice
 	T output = input;
 
 	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
-	  if(output[i].real() < 0.0f)
+	  if(output[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 
@@ -2907,6 +2982,31 @@ namespace whiteice
 	}
       }      
     }
+    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+
+      T output = input;
+      
+      const unsigned int hermite_degree = 1 + (neuron % 3);
+
+      if(hermite_degree == 1){
+	output = T(2.0f);
+      }
+      else if(hermite_degree == 2){
+	output = T(8.0f)*input;
+      }
+      else if(hermite_degree == 3){
+	output = T(24.0f)*input*input - T(12.0f);
+      }
+
+
+      if(batchnorm && layer != getLayers()-1){
+	return output/bn_sigma[layer][neuron];
+      }
+      else{
+	return output;
+      }
+      
+    }
     else if(nonlinearity[layer] == pureLinear){
       T output = T(1.0f); // all layers/neurons are linear..
 
@@ -3015,7 +3115,7 @@ namespace whiteice
 	
 #if 0
 	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
-	const double epsilon = 1e-30;
+	const double epsilon = 1e-25;
 	
 	T h;
 	
@@ -3911,6 +4011,9 @@ namespace whiteice
 	  else if(nonlinearity[l] == tanh10){
 	    data[l] = T(7.0);
 	  }
+	  else if(nonlinearity[l] == hermite){
+	    data[l] = T(8.0);
+	  }
 	  else return false; // error!
 	}
 
@@ -4102,6 +4205,7 @@ namespace whiteice
 	  else if(conf_data[l] == T(5.0)) conf_nonlins[l] = rectifier;
 	  else if(conf_data[l] == T(6.0)) conf_nonlins[l] = softmax;
 	  else if(conf_data[l] == T(7.0)) conf_nonlins[l] = tanh10;
+	  else if(conf_data[l] == T(8.0)) conf_nonlins[l] = hermite;
 	  else return false; // unknown non-linearity
 	}
       }
