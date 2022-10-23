@@ -19,7 +19,8 @@
 #include <string>
 #include <iostream>
 
-#include <dinrhiw/dinrhiw.h>
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
 #include "SHA.h"
 
 
@@ -157,7 +158,7 @@ int main(int argc, char** argv)
       fprintf(handle1, "%f", example[0]);
     }
 
-    for(unsigned int j=0;j<example.size();j++){
+    for(unsigned int j=1;j<example.size();j++){
       fprintf(handle1, ",%f", example[j]);
     }
     fprintf(handle1, "\n");
