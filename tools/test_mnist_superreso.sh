@@ -29,11 +29,11 @@ $DSTOOL -padd:1:meanvar $DSFILE
 
 #######################################################################
 # use nntool attempting to learn the dataset using L-BFGS/GRAD learning
-ARCH="784-300-300-300-300-10"
+ARCH="784-300-30-300-30-10"
 
 # 784-300-300-300-300-10 (grad: 75%): 
 ## $NNTOOL -v --overfit --samples 10000 $DSFILE $ARCH $NNFILE grad
-$NNTOOL -v --overfit --time 3600 --threads 1 $DSFILE $ARCH $NNFILE sgrad
+$NNTOOL -v --overfit --noresidual --data 5000 $DSFILE $ARCH $NNFILE sgrad
 ## $NNTOOL -v --samples 10000 $DSFILE $ARCH $NNFILE grad
 
 # Try bayesian neural network sampling from overfitten best solution.

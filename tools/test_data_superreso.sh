@@ -1,6 +1,8 @@
 #!/bin/sh
 
 rm -f wine-test.ds
+rm -f wine-pred.ds
+rm -f winenn.cfg
 
 # creates training dataset for nntool
 
@@ -39,12 +41,12 @@ $NNTOOL -v wine-test.ds $ARCH winenn.cfg use
 # predicting [stores results to dataset]
 
 cp -f wine-test.ds wine-pred.ds
-#### $DSTOOL -clear:1 wine-pred.ds
+$DSTOOL -clear:1 wine-pred.ds
 
-#### $NNTOOL -v wine-pred.ds 13-13-1 winenn.cfg use
+$NNTOOL -v wine-pred.ds $ARCH winenn.cfg use
 
-#### $DSTOOL -list wine-test.ds
-#### $DSTOOL -list wine-pred.ds
+$DSTOOL -list wine-test.ds
+$DSTOOL -list wine-pred.ds
 
-#### $DSTOOL -print:1 wine-pred.ds
-#### tail wine_measurements.out
+$DSTOOL -print:1 wine-pred.ds
+tail wine_measurements.out

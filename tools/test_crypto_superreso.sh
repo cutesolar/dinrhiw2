@@ -3,6 +3,10 @@
 # creates training dataset for nntool: y = sha256(random_string_x)
 # make gendata3
 
+rm -f gendata3-test.ds
+rm -f gendata3-pred.ds
+rm -f gendata3nn.cfg
+
 NNTOOL="./nntool"
 DSTOOL="./dstool"
 GENDATA="./gendata3"
@@ -31,8 +35,7 @@ ARCH="$DIM-100-100-$DIM"
 
 ################## $NNTOOL -v --samples 2000 wine-test.ds $ARCH winenn.cfg grad
 
-# was: 6000 seconds = 100 minutes 
-$NNTOOL -v --time 300 --overfit gendata3-test.ds $ARCH gendata3nn.cfg grad
+$NNTOOL -v --time 6000 --overfit gendata3-test.ds $ARCH gendata3nn.cfg sgrad
 
 # $NNTOOL -v --time 600 gendata-test.ds $ARCH gendatann.cfg grad
 

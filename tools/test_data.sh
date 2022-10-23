@@ -1,6 +1,8 @@
 #!/bin/sh
 
 rm -f wine-test.ds
+rm -f wine-pred.ds
+rm -f winenn.cfg
 
 # creates training dataset for nntool
 

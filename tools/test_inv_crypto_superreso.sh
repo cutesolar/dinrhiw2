@@ -3,6 +3,10 @@
 # creates training dataset for nntool: y = sha256(random_string_x)
 # make gendata3
 
+rm -f gendata3-test.ds
+rm -f gendata3-pred.ds
+rm -f gendata3nn.cfg
+
 NNTOOL="./nntool"
 DSTOOL="./dstool"
 GENDATA="./gendata3"
@@ -14,25 +18,36 @@ $DSTOOL -create gendata3-test.ds
 $DSTOOL -create:$DIM:input gendata3-test.ds
 $DSTOOL -create:$DIM:output gendata3-test.ds
 $DSTOOL -list gendata3-test.ds
-$DSTOOL -import:0 gendata3-test.ds hash_train_input.csv
-$DSTOOL -import:1 gendata3-test.ds hash_train_output.csv
-$DSTOOL -padd:0:meanvar gendata3-test.ds
+
+# inverse!
+
+# hash is input
+$DSTOOL -import:0 gendata3-test.ds hash_train_output.csv
+
+# message is output
+$DSTOOL -import:1 gendata3-test.ds hash_train_input.csv
+
+# chars are transformed (output)
+# $DSTOOL -padd:0:meanvar gendata3-test.ds
+#### $DSTOOL -padd:1:meanvar gendata3-test.ds
+
 # $DSTOOL -padd:0:pca wine-test.ds
-# $DSTOOL -padd:1:meanvar gendata2-test.ds
+
+
 
 $DSTOOL -list gendata3-test.ds
 
 # uses nntool trying to learn from dataset
 
-ARCH="$DIM-100-100-$DIM"
+# was 10-100-100-10
+ARCH="$DIM-10000-100-1000-$DIM"
 
 #$NNTOOL -v wine-test.ds $ARCH winenn.cfg mix
 # $NNTOOL -v wine-test.ds $ARCH winenn.cfg lbfgs
 
 ################## $NNTOOL -v --samples 2000 wine-test.ds $ARCH winenn.cfg grad
 
-# was: 6000 seconds = 100 minutes 
-$NNTOOL -v --time 300 --overfit gendata3-test.ds $ARCH gendata3nn.cfg grad
+$NNTOOL -v --overfit --noresidual gendata3-test.ds $ARCH gendata3nn.cfg sgrad
 
 # $NNTOOL -v --time 600 gendata-test.ds $ARCH gendatann.cfg grad
 
@@ -50,5 +65,5 @@ $DSTOOL -clear:1 gendata3-pred.ds
 
 $NNTOOL -v gendata3-pred.ds $ARCH gendata3nn.cfg use
 
-$DSTOOL -print:1:49900:50000 gendata3-pred.ds
-tail hash_train_output.csv
+$DSTOOL -print:1:49900:49999 gendata3-pred.ds
+tail hash_train_input.csv
