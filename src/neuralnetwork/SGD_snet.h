@@ -25,7 +25,7 @@ namespace whiteice
     SGD_snet
     (const nnetwork< whiteice::math::superresolution< T, whiteice::math::modular<unsigned int> > >& net,
      const dataset< T >& d,
-     bool overfit=false);
+     bool overfit=false, bool use_minibatch=false);
     
     virtual ~SGD_snet();
     
@@ -63,6 +63,7 @@ namespace whiteice
     
     const bool real_error = true; // do we report unprocessed error..
     bool negativefeedback;
+    bool use_minibatch = false;
     
     dataset< T > dtrain;
     dataset< T > dtest;

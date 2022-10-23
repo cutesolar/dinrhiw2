@@ -12,10 +12,14 @@ namespace whiteice
   template <typename T>
   SGD_snet<T>::SGD_snet(const nnetwork< superresolution< T, modular<unsigned int> > >& nn,
 			const dataset<T>& d,
-			bool overfit):
+			bool overfit,
+			bool use_minibatch):
     whiteice::math::SGD< superresolution<T, modular<unsigned int> > >(overfit),
     net(nn), data(d)
   {
+
+    this->use_minibatch = use_minibatch;
+    
     assert(data.getNumberOfClusters() == 2);
     assert(data.size(0) == data.size(1));
     assert(data.size(0) >= 1); // must have at least one data point
@@ -145,7 +149,7 @@ namespace whiteice
 
 	    //for(unsigned int k=0;k<ej.size();k++)
 	    const unsigned int k = 0;
-	    threaded_error += math::sqrt(ej[k]*math::conj(ej[k])); // ABSOLUTE VALUE
+	    threaded_error += math::sqrt(ej[k]*math::conj(ej[k])); // ABSOLUTE VALUE E{|y-correct_y|}, no MSE!
 	  }
 	}
 	
@@ -295,127 +299,262 @@ namespace whiteice
       assert(snet.calculateBatchNorm(sdata) == true);
     }
 
-    
-    math::vertex< math::superresolution<T,
-					math::modular<unsigned int> > > sumgrad;
 
-    sumgrad.resize(snet.exportdatasize());
-    sumgrad.zero();
-    
-    math::superresolution<T,
-			  math::modular<unsigned int> > ninv =
-      math::superresolution<T,
-			    math::modular<unsigned int> >
-      (1.0f/(dtrain.size(0)*dtrain.access(1,0).size()));
-    
-    
-#pragma omp parallel
-    {
+    // do we use minibatch? (only 200 points are used to calculate gradient)  
+    const unsigned int BATCH_SIZE = use_minibatch ? 200 : 0;
+
+
+    if(BATCH_SIZE){
+
+
       math::vertex< math::superresolution<T,
-					  math::modular<unsigned int> > > grad, err, threaded_grad;
+					  math::modular<unsigned int> > > sumgrad;
       
-      math::vertex<
-	math::superresolution< T,
-			       math::modular<unsigned int> > > sx, sy;
+      sumgrad.resize(snet.exportdatasize());
+      sumgrad.zero();
       
-      threaded_grad.resize(snet.exportdatasize());
-      threaded_grad.zero();
-
-      math::matrix< math::superresolution<T,
-					  math::modular<unsigned int> > > DF;
+      math::superresolution<T,
+			    math::modular<unsigned int> > ninv =
+	math::superresolution<T,
+			      math::modular<unsigned int> >
+	(1.0f/(BATCH_SIZE*dtrain.access(1,0).size()));
       
-      math::matrix< math::superresolution<math::blas_complex<double>,
-					  math::modular<unsigned int> > > cDF;
-
-      math::vertex<
-	math::superresolution< math::blas_complex<double>,
-			       math::modular<unsigned int> > > ce, cerr;
       
-#pragma omp for nowait
-      for(unsigned int i=0;i<dtrain.size(0);i++){
+#pragma omp parallel
+      {
+	math::vertex< math::superresolution<T,
+					    math::modular<unsigned int> > > grad, err, threaded_grad;
 	
-	{
-	  const auto x = dtrain.access(0,i);
-	  const auto y = dtrain.access(1,i);
-
-	  whiteice::math::convert(sx, x);
-	  whiteice::math::convert(sy, y);
-
-	  snet.calculate(sx, err);
-	  err -= sy;
+	math::vertex<
+	  math::superresolution< T,
+				 math::modular<unsigned int> > > sx, sy;
+	
+	threaded_grad.resize(snet.exportdatasize());
+	threaded_grad.zero();
+	
+	math::matrix< math::superresolution<T,
+					    math::modular<unsigned int> > > DF;
+	
+	math::matrix< math::superresolution<math::blas_complex<double>,
+					    math::modular<unsigned int> > > cDF;
+	
+	math::vertex<
+	  math::superresolution< math::blas_complex<double>,
+				 math::modular<unsigned int> > > ce, cerr;
+	
+#pragma omp for nowait
+	for(unsigned int i=0;i<BATCH_SIZE;i++){
 	  
-	  snet.jacobian(sx, DF);
-	  cDF.resize(DF.ysize(), DF.xsize());
-	  
-	  // circular convolution in F-domain
-	  
-	  for(unsigned int j=0;j<DF.ysize();j++){
-	    for(unsigned int i=0;i<DF.xsize();i++){
-	      whiteice::math::convert(cDF(j,i), DF(j,i));
-	      cDF(j,i).fft();
-	    }
-	  }
-	  
-	  ce.resize(err.size());
-	  
-	  for(unsigned int i=0;i<err.size();i++){
-	    whiteice::math::convert(ce[i], err[i]);
-	    ce[i].fft();
-	  }
-	  
-	  cerr.resize(DF.xsize());
-	  cerr.zero();
-	  
-	  for(unsigned int i=0;i<DF.xsize();i++){
-	    auto ctmp = ce;
+	  {
+	    const unsigned int index = rng.rand() % dtrain.size(0); 
+	    
+	    const auto x = dtrain.access(0,index);
+	    const auto y = dtrain.access(1,index);
+	    
+	    whiteice::math::convert(sx, x);
+	    whiteice::math::convert(sy, y);
+	    
+	    snet.calculate(sx, err);
+	    err -= sy;
+	    
+	    snet.jacobian(sx, DF);
+	    cDF.resize(DF.ysize(), DF.xsize());
+	    
+	    // circular convolution in F-domain
+	    
 	    for(unsigned int j=0;j<DF.ysize();j++){
-	      cerr[i] += ctmp[j].circular_convolution(cDF(j,i));
+	      for(unsigned int i=0;i<DF.xsize();i++){
+		whiteice::math::convert(cDF(j,i), DF(j,i));
+		cDF(j,i).fft();
+	      }
 	    }
-	  }
-	  
+	    
+	    ce.resize(err.size());
+	    
+	    for(unsigned int i=0;i<err.size();i++){
+	      whiteice::math::convert(ce[i], err[i]);
+	      ce[i].fft();
+	    }
+	    
+	    cerr.resize(DF.xsize());
+	    cerr.zero();
+	    
+	    for(unsigned int i=0;i<DF.xsize();i++){
+	      auto ctmp = ce;
+	      for(unsigned int j=0;j<DF.ysize();j++){
+		cerr[i] += ctmp[j].circular_convolution(cDF(j,i));
+	      }
+	    }
+	    
 #if 1
-	  // after we have FFT(gradient) which we convolve with FFT([1 0 ...]) dimensional number
-	  
-	  math::superresolution<math::blas_complex<double>,
-				math::modular<unsigned int> > one;
-	  one.zero();
-	  one[0] = whiteice::math::blas_complex<double>(1.0, 0.0);
-	  one.fft();
-	  
-	  for(unsigned int i=0;i<cerr.size();i++)
-	    cerr[i].circular_convolution(one);
+	    // after we have FFT(gradient) which we convolve with FFT([1 0 ...]) dimensional number
+	    
+	    math::superresolution<math::blas_complex<double>,
+				  math::modular<unsigned int> > one;
+	    one.zero();
+	    one[0] = whiteice::math::blas_complex<double>(1.0, 0.0);
+	    one.fft();
+	    
+	    for(unsigned int i=0;i<cerr.size();i++)
+	      cerr[i].circular_convolution(one);
 #endif
-	  
-	  // finally we do inverse Fourier transform
-	  
-	  err.resize(cerr.size());
-	  
-	  for(unsigned int i=0;i<err.size();i++){
-	    cerr[i].inverse_fft();
-	    for(unsigned int k=0;k<err[i].size();k++)
-	      whiteice::math::convert(err[i][k], cerr[i][k]); // converts complex numbers to real
+	    
+	    // finally we do inverse Fourier transform
+	    
+	    err.resize(cerr.size());
+	    
+	    for(unsigned int i=0;i<err.size();i++){
+	      cerr[i].inverse_fft();
+	      for(unsigned int k=0;k<err[i].size();k++)
+		whiteice::math::convert(err[i][k], cerr[i][k]); // converts complex numbers to real
+	    }
+	    
+	    grad = err;
 	  }
 	  
-	  grad = err;
+	  threaded_grad += ninv*grad;
 	}
 	
-	threaded_grad += ninv*grad;
-      }
-      
-      
+	
 #pragma omp critical
-      {
-	sumgrad += threaded_grad;
+	{
+	  sumgrad += threaded_grad;
+	}
+	
       }
       
-    }
-
-    // NO REGULARIZER CODE HERE!
-    {
+      // NO REGULARIZER CODE HERE!
+      {
+	
+      }
+      
+      return sumgrad;
+      
       
     }
-
-    return sumgrad;
+    else{ // don't use minibatch
+      
+      math::vertex< math::superresolution<T,
+					  math::modular<unsigned int> > > sumgrad;
+      
+      sumgrad.resize(snet.exportdatasize());
+      sumgrad.zero();
+      
+      math::superresolution<T,
+			    math::modular<unsigned int> > ninv =
+	math::superresolution<T,
+			      math::modular<unsigned int> >
+	(1.0f/(dtrain.size(0)*dtrain.access(1,0).size()));
+      
+      
+#pragma omp parallel
+      {
+	math::vertex< math::superresolution<T,
+					    math::modular<unsigned int> > > grad, err, threaded_grad;
+	
+	math::vertex<
+	  math::superresolution< T,
+				 math::modular<unsigned int> > > sx, sy;
+	
+	threaded_grad.resize(snet.exportdatasize());
+	threaded_grad.zero();
+	
+	math::matrix< math::superresolution<T,
+					    math::modular<unsigned int> > > DF;
+	
+	math::matrix< math::superresolution<math::blas_complex<double>,
+					    math::modular<unsigned int> > > cDF;
+	
+	math::vertex<
+	  math::superresolution< math::blas_complex<double>,
+				 math::modular<unsigned int> > > ce, cerr;
+	
+#pragma omp for nowait
+	for(unsigned int i=0;i<dtrain.size(0);i++){
+	  
+	  {
+	    const auto x = dtrain.access(0,i);
+	    const auto y = dtrain.access(1,i);
+	    
+	    whiteice::math::convert(sx, x);
+	    whiteice::math::convert(sy, y);
+	    
+	    snet.calculate(sx, err);
+	    err -= sy;
+	    
+	    snet.jacobian(sx, DF);
+	    cDF.resize(DF.ysize(), DF.xsize());
+	    
+	    // circular convolution in F-domain
+	    
+	    for(unsigned int j=0;j<DF.ysize();j++){
+	      for(unsigned int i=0;i<DF.xsize();i++){
+		whiteice::math::convert(cDF(j,i), DF(j,i));
+		cDF(j,i).fft();
+	      }
+	    }
+	    
+	    ce.resize(err.size());
+	    
+	    for(unsigned int i=0;i<err.size();i++){
+	      whiteice::math::convert(ce[i], err[i]);
+	      ce[i].fft();
+	    }
+	    
+	    cerr.resize(DF.xsize());
+	    cerr.zero();
+	    
+	    for(unsigned int i=0;i<DF.xsize();i++){
+	      auto ctmp = ce;
+	      for(unsigned int j=0;j<DF.ysize();j++){
+		cerr[i] += ctmp[j].circular_convolution(cDF(j,i));
+	      }
+	    }
+	    
+#if 1
+	    // after we have FFT(gradient) which we convolve with FFT([1 0 ...]) dimensional number
+	    
+	    math::superresolution<math::blas_complex<double>,
+				  math::modular<unsigned int> > one;
+	    one.zero();
+	    one[0] = whiteice::math::blas_complex<double>(1.0, 0.0);
+	    one.fft();
+	    
+	    for(unsigned int i=0;i<cerr.size();i++)
+	      cerr[i].circular_convolution(one);
+#endif
+	    
+	    // finally we do inverse Fourier transform
+	    
+	    err.resize(cerr.size());
+	    
+	    for(unsigned int i=0;i<err.size();i++){
+	      cerr[i].inverse_fft();
+	      for(unsigned int k=0;k<err[i].size();k++)
+		whiteice::math::convert(err[i][k], cerr[i][k]); // converts complex numbers to real
+	    }
+	    
+	    grad = err;
+	  }
+	  
+	  threaded_grad += ninv*grad;
+	}
+	
+	
+#pragma omp critical
+	{
+	  sumgrad += threaded_grad;
+	}
+	
+      }
+      
+      // NO REGULARIZER CODE HERE!
+      {
+	
+      }
+      
+      return sumgrad;
+    }
   }
   
   

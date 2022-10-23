@@ -123,7 +123,7 @@ int main(int argc, char** argv)
 #endif
 
     // special value to enable writing to console
-    // whiteice::logging.setOutputFile("<stdout>"); 
+    whiteice::logging.setOutputFile("nntool.log");
     
     parse_commandline(argc,
 		      argv,
@@ -1281,7 +1281,9 @@ int main(int argc, char** argv)
 	}
       }
 
-      whiteice::SGD_snet< math::blas_real<float> > sgd(*snn, data, overfit);
+      const bool use_minibatch = true;
+
+      whiteice::SGD_snet< math::blas_real<float> > sgd(*snn, data, overfit, use_minibatch);
       
       math::superresolution<math::blas_real<float>,
 			    math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001, 0.01
@@ -1295,7 +1297,7 @@ int main(int argc, char** argv)
       snn->exportdata(w0);
       
       sgd.setAdaptiveLRate(true); // was: false [adaptive don't work]
-      sgd.setSmartConvergenceCheck(true); // [too easy to stop for convergence]
+      sgd.setSmartConvergenceCheck(false); // [too easy to stop for convergence]
       
       if(sgd.minimize(w0, lrate, 0, 1000) == false){ // was: 200
 	printf("ERROR: Cannot start SGD optimizer.\n");
@@ -2879,8 +2881,8 @@ void print_usage(bool all)
   printf("\n");
   printf("                  Ctrl-C shutdowns the program.\n");
   printf("\n");
-  printf("This program is distributed under GPL license (the author keep full rights to code).\n");
-  printf("<tomas.ukkonen@iki.fi> (other licenses available).\n");
+  printf("This program is distributed under GPL license (the author keeps full rights to code).\n");
+  printf("Copyright <tomas.ukkonen@iki.fi> (other licenses available).\n");
   
 }
 

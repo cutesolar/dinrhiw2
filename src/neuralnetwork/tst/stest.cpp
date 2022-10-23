@@ -95,6 +95,7 @@ int main()
   
   arch.push_back(10);
 
+#if 0
   arch.clear();
   arch.push_back(4);
   arch.push_back(20);
@@ -109,7 +110,7 @@ int main()
   arch.push_back(50);
   arch.push_back(50);
   arch.push_back(4);
-  
+#endif
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
   // rectifier don't work!!!
@@ -234,41 +235,75 @@ int main()
   }
 
   
-#if 0
+#if 1
   // use SHA-256 HASH data instead
   {
+    printf("USING SHA-256 HASH CRYPTO DATASET.\n");
+    fflush(stdout);
+
+    data2.clear();
     data2.load("hash-data.ds");
-
+    
     // remove preprocessings from data
-    //data2.convert(0);
-    //data2.convert(1);
+    data2.convert(0);
+    data2.convert(1);
 
+    //data2.preprocess(0);
+    //data2.preprocess(1);
+    
     data.clear();
     data.createCluster("input", 10);
     data.createCluster("output", 10);
+
+    x.resize(10);
+    y.resize(10);
+    sx.resize(10);
+    sy.resize(10);
     
     for(unsigned int i=0;i<data2.size(0);i++){
       x = data2.access(0, i);
       y = data2.access(1, i);
 
-      x = x/255.0; // convert to [0,1] valued data!
+      // std::cout << x << std::endl;
+      
+      x = x/255.0; // convert to [0,1] valued data! [when no preprocess]
 
       whiteice::math::convert(sx, x);
       whiteice::math::convert(sy, y);
 
       // SWAP THE PROBLEM TO BE INVERSE PROBLEM! sha256->message
-      data.add(0, sy);
-      data.add(1, sx);
+      if(data.add(0, sy) == false) assert(0);
+      if(data.add(1, sx) == false) assert(0);
     }
 
+
+#if 0
+    data2.clear();
+    data2.createCluster("input", 10);
+    data2.createCluster("output", 10);
+
+    for(unsigned int i=0;i<data.size(0);i++){
+      sx = data.access(0, i);
+      sy = data.access(1, i);
+
+      whiteice::math::convert(x, sx);
+      whiteice::math::convert(y, sy);
+
+      data2.add(0, x);
+      data2.add(1, y);
+    }
+#endif
+
     data.downsampleAll(1000);
-    
+    data2.downsampleAll(1000);
   }
 #endif
 
   
   std::cout << "data.size(0): " << data.size(0) << std::endl;
   std::cout << "data.size(1): " << data.size(1) << std::endl;
+  std::cout << "data2.size(0): " << data2.size(0) << std::endl;
+  std::cout << "data2.size(1): " << data2.size(1) << std::endl;
 
 
   // SGD gradient descent code for superresolution..
@@ -282,7 +317,7 @@ int main()
     whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit);
 
     math::superresolution<math::blas_real<double>,
-			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.0001, 0.01
+			  math::modular<unsigned int> > lrate(0.0001f); // WAS: 0.0001, 0.01
 
     math::vertex< math::superresolution<math::blas_real<double>,
 					math::modular<unsigned int> > > w0;

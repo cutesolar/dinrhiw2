@@ -285,6 +285,7 @@ namespace whiteice
 
       this->iterations = 0;
       unsigned int no_improve_iterations = 0;
+      unsigned int no_improve_iterations_count = 0;
       std::list<T> errors; // used for convergence check
 
       vertex<T> grad;
@@ -296,6 +297,7 @@ namespace whiteice
       T mistep_lrate = lrate;
       bool use_mistep_lrate = false;
       int mistep_go_worse = 0;
+
       
       // stops if given number of iterations has passed or no improvements in N iters
       // or if instructed to stop. Additionally, in the loop there is convergence check
@@ -340,11 +342,14 @@ namespace whiteice
 
 	// std::cout << "SGD::getError() = " << ynew << std::endl;
 
-	if(ynew[0] < real_besty[0]){
+	if(ynew[0] < (T(0.999)*real_besty)[0]){ // 0.01% reductions or smaller mean there is no improvement
 	  no_improve_iterations = 0;
+	  no_improve_iterations_count = 0;
 	}
 	else{
 	  no_improve_iterations++;
+	  no_improve_iterations_count++;
+	  //std::cout << "NO IMPROVE: " << no_improve_iterations_count << std::endl;
 	}
 	
 
@@ -358,13 +363,13 @@ namespace whiteice
 	    this->bestx = x;
 	  }
 
-#if 0
+#if 1
 	  if(lrate[0] < 0.01)
 	    lrate[0] = sqrt(lrate[0]);
 #endif
 	}
 	else{
-	  if(mistep_go_worse > 0 && ynew[0] < (T(1.50)*besty)[0]){
+	  if(mistep_go_worse > 0 && ynew[0] < (T(1.50)*besty)[0]){ // was 1.50
 	    // go worse direction [just once]
 	    mistep_go_worse--;
 	    worse = true; 
@@ -378,20 +383,20 @@ namespace whiteice
 	if(ynew[0] < real_besty[0]){ // results improved
 	  real_besty = ynew;
 	  
-	  if(adaptive_lrate) // increase learning rate by 10%
-	    lrate *= T(1.10f);
+	  if(adaptive_lrate) // was: increase learning rate by 10%
+	    lrate *= T(2.00f);
 	}
 	else{ // result didn't improve, quickly reduce learning rate by 50%
 	  if(adaptive_lrate){
-	    if(worse == false) lrate *= T(0.5f);
-	    else lrate *= T(1.10f); // go to worse direction so increase still lrate
+	    if(worse == false) lrate *= T(0.50f); // was 0.50 = 50%
+	    else lrate *= T(2.00f); // go to worse direction so increase still lrate
 
 	  }
 	}
 
 
 	
-	if(lrate[0] < T(1e-10)[0]){
+	if(lrate[0] < T(1e-10)[0] || no_improve_iterations_count >= 30){
 	  // lrate = T(1e-10);
 
 	  // resets LRATE and goes to worse direction
@@ -409,9 +414,12 @@ namespace whiteice
 	    x = bestx; // resets x too [don't work in practice]
 	    std::cout << "RESET X" << std::endl;
 	  }
+	  
+	  no_improve_iterations_count = 0;
 	}
 	else if(lrate > T(1e10)){
 	  lrate = T(1e10);
+	  no_improve_iterations_count = 0;
 	}
 
 	iterations++;
