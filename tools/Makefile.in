@@ -51,7 +51,7 @@ GENDATA2_OBJECTS  = gendata2.o
 GENDATA2_TARGET   = gendata2
 GENDATA2_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
-GENDATA3_OBJECTS  = gendata3_norm.o
+GENDATA3_OBJECTS  = gendata3.o
 GENDATA3_TARGET   = gendata3
 GENDATA3_LIBS     = @EXTRA_LIBPATHS@ @EXTRA_LIBS@ ../lib/libdinrhiw.a @EXTRA_LIBS@ -lpthread -lgmp
 
