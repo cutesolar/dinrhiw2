@@ -20,7 +20,10 @@
 //#include <sys/mman.h>
 #include <unistd.h>
 #include <string>
-#include <dinrhiw/dinrhiw.h>
+
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
+
 #include "CryptoFileSource.h"
 
 

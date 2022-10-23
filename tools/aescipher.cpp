@@ -29,7 +29,10 @@
 
 
 #include <iostream>
-#include <dinrhiw/dinrhiw.h>
+
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
+
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>

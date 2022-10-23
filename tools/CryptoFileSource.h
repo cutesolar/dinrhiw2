@@ -4,7 +4,9 @@
  */
 
 #include <string>
-#include <dinrhiw/dinrhiw.h>
+
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
 
 
 template <unsigned int B>

@@ -9,7 +9,9 @@
  */
 
 #include <string>
-#include <dinrhiw/dinrhiw.h>
+
+//#include <dinrhiw/dinrhiw.h>
+#include <dinrhiw.h>
 
 
 // block size, must be power of 8:s
