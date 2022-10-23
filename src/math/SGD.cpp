@@ -334,6 +334,18 @@ namespace whiteice
 	  }
 	}
 
+	//if(mistep_go_worse)
+	{
+	  // random scaling of the gradient [0.90,1.10]
+	  
+	  for(unsigned int j=0;j<grad.size();j++){
+	    auto scaling = (T(rng.uniform())*T(0.20f) + T(0.90f))[0];
+	    for(unsigned int k=0;k<grad[0].size();k++){
+	      delta_grad[j][k] *= scaling;
+	    }
+	  }
+	}
+
 	x -= delta_grad; 
 	
 	heuristics(x);
@@ -369,14 +381,17 @@ namespace whiteice
 #endif
 	}
 	else{
-	  if(mistep_go_worse > 0 && ynew[0] < (T(1.50)*besty)[0]){ // was 1.50
+	  if((mistep_go_worse > 0 && ynew[0] < (T(1.250)*besty)[0]) /* || 
+								      (ynew - besty)[0] < 1e-5*/){ 
 	    // go worse direction [just once]
-	    mistep_go_worse--;
+	    if(mistep_go_worse) mistep_go_worse--;
 	    worse = true; 
 	  }
 	  else{
-	    if(ynew[0] > (T(1.50)*besty)[0])
+	    if(ynew[0] > (T(1.250)*besty)[0])
 	      x = old_x; // don't go to worse directions..
+	    else
+	      worse = true;
 	  }
 	}
 
@@ -389,7 +404,7 @@ namespace whiteice
 	else{ // result didn't improve, quickly reduce learning rate by 50%
 	  if(adaptive_lrate){
 	    if(worse == false) lrate *= T(0.50f); // was 0.50 = 50%
-	    else lrate *= T(2.00f); // go to worse direction so increase still lrate
+	    else lrate *= T(1.00f); // go to worse direction so increase still lrate
 
 	  }
 	}
