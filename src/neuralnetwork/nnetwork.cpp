@@ -2114,18 +2114,27 @@ namespace whiteice
     }
     else if(nonlinearity[layer] == hermite){ // Hermite polynomials
 
-      T output = input;
+      // no large values..
+      T in = input;
 
+      for(unsigned int n=0;n<input.size();n++){
+        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
+        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+      }
+      
+      
+      T output = in;
+      
       const unsigned int hermite_degree = 1 + (neuron % 3);
 
       if(hermite_degree == 1){
-	output = T(2.0f)*input;
+	output = T(2.0f)*in;
       }
       else if(hermite_degree == 2){
-	output = T(4.0f)*input*input - T(2.0f);
+	output = T(4.0f)*in*in - T(2.0f);
       }
       else if(hermite_degree == 3){
-	output = T(8.0f)*input*input*input - T(12.0f)*input;
+	output = T(8.0f)*in*in*in - T(12.0f)*in;
       }
 
 
@@ -2210,7 +2219,7 @@ namespace whiteice
 	T output = input;
 
 #if 1
-	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
+	for(unsigned int i=0;i<output.size();i++){ // was only 1
 	  if(output[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
@@ -2427,7 +2436,16 @@ namespace whiteice
     }
     else if(nonlinearity[layer] == hermite){ // Hermite polynomials
 
-      T output = input;
+      // no large values..
+      T in = input;
+
+      for(unsigned int n=0;n<input.size();n++){
+        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
+        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+      }
+      
+
+      T output = in;
 
       const unsigned int hermite_degree = 1 + (neuron % 3);
 
@@ -2435,10 +2453,10 @@ namespace whiteice
 	output = T(2.0f);
       }
       else if(hermite_degree == 2){
-	output = T(8.0f)*input;
+	output = T(8.0f)*in;
       }
       else if(hermite_degree == 3){
-	output = T(24.0f)*input*input - T(12.0f);
+	output = T(24.0f)*in*in - T(12.0f);
       }
 
 
@@ -2714,18 +2732,27 @@ namespace whiteice
     }
     else if(nonlinearity[layer] == hermite){ // Hermite polynomials
 
-      T output = input;
+      // no large values..
+      T in = input;
+
+      for(unsigned int n=0;n<input.size();n++){
+        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
+        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+      }
+      
+
+      T output = in;
 
       const unsigned int hermite_degree = 1 + (neuron % 3);
 
       if(hermite_degree == 1){
-	output = T(2.0f)*input;
+	output = T(2.0f)*in;
       }
       else if(hermite_degree == 2){
-	output = T(4.0f)*input*input - T(2.0f);
+	output = T(4.0f)*in*in - T(2.0f);
       }
       else if(hermite_degree == 3){
-	output = T(8.0f)*input*input*input - T(12.0f)*input;
+	output = T(8.0f)*in*in*in - T(12.0f)*in;
       }
 
 
@@ -2798,7 +2825,7 @@ namespace whiteice
       else{ // superresolution class
 	T output = input;
 
-	for(unsigned int i=0;i<1/*output.size()*/;i++){ // was only 1
+	for(unsigned int i=0;i<output.size();i++){ // was only 1
 	  if(output[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
@@ -2984,7 +3011,16 @@ namespace whiteice
     }
     else if(nonlinearity[layer] == hermite){ // Hermite polynomials
 
-      T output = input;
+      // no large values..
+      T in = input;
+
+      for(unsigned int n=0;n<input.size();n++){
+        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
+        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+      }
+      
+
+      T output = in;
       
       const unsigned int hermite_degree = 1 + (neuron % 3);
 
@@ -2992,10 +3028,10 @@ namespace whiteice
 	output = T(2.0f);
       }
       else if(hermite_degree == 2){
-	output = T(8.0f)*input;
+	output = T(8.0f)*in;
       }
       else if(hermite_degree == 3){
-	output = T(24.0f)*input*input - T(12.0f);
+	output = T(24.0f)*in*in - T(12.0f);
       }
 
 

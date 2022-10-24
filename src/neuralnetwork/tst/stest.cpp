@@ -277,7 +277,6 @@ int main()
     }
 
 
-#if 0
     data2.clear();
     data2.createCluster("input", 10);
     data2.createCluster("output", 10);
@@ -292,10 +291,10 @@ int main()
       data2.add(0, x);
       data2.add(1, y);
     }
-#endif
-
-    data.downsampleAll(1000);
-    data2.downsampleAll(1000);
+    
+    
+    data.downsampleAll(100); // should be at least 1000
+    data2.downsampleAll(100); // should be at least 1000
   }
 #endif
 
@@ -641,8 +640,8 @@ int main()
 	  
 	  if((r == 0 &&
 	     abserror2[0].real() < 1.5*mean_error &&
-	     abserror2[0].real() < 100.0) ||
-	     (abserror2-orig_error)[0] < 1e-5)
+	     abserror2[0].real() < 100.0) /*||
+					    (abserror2-orig_error)[0] < 1e-5*/)
 	    go_worse = true;
 	}
 #endif
@@ -678,6 +677,8 @@ int main()
 		<< " (delta: " << (abserror-orig_error)[0] << ")"
 		<< " (lrate: " << lratef << ")" 
 		<< std::endl;
+
+      snet.save("inverse_hash_snet.dat");
 
       if(lratef < 0.01) lratef = sqrt(lratef);
 

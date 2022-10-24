@@ -334,6 +334,7 @@ namespace whiteice
 	  }
 	}
 
+	/*
 	//if(mistep_go_worse)
 	{
 	  // random scaling of the gradient [0.90,1.10]
@@ -345,6 +346,8 @@ namespace whiteice
 	    }
 	  }
 	}
+	*/
+
 
 	x -= delta_grad; 
 	
@@ -354,7 +357,7 @@ namespace whiteice
 
 	// std::cout << "SGD::getError() = " << ynew << std::endl;
 
-	if(ynew[0] < (T(0.999)*real_besty)[0]){ // 0.01% reductions or smaller mean there is no improvement
+	if(ynew[0] < (T(0.99999)*real_besty)[0]){ // 0.01% reductions or smaller mean there is no improvement
 	  no_improve_iterations = 0;
 	  no_improve_iterations_count = 0;
 	}
