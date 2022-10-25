@@ -4570,7 +4570,7 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NVIDIA cuBLAS 11.8 library SLOW (Linux)" >&5
 $as_echo_n "checking for NVIDIA cuBLAS 11.8 library SLOW (Linux)... " >&6; }
-CUBLAS_FLAGS="`pkg-config cublas-11.8 --cflags --libs` `pkg-config cudart-11.8 --cflags --libs`"
+CUBLAS_FLAGS="`pkg-config cublas-11.8 --cflags --libs 2> /dev/null` `pkg-config cudart-11.8 --cflags --libs 2> /dev/null`"
 `g++ -o cublastest cublastest.cpp -DCUBLAS $CUBLAS_FLAGS > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then

@@ -556,7 +556,7 @@ fi
 
 
 AC_MSG_CHECKING([for NVIDIA cuBLAS 11.8 library [SLOW] (Linux)])
-CUBLAS_FLAGS="`pkg-config cublas-11.8 --cflags --libs` `pkg-config cudart-11.8 --cflags --libs`"
+CUBLAS_FLAGS="`pkg-config cublas-11.8 --cflags --libs 2> /dev/null` `pkg-config cudart-11.8 --cflags --libs 2> /dev/null`"
 `g++ -o cublastest cublastest.cpp -DCUBLAS $CUBLAS_FLAGS > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then
