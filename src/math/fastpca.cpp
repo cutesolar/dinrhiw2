@@ -15,19 +15,34 @@ namespace whiteice
     template <typename T>
     bool fastpca(const std::vector< vertex<T> >& data, 
 		 const unsigned int dimensions,
-		 math::matrix<T>& PCA)
+		 math::matrix<T>& PCA,
+		 std::vector<T>& eigenvalues)
     {
       if(data.size() == 0) return false;
       if(data[0].size() < dimensions) return false;
       if(dimensions == 0) return false;
       
       // TODO: compute eigenvectors directly into PCA matrix
-      
+
       math::vertex<T> m;
       math::matrix<T> Cxx;
       
-      if(mean_covariance_estimate(m, Cxx, data) == false)
-	return false;
+      m = data[0];
+      m.zero();
+      
+      if(m.size() <= 100){
+	if(mean_covariance_estimate(m, Cxx, data) == false)
+	  return false;
+      }
+      else{
+	// calculates Cxx live and only precalculates mean value m
+
+	for(unsigned int i=0;i<data.size();i++)
+	  m += data[i];
+	
+	m /= T(data.size());
+      }
+      
       
       std::vector< math::vertex<T> > pca; // pca vectors
       
@@ -52,7 +67,24 @@ namespace whiteice
 	
 	
 	while(1){
-	  g = Cxx*g;
+	  
+	  if(Cxx.xsize() == m.size()){ // has Cxx
+	    g = Cxx*g;
+	  }
+	  else{
+	    // calculates product without calculating Cxx matrix
+
+	    const auto tmp = g;
+	    auto delta = m;
+	    g.zero();
+
+	    for(const auto& di : data){
+	      delta = (di - m);
+	      g += delta*(delta*tmp);
+	    }
+
+	    g /= T(data.size());
+	  }
 	  
 	  // orthonormalizes g
 	  {
@@ -92,6 +124,44 @@ namespace whiteice
 	PCA.rowcopyfrom(p, j);
 	j++;
       }
+
+      eigenvalues.clear();
+
+      // computes eigenvalues
+      if(Cxx.xsize() == m.size()){ // has Cxx
+	
+	for(auto& p : pca){
+	  eigenvalues.push_back((p*Cxx*p)[0]);
+	}
+	
+      }
+      else{ // no Cxx, need to estimate from the data
+
+	auto delta = m;
+	
+	eigenvalues.resize(pca.size());
+	
+	for(unsigned int i=0;i<pca.size();i++)
+	  eigenvalues[i] = T(0.0f);
+	
+	
+	for(const auto& di : data){
+	  delta = (di - m);
+
+	  for(unsigned int i=0;i<pca.size();i++){
+	    const auto& p = pca[i];
+	    auto squared = p*delta;
+	    
+	    eigenvalues[i] += (squared*squared)[0];
+	  }
+	}
+
+	
+	for(unsigned int i=0;i<pca.size();i++)
+	  eigenvalues[i] /= T(data.size());
+	
+      }
+      
       
       return (pca.size() > 0);
     }
@@ -106,7 +176,8 @@ namespace whiteice
     template <typename T>
     bool fastpca_p(const std::vector <vertex<T> >& data,
 		   const float percent_total_variance,
-		   math::matrix<T>& PCA)
+		   math::matrix<T>& PCA,
+		   std::vector<T>& eigenvalues)
     {
       if(percent_total_variance <= 0.0f ||
 	 percent_total_variance > 1.0f)
@@ -121,15 +192,39 @@ namespace whiteice
 
       math::vertex<T> m;
       math::matrix<T> Cxx;
-      
-      if(mean_covariance_estimate(m, Cxx, data) == false)
-	return false;
 
+      m = data[0];
+      m.zero();
+      
       // trace(Cxx) is total variance of eigenvectors
       T total_variance = T(0.0f);
+      
+      if(m.size() <= 100){
+	if(mean_covariance_estimate(m, Cxx, data) == false)
+	  return false;
 
-      for(unsigned int i=0;i<Cxx.xsize();i++)
-	total_variance += Cxx(i,i);
+	for(unsigned int i=0;i<Cxx.xsize();i++)
+	  total_variance += Cxx(i,i);
+      }
+      else{
+	// calculates Cxx live and only precalculates mean value m
+
+	for(const auto& d : data)
+	  m += d;
+	
+	m /= T(data.size());
+
+	// calculates total variance
+
+	for(const auto& d : data){
+	  auto delta = d - m;
+	  total_variance += (delta*delta)[0];
+	}
+
+	total_variance /= T(data.size());
+      }
+
+      
 
       const T target_variance = T(percent_total_variance)*total_variance;
       T variance_found = T(0.0f);
@@ -157,7 +252,25 @@ namespace whiteice
 	
 
 	while(1){
-	  g = Cxx*g;
+	  
+	  if(Cxx.xsize() == m.size()){ // has Cxx
+	    g = Cxx*g;
+	  }
+	  else{
+	    // calculates product without calculating Cxx matrix
+
+	    const auto tmp = g;
+	    auto delta = m;
+	    g.zero();
+
+	    for(const auto& di : data){
+	      delta = (di - m);
+	      g += delta*(delta*tmp);
+	    }
+
+	    g /= T(data.size());
+	  }
+	  
 	  
 	  // orthonormalizes g against already found components
 	  {
@@ -212,30 +325,93 @@ namespace whiteice
 	PCA.rowcopyfrom(p, j);
 	j++;
       }
+
+      
+      eigenvalues.clear();
+      
+      
+      // computes eigenvalues
+      if(Cxx.xsize() == m.size()){ // has Cxx
+	
+	for(const auto& p : pca){
+	  eigenvalues.push_back((p*Cxx*p)[0]);
+	}
+	
+      }
+      else{ // no Cxx, need to estimate from the data
+
+	auto delta = m;
+	
+	eigenvalues.resize(pca.size());
+	
+	for(unsigned int i=0;i<pca.size();i++)
+	  eigenvalues[i] = T(0.0f);
+	
+	
+	for(const auto& di : data){
+	  delta = (di - m);
+
+	  for(unsigned int i=0;i<pca.size();i++){
+	    const auto& p = pca[i];
+	    auto squared = p*delta;
+	    
+	    eigenvalues[i] += (squared*squared)[0];
+	  }
+	}
+
+	
+	for(unsigned int i=0;i<pca.size();i++)
+	  eigenvalues[i] /= T(data.size());
+	
+      }
+
       
       return (pca.size() > 0);
     }
 
 
+    //////////////////////////////////////////////////////////////////////
+    
+    
     template bool fastpca< blas_real<float> >
     (const std::vector< vertex< blas_real<float> > >& data, 
      const unsigned int dimensions,
-     math::matrix< blas_real<float> >& PCA);
+     math::matrix< blas_real<float> >& PCA,
+     std::vector< blas_real<float> >& eigenvalues);
     
     template bool fastpca< blas_real<double> >
     (const std::vector< vertex< blas_real<double> > >& data, 
      const unsigned int dimensions,
-     math::matrix< blas_real<double> >& PCA);
+     math::matrix< blas_real<double> >& PCA,
+     std::vector< blas_real<double> >& eigenvalues);
+
+
+    template bool fastpca< superresolution< blas_real<float>, modular<unsigned int> > >
+    (const std::vector< vertex< superresolution< blas_real<float>, modular<unsigned int> > > >& data, 
+     const unsigned int dimensions,
+     math::matrix< superresolution< blas_real<float>, modular<unsigned int> > >& PCA,
+     std::vector< superresolution< blas_real<float>, modular<unsigned int> > >& eigenvalues);
+    
+    template bool fastpca< superresolution< blas_real<double>, modular<unsigned int> > >
+    (const std::vector< vertex< superresolution< blas_real<double>, modular<unsigned int> > > >& data, 
+     const unsigned int dimensions,
+     math::matrix< superresolution< blas_real<double>, modular<unsigned int> > >& PCA,
+     std::vector< superresolution< blas_real<double>, modular<unsigned int> > >& eigenvalues);
+    
+    
+    
     
     template bool fastpca_p< blas_real<float> >
     (const std::vector <vertex< blas_real<float> > >& data,
      const float percent_total_variance,
-     math::matrix< blas_real<float> >& PCA);
+     math::matrix< blas_real<float> >& PCA,
+     std::vector< blas_real<float> >& eigenvalues);
     
     template bool fastpca_p< blas_real<double> >
     (const std::vector <vertex< blas_real<double> > >& data,
      const float percent_total_variance,
-     math::matrix< blas_real<double> >& PCA);
+     math::matrix< blas_real<double> >& PCA,
+     std::vector< blas_real<double> >& eigenvalues);
     
   };
   

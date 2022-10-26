@@ -600,9 +600,10 @@ void test_pca_tests()
     std::cout << "FASTPCA" << std::endl;
     
     math::matrix<> PCA;
+    std::vector< math::blas_real<float> > eigenvalues;
     
     start = std::chrono::system_clock::now();
-    fastpca(data, DIMENSIONS, PCA);
+    fastpca(data, DIMENSIONS, PCA, eigenvalues);
     end   = std::chrono::system_clock::now();
     
     secs = end - start;
