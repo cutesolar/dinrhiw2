@@ -33,7 +33,8 @@ namespace whiteice
      */
     
     //class superresolution : public number<superresolution<T,U>, T, T, U>
-    template <typename T, typename U>
+    template <typename T = whiteice::math::blas_real<float>,
+	      typename U = whiteice::math::modular<unsigned int> >
     struct superresolution
     {
       superresolution();

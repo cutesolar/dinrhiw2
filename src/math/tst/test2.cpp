@@ -68,11 +68,11 @@ int main(int argc, char **argv, char **envp)
   
   test_basic_linear();
   std::cout << std::endl;
-  
-  test_eigenproblem_tests();
+
+  test_pca_tests();
   std::cout << std::endl;
   
-  test_pca_tests();
+  test_eigenproblem_tests();
   std::cout << std::endl;
   
   test_ica();
@@ -678,6 +678,107 @@ void test_pca_tests()
     return;  
   }
 
+
+  std::cout << "SUPERRESOLUTIONAL FASTPCA TESTS" << std::endl;
+  
+  try{
+    // generates random data and calculates PCA via EVD and 
+    // through FastPCA and compares the results
+    
+    const unsigned int DIMENSIONS = 150; // initial testing case (150, 50)
+    
+    std::vector< math::vertex<> > data;
+    std::vector< math::vertex< math::superresolution<> > > sdata;
+    
+    for(unsigned int j=0;j<(2*DIMENSIONS);j++){
+      math::vertex<> v;
+      v.resize(DIMENSIONS);
+
+      for(unsigned int i=0;i<DIMENSIONS;i++){
+	v[i] = ((2.0f*(float)rand())/((float)RAND_MAX)) - 1.0f; // [-1, 1]
+	if(i == 0) v[i] *= 2.0f;
+      }
+      
+      data.push_back(v);
+
+      math::vertex< superresolution<> > sv;
+      sv.resize(DIMENSIONS);
+      
+      for(unsigned int i=0;i<DIMENSIONS;i++){
+	for(unsigned int k=0;k<sv[i].size();k++){
+	  sv[i][k] = ((2.0f*(float)rand())/((float)RAND_MAX)) - 1.0f; // [-1, 1]
+	  if(i == 0) sv[i][k] *= 2.0f;
+	}
+      }
+
+      sdata.push_back(sv);
+    }
+
+
+    // checks calculation of fastpca works with superresolutional numbers..
+#if 0
+    sdata.resize(data.size());
+
+    for(unsigned int i=0;i<data.size();i++){
+      whiteice::math::convert(sdata[i], data[i]);
+    }
+#endif
+
+    math::matrix< superresolution<> > PCA;
+    std::vector< superresolution<> > eigenvalues;
+
+    std::cout << "ABOUT TO COMPUTE fastpca()" << std::endl;
+
+    if(fastpca(sdata, 15, PCA, eigenvalues) == true){
+      printf("Calculation of fastpca() algorithm successful!\n");
+    }
+    else{
+      printf("ERROR: superresolutional fastpca() algorithm FAILED.\n");
+      return;
+    }
+
+    printf("Eigenvalues:\n");
+
+    for(unsigned int i=0;i<eigenvalues.size();i++)
+      std::cout << eigenvalues[i] << std::endl;
+
+    // estimate matrix using eigenvalue decomposition
+    {
+      std::cout << "Estimate matrix using EVD.." << std::endl;
+      
+      math::vertex< superresolution<> > m, v;
+      math::matrix< superresolution<> > Cxx;
+
+      if(mean_covariance_estimate(m, Cxx, sdata) == false){
+	printf("ERROR: mean covariance estimate FAILED.\n");
+	return; 
+      }
+
+      std::cout << "reduced(Cxx).trace() = " << Cxx.trace() << std::endl;
+
+      for(unsigned int j=0;j<PCA.ysize();j++){
+	v.resize(PCA.xsize());
+	for(unsigned int i=0;i<PCA.xsize();i++)
+	  v[i] = PCA(j,i);
+
+	for(unsigned b=0;b<Cxx.ysize();b++)
+	  for(unsigned a=0;a<Cxx.xsize();a++)
+	    Cxx(b,a) = Cxx(b,a) - eigenvalues[j]*v[b]*v[a];
+      }
+
+      std::cout << "reduced(Cxx).trace() = " << Cxx.trace() << std::endl;
+    }
+    
+
+    printf("\n");
+    printf("SUPERRESOLUTIONAL fastpca() eigenvalues successful(?)\n");
+
+  }
+  catch(std::exception& e){
+    std::cout << "Error fastpca tests" << std::endl;
+    std::cout << "Unexpected exception: " << e.what() << std::endl;
+    return;  
+  }
   
 }
 

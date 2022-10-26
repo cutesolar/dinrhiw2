@@ -706,7 +706,7 @@ namespace whiteice
 	for(unsigned int i=0;i<dataSize;i++)
 	  len += data[i]*whiteice::math::conj(data[i]);
 	
-	len = (T)whiteice::math::sqrt(whiteice::math::abs(len));
+	len = whiteice::math::sqrt(len);
 	return len;
       }
 

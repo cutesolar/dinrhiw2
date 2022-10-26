@@ -37,8 +37,8 @@ namespace whiteice
       else{
 	// calculates Cxx live and only precalculates mean value m
 
-	for(unsigned int i=0;i<data.size();i++)
-	  m += data[i];
+	for(const auto& di : data)
+	  m += di;
 	
 	m /= T(data.size());
       }
@@ -61,11 +61,10 @@ namespace whiteice
 	gprev.normalize();
 	
 	T convergence = T(1.0);
-	T epsilon = T(10e-5);
+	T epsilon = T(1e-3);
 	
 	unsigned int iters = 0;
-	
-	
+
 	while(1){
 	  
 	  if(Cxx.xsize() == m.size()){ // has Cxx
@@ -246,7 +245,7 @@ namespace whiteice
 	gprev.normalize();
 	
 	T convergence = T(1.0);
-	T epsilon = T(10e-5);
+	T epsilon = T(1e-3);
 	
 	unsigned int iters = 0;
 	
