@@ -1,5 +1,5 @@
 /*
-- * independent component analysis
+ * independent component analysis
  */
 
 #include "ica.h"
@@ -295,16 +295,6 @@ namespace whiteice
 	      if(counter >= value.size())
 		convergence = true;
 
-	      
-	      value = T(-1.0) - dotprod;
-	      counter = 0;
-
-	      for(unsigned int k=0;k<value.size();k++)
-		if(whiteice::math::abs(value[k]) < TOLERANCE[0])
-		  counter++;
-
-	      if(counter >= value.size())
-		convergence = true;
 	      
 	      //if((T(1.0) - dotprod) < TOLERANCE && iter > 10){
 	      //convergence = true;
