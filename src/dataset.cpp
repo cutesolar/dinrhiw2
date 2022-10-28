@@ -1574,7 +1574,7 @@ namespace whiteice
       return false;
     }
 
-    const unsigned int BUFLEN = 1000000;
+    const unsigned int BUFLEN = 100000000;
     char* buffer = (char*)malloc(BUFLEN);
     if(buffer == NULL){
       fclose(fp);
