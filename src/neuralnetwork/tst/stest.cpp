@@ -32,7 +32,7 @@ extern "C" {
 #include <fenv.h>
   static void __attribute__ ((constructor))
   trapfpe(){
-    feenableexcept(FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);
+    //feenableexcept(FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);
     //feenableexcept(FE_INVALID);
   }
 #endif
@@ -95,14 +95,17 @@ int main()
   
   arch.push_back(10);
 
+  
 #if 0
   arch.clear();
   arch.push_back(4);
-  arch.push_back(20);
-  arch.push_back(20);
+  arch.push_back(20); // was: 20,50
+  arch.push_back(20); // was: 20,50
   arch.push_back(4);
-
+#endif
   
+  
+#if 0  
   arch.clear();
   arch.push_back(4);
   arch.push_back(50);
@@ -113,11 +116,10 @@ int main()
 #endif
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
-  // rectifier don't work!!!
-  net.setArchitecture(arch, nnetwork< math::blas_real<double> >::rectifier);
+  net.setArchitecture(arch, nnetwork< math::blas_real<double> >::rectifier); // rectifier, hermite 
   snet.setArchitecture(arch, nnetwork< math::superresolution<
 		       math::blas_real<double>,
-		       math::modular<unsigned int> > >::rectifier);
+		       math::modular<unsigned int> > >::rectifier); // rectifier, hermite
 
   net.randomize();
   snet.randomize();
@@ -219,13 +221,15 @@ int main()
 
   data.add(0, inputs);
   data.add(1, outputs);
-  
+
+  // do not do [now: enabled]
   //data.preprocess(0);
   //data.preprocess(1);
 
   data2.add(0, inputs2);
   data2.add(1, outputs2);
 
+  // do not do [now: enabled]
   //data2.preprocess(0);
   //data2.preprocess(1);
 
@@ -241,8 +245,15 @@ int main()
     printf("USING SHA-256 HASH CRYPTO DATASET.\n");
     fflush(stdout);
 
+    data.clear();
     data2.clear();
     data2.load("hash-data.ds");
+
+    std::cout << "data.size(0): " << data.size(0) << std::endl;
+    std::cout << "data.size(1): " << data.size(1) << std::endl;
+    std::cout << "data2.size(0): " << data2.size(0) << std::endl;
+    std::cout << "data2.size(1): " << data2.size(1) << std::endl;
+    
     
     // remove preprocessings from data
     data2.convert(0);
@@ -266,14 +277,18 @@ int main()
 
       // std::cout << x << std::endl;
       
-      x = x/255.0; // convert to [0,1] valued data! [when no preprocess]
+      //y = y/255.0; // convert to [-2,2]/255 valued data! [with preprocess] (small values work better!)
 
+      // scales [0,1] data to [-0.5,0.5] data
+      for(unsigned int i=0;i<y.size();i++)
+	y[i] -= 0.50;
+      
       whiteice::math::convert(sx, x);
       whiteice::math::convert(sy, y);
 
-      // SWAP THE PROBLEM TO BE INVERSE PROBLEM! sha256->message
-      if(data.add(0, sy) == false) assert(0);
-      if(data.add(1, sx) == false) assert(0);
+      // DON'T SWAP ANYMORE AS WE HAVE SWAPPED DATA ALREADY
+      if(data.add(0, sx) == false) assert(0);
+      if(data.add(1, sy) == false) assert(0);
     }
 
 
@@ -293,8 +308,8 @@ int main()
     }
     
     
-    data.downsampleAll(100); // should be at least 1000
-    data2.downsampleAll(100); // should be at least 1000
+    data.downsampleAll(50); // should be at least 1000
+    data2.downsampleAll(50); // should be at least 1000
   }
 #endif
 
@@ -306,14 +321,15 @@ int main()
 
 
   // SGD gradient descent code for superresolution..
-  if(1){
+  if(0){
 
     std::cout << "Stochastic Gradient Descent (SGD) optimizer for superreso neural networks."
 	      << std::endl;
 
     const bool overfit = true;
+    const bool use_minibatch = false;
     
-    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit);
+    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit, use_minibatch);
 
     math::superresolution<math::blas_real<double>,
 			  math::modular<unsigned int> > lrate(0.0001f); // WAS: 0.0001, 0.01
@@ -386,6 +402,9 @@ int main()
     
     math::vertex< math::superresolution<math::blas_real<double>,
 					math::modular<unsigned int> > > sumgrad;
+
+    std::vector< math::vertex< math::superresolution<math::blas_real<double>,
+						     math::modular<unsigned int> > > > gradients;
     
     unsigned int counter = 0;
     math::superresolution<math::blas_real<double>,
@@ -394,6 +413,7 @@ int main()
 			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.05
     
     double lratef = 0.01;
+    double best_error = 10.0f;
     unsigned int grad_search_counter = 0;
 
     std::vector<double> errors; // history of errors (10 last errors)
@@ -556,6 +576,80 @@ int main()
 	
       }
 
+      // now we have gradient, sample from normal distribution of historical gradients
+      // for better gradient search
+      {
+	const unsigned int GRAD_HISTORY = 10;
+	
+	gradients.push_back(sumgrad);
+	
+	while(gradients.size() > GRAD_HISTORY)
+	  gradients.erase(gradients.begin());
+	
+	
+	if(gradients.size() >= GRAD_HISTORY){ // sample from gradient distribution
+
+	  const unsigned int dimensions = gradients.size()-1;
+	  
+	  math::matrix< math::superresolution<math::blas_real<double>,
+					      math::modular<unsigned int> > > PCA;
+
+	  std::vector< math::superresolution<math::blas_real<double>,
+					      math::modular<unsigned int> > > eigenvalues;
+
+	  auto mg = gradients[0];
+	  mg.zero();
+
+	  for(const auto & g : gradients)
+	    mg += g;
+
+	  mg /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >
+	    (gradients.size());
+	  
+
+	  if(fastpca(gradients, dimensions, PCA, eigenvalues)){ // fast PCA is successful
+
+	    // sample from N(0,I) [what is superresolutional normal distribution???] 
+	    math::vertex< math::superresolution<math::blas_real<double>,
+						math::modular<unsigned int> > > u, w;
+
+	    u.resize(gradients[0].size());
+	    w.resize(gradients[0].size());
+	    w.zero();
+	    
+
+	    for(unsigned int j=0;j<u.size();j++)
+	      for(unsigned int i=0;i<u[j].size();i++)
+		u[j][i] = rng.normal().real();
+
+	    for(unsigned int j=0;j<PCA.ysize();j++){
+
+	      math::vertex< math::superresolution<math::blas_real<double>,
+						  math::modular<unsigned int> > > v;
+
+	      v.resize(PCA.xsize());
+
+	      for(unsigned int i=0;i<v.size();i++){
+		v[i] = PCA(j,i);
+	      }
+
+	      w += eigenvalues[j]*(u*v)*v;
+	    }
+
+	    
+	    //w += mg;
+	    // use mean value as the current gradient so only variance term is from gradient history..
+	    w += sumgrad;
+	    
+	    // std::cout << "gradient sampled successfully from historical gradients (N=" << gradients.size() << ")" << std::endl;
+	    
+	    sumgrad = w;
+	  }
+	  
+	}
+	
+      }
+
       // std::cout << "sumgrad = " << sumgrad << std::endl;
 
       auto abserror = error;
@@ -630,18 +724,19 @@ int main()
 
 	bool go_worse = false;
 #if 1
-	unsigned int r = rng.rand() % 40;
-
+	unsigned int r = rng.rand() % 50;
+	
 	if(errors.size() > 0){
 	  double mean_error = 0.0;
 	  for(const auto& e : errors)
 	    mean_error += e;
 	  mean_error /= errors.size();
 	  
+	  
 	  if((r == 0 &&
-	     abserror2[0].real() < 1.5*mean_error &&
-	     abserror2[0].real() < 100.0) /*||
-					    (abserror2-orig_error)[0] < 1e-5*/)
+	      abserror2[0].real() < 1.15*best_error && // was 1.50
+	      abserror2[0].real() < 100.0) /*||
+					     (abserror2-orig_error)[0] < 1e-5*/)
 	    go_worse = true;
 	}
 #endif
@@ -668,6 +763,8 @@ int main()
 
 	while(errors.size() > 10)
 	  errors.erase(errors.begin());
+
+	if(e < best_error) best_error = e;
       }
 
       // weights -= sumgrad + regularizer;
@@ -680,7 +777,10 @@ int main()
 
       snet.save("inverse_hash_snet.dat");
 
-      if(lratef < 0.01) lratef = sqrt(lratef);
+      //if(lratef < 0.01) lratef = sqrt(lratef);
+      //if(lratef < 0.01) lratef = 0.01f;
+      //lratef = sqrt(lratef);
+      if(lratef < 1.0) lratef = 1.0f;
 
       error = abserror;
       
