@@ -1,5 +1,5 @@
 /*
- * independent component analysis
+- * independent component analysis
  */
 
 #include "ica.h"
@@ -20,10 +20,10 @@ namespace whiteice
       (const matrix< blas_real<float> >& D, matrix< blas_real<float> >& W, bool verbose) ;
     template bool ica< blas_real<double> >
       (const matrix< blas_real<double> >& D, matrix< blas_real<double> >& W, bool verbose) ;
-    template bool ica< float >
-    (const matrix<float>& D, matrix<float>& W, bool verbose) ;
-    template bool ica< double >
-    (const matrix<double>& D, matrix<double>& W, bool verbose) ;
+    //template bool ica< float >
+    //(const matrix<float>& D, matrix<float>& W, bool verbose) ;
+    //template bool ica< double >
+    //(const matrix<double>& D, matrix<double>& W, bool verbose) ;
     template bool ica< blas_complex<float> >
     (const matrix< blas_complex<float> >& D, matrix< blas_complex<float> >& W, bool verbose) ;
     template bool ica< blas_complex<double> >
@@ -55,10 +55,10 @@ namespace whiteice
       (const std::vector< math::vertex< blas_real<float> > >& data, matrix< blas_real<float> >& W, bool verbose) ;
     template bool ica< blas_real<double> >
       (const std::vector< math::vertex< blas_real<double> > >& data, matrix< blas_real<double> >& W, bool verbose) ;
-    template bool ica< float >
-      (const std::vector< math::vertex<float> >& data, matrix<float>& W, bool verbose) ;
-    template bool ica< double >
-      (const std::vector< math::vertex<double> >& data, matrix<double>& W, bool verbose) ;
+    //template bool ica< float >
+    //  (const std::vector< math::vertex<float> >& data, matrix<float>& W, bool verbose) ;
+    //template bool ica< double >
+    //  (const std::vector< math::vertex<double> >& data, matrix<double>& W, bool verbose) ;
     template bool ica< blas_complex<float> >
     (const std::vector< math::vertex< blas_complex<float> > >& data, matrix< blas_complex<float> >& W, bool verbose) ;
     template bool ica< blas_complex<double> >
@@ -164,9 +164,11 @@ namespace whiteice
 	
 	for(unsigned int j=0;j<dim;j++){
 	  for(unsigned int i=0;i<dim;i++){
-	    float r = ((float)rand())/ ((float)RAND_MAX);
-	    r = 2.0f*r -1.0f; // [-1,+1]
-	    W(j,i) = T(r);
+	    for(unsigned int k=0;k<W(j,i).size();k++){
+	      float r = ((float)rand())/ ((float)RAND_MAX);
+	      r = 2.0f*r -1.0f; // [-1,+1]
+	      W(j,i)[k] = (r);
+	    }
 	  }
 	}
 	
@@ -201,16 +203,27 @@ namespace whiteice
 
 	    // FIXME add tanh non-linearity
 
-	    if((iter % 2) == 0){ // g(u) = u^3 non-linearity
+	    if(0/*(iter % 2) == 0*/){ // g(u) = u^3 non-linearity
 	      
-	      for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0);
-	      dgy = T(0.0);
+	      for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0f);
+	      dgy = T(0.0f);
 	      
 	      for(unsigned int i=0;i<num;i++){
 		X.rowcopyto(x, i);
-		
-		xgy += scaling * y[i]*y[i]*y[i]*x;
-		dgy += scaling * T(3.0)*y[i]*y[i];
+
+#if 1
+		xgy += scaling * (y[i]*y[i]*y[i])*x;
+		dgy += scaling * T(3.0f)*y[i]*y[i];
+#endif
+
+#if 0
+		for(unsigned int k=0;k<y[i].size();k++){
+		  for(unsigned int d=0;d<dim;d++)
+		    xgy[d][k] += scaling[0] * (y[i][k]*y[i][k]*y[i][k])*x[d][k];
+		  
+		  dgy[k] += scaling[0] * T(3.0f)[0]*y[i][k]*y[i][k];
+		}
+#endif
 	      }
 	    }
 	    else{ // g(u) u*exp(-u**2/2) non-linearity	    
@@ -220,28 +233,87 @@ namespace whiteice
 	      
 	      for(unsigned int i=0;i<num;i++){
 		X.rowcopyto(x, i);
+
+#if 0
+		for(unsigned int k=0;k<y[i].size();k++){
+		  auto temp = whiteice::math::exp(-(y[i][k]*y[i][k])/(2.0));
+		  
+		  for(unsigned int d=0;d<dim;d++)
+		    xgy[d][k] += scaling[0] * ((y[i][k] * temp) * x[d][k]);
+		  
+		  dgy[k] += scaling[0] * (temp - (y[i][k]*y[i][k])*temp);
+		}
+#endif
+
+#if 1
 		T temp = whiteice::math::exp(-(y[i]*y[i])/T(2.0));
 		
 		xgy += scaling * ((y[i] * temp) * x);
 		dgy += scaling * (temp - (y[i]*y[i])*temp);
+#endif
 	      }
 	    }
-	      
+
+	    
 	    w = xgy - dgy*w;
+
+#if 0
+	    for(unsigned int k=0;k<dgy.size();k++)
+	      for(unsigned int d=0;d<dim;d++)
+		w[d][k] = dgy[k]*w[d][k] - xgy[d][k];
+#endif
+	    
 	    w.normalize();
+	    
 	    __ica_project(w, n, W); // projection
 	    
-	    
+ 	    
 	    // checks for convergence / stopping critearias
 	    T dotprod = (w_old * w)[0];
 
+	    if(verbose){
+
+	      auto dot = dotprod[0];
+	      T rest = T(0.0f);
+
+	      for(unsigned int k=1;k<dotprod.size();k++)
+		rest[0] += whiteice::math::abs(dotprod[k]);
+	      
+	      std::cout << "iter: " << iter << " dot: " << dot << " + " << rest[0] << std::endl;
+	    }
 	    
-	    if((T(1.0) - dotprod) < TOLERANCE && iter > 10){
-	      convergence = true;
+	    
+	    if(iter >= 10){
+
+	      auto value = T(+1.0) - dotprod;
+	      unsigned int counter = 0;
+
+	      for(unsigned int k=0;k<value.size();k++)
+		if(whiteice::math::abs(value[k]) < TOLERANCE[0])
+		  counter++;
+
+	      if(counter >= value.size())
+		convergence = true;
+
+	      
+	      value = T(-1.0) - dotprod;
+	      counter = 0;
+
+	      for(unsigned int k=0;k<value.size();k++)
+		if(whiteice::math::abs(value[k]) < TOLERANCE[0])
+		  counter++;
+
+	      if(counter >= value.size())
+		convergence = true;
+	      
+	      //if((T(1.0) - dotprod) < TOLERANCE && iter > 10){
+	      //convergence = true;
 	    }
 	    else if(iter >= MAXITERS){
 	      break;
 	    }
+
+	    
 	    
 	    iter++;
 	  }

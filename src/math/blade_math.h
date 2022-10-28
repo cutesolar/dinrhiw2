@@ -915,12 +915,30 @@ namespace whiteice
     inline whiteice::math::superresolution<T, S>
     exp(whiteice::math::superresolution<T, S> x)
     {
-      whiteice::math::superresolution<T, S> y;
+      // from Taylor's polynom/definition:
+      
+      whiteice::math::superresolution<T, S> y(1.0f), m(1.0f);
+
+      for(unsigned k=1;k<30;k++){
+	m *= x/T(k);
+
+	for(unsigned int k=0;k<m.size();k++){
+	  if(m[k] > T(+1e20f) || m[k] < T(-1e20f))
+	    return y; // OVERFLOW
+	}
+	
+	y += m;
+      }
+
+      return y;
+
+#if 0
       
       for(unsigned int i=0;i<x.size();i++)
 	y[i] = whiteice::math::exp(x[i]);
 
       return y;
+#endif
     }
 
     

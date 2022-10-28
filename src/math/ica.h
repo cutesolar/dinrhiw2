@@ -33,13 +33,15 @@ namespace whiteice
     // grouped and PCAed so that the gaussian subspace is also solved as well as possible
     
     extern template bool ica< blas_real<float> >
-      (const matrix< blas_real<float> >& D, matrix< blas_real<float> >& W, bool verbose) ;
+    (const matrix< blas_real<float> >& D, matrix< blas_real<float> >& W, bool verbose) ;
     extern template bool ica< blas_real<double> >
-      (const matrix< blas_real<double> >& D, matrix< blas_real<double> >& W, bool verbose) ;
-    extern template bool ica< float >
-      (const matrix<float>& D, matrix<float>& W, bool verbose) ;
-    extern template bool ica< double >
-      (const matrix<double>& D, matrix<double>& W, bool verbose) ;
+    (const matrix< blas_real<double> >& D, matrix< blas_real<double> >& W, bool verbose) ;
+
+    //extern template bool ica< float >
+    //(const matrix<float>& D, matrix<float>& W, bool verbose) ;
+    //extern template bool ica< double >
+    //(const matrix<double>& D, matrix<double>& W, bool verbose) ;
+
     extern template bool ica< blas_complex<float> >
       (const matrix< blas_complex<float> >& D, matrix< blas_complex<float> >& W, bool verbose) ;
     extern template bool ica< blas_complex<double> >
@@ -70,10 +72,11 @@ namespace whiteice
       (const std::vector< math::vertex< blas_real<float> > >& data, matrix< blas_real<float> >& W, bool verbose) ;
     extern template bool ica< blas_real<double> >
       (const std::vector< math::vertex< blas_real<double> > >& data, matrix< blas_real<double> >& W, bool verbose) ;
-    extern template bool ica< float >
-      (const std::vector< math::vertex<float> >& data, matrix<float>& W, bool verbose) ;
-    extern template bool ica< double >
-      (const std::vector< math::vertex<double> >& data, matrix<double>& W, bool verbose) ;
+    
+    // extern template bool ica< float >
+    //  (const std::vector< math::vertex<float> >& data, matrix<float>& W, bool verbose) ;
+    //extern template bool ica< double >
+    //  (const std::vector< math::vertex<double> >& data, matrix<double>& W, bool verbose) ;
 
     extern template bool ica< blas_complex<float> >
     (const std::vector< math::vertex< blas_complex<float> > >& data, matrix< blas_complex<float> >& W, bool verbose) ;
