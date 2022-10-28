@@ -30,7 +30,7 @@ namespace whiteice
       m = data[0];
       m.zero();
       
-      if(m.size() <= 100){
+      if(m.size() <= 1000 && data.size() > 30){
 	if(mean_covariance_estimate(m, Cxx, data) == false)
 	  return false;
       }
@@ -198,7 +198,7 @@ namespace whiteice
       // trace(Cxx) is total variance of eigenvectors
       T total_variance = T(0.0f);
       
-      if(m.size() <= 100){
+      if(m.size() <= 1000 && data.size() > 30){
 	if(mean_covariance_estimate(m, Cxx, data) == false)
 	  return false;
 
