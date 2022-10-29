@@ -11,6 +11,7 @@ EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
 	../math/integer.o ../math/correlation.o ../math/matrix_rotations.o \
 	../math/eig.o ../math/blade_math.o ../math/real.o ../math/ica.o \
+	../math/RNG.o \
 	../linear_ETA.o ../Log.o ../math/norms.o \
 	../math/superresolution.o ../math/modular.o
 
