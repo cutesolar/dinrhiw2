@@ -167,8 +167,8 @@ namespace whiteice
 	  for(unsigned int i=0;i<dim;i++){
 	    for(unsigned int k=0;k<W(j,i).size();k++){
 	      float r = whiteice::rng.uniform().real();
-	      r = 2.0f*r -1.0f; // [-1,+1]
-	      W(j,i)[k] = (r);
+	      r = 2.0f*r - 1.0f; // [-1,+1]
+	      W(j,i)[k] = r;
 	    }
 	  }
 	}

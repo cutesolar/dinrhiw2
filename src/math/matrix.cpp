@@ -4724,7 +4724,7 @@ namespace whiteice
 	
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=x1;i<=x2;i++)
-	  v[i - x1] = data[y*numCols + x1];
+	  v[i - x1] = data[y*numCols + i];
 	
       }
 #endif
