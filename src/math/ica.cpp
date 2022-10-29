@@ -201,67 +201,118 @@ namespace whiteice
 	    
 	    y = X * w;
 
-	    // FIXME add tanh non-linearity
 
-	    if(0/*(iter % 2) == 0*/){ // g(u) = u^3 non-linearity
+	    if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
+	       typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >)){
+
+	      // needs special code to calculate Newton's iteration for superresolution numbers
+
+	      // calculates gradient
+	      vertex<T> grad; grad.resize(dim);
+	      grad.zero();
+
+	      // calculates Hessian
+	      matrix<T> H; H.resize(dim,dim);
+	      H.zero();
 	      
-	      for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0f);
-	      dgy = T(0.0f);
-	      
+
 	      for(unsigned int i=0;i<num;i++){
 		X.rowcopyto(x, i);
 
-#if 1
-		xgy += scaling * (y[i]*y[i]*y[i])*x;
-		dgy += scaling * T(3.0f)*y[i]*y[i];
-#endif
+		matrix<T> Z;
+		Z.resize(x.size(), x[0].size());
+		Z.zero();
 
-#if 0
-		for(unsigned int k=0;k<y[i].size();k++){
-		  for(unsigned int d=0;d<dim;d++)
-		    xgy[d][k] += scaling[0] * (y[i][k]*y[i][k]*y[i][k])*x[d][k];
-		  
-		  dgy[k] += scaling[0] * T(3.0f)[0]*y[i][k]*y[i][k];
-		}
-#endif
+		for(unsigned int d=0;d<dim;d++)
+		  for(unsigned int k=0;k<x[d].size();k++)
+		    Z(d,k)[0] = x[d][k];
+
+		auto Zt = Z;
+		Zt.transpose();
+
+		T frobenius_norm2 = T(0.0f);
+
+		for(unsigned int k=0;k<y[i].size();k++)
+		  frobenius_norm2 += y[i][k]*y[i][k];
+
+		auto ZZ = Z*Zt;
+		auto vv = ZZ*w;
+
+		// gradient
+		T ss = T(-0.5);
+
+		grad += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*vv;
+
+		// hessian
+
+		H += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*(ZZ - vv.outerproduct());
 	      }
+
+	      
+	      assert(H.pseudoinverse() == true); // TODO: regularize if matrix is singular
+
+	      w = w - H*grad;
+	      
 	    }
-	    else{ // g(u) u*exp(-u**2/2) non-linearity	    
+	    else{
 	      
-	      for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0);
-	      dgy = T(0.0);
 	      
-	      for(unsigned int i=0;i<num;i++){
-		X.rowcopyto(x, i);
-
-#if 0
-		for(unsigned int k=0;k<y[i].size();k++){
-		  auto temp = whiteice::math::exp(-(y[i][k]*y[i][k])/(2.0));
-		  
-		  for(unsigned int d=0;d<dim;d++)
-		    xgy[d][k] += scaling[0] * ((y[i][k] * temp) * x[d][k]);
-		  
-		  dgy[k] += scaling[0] * (temp - (y[i][k]*y[i][k])*temp);
-		}
-#endif
-
-#if 1
-		T temp = whiteice::math::exp(-(y[i]*y[i])/T(2.0));
+	      if(0/*(iter % 2) == 0*/){ // g(u) = u^3 non-linearity
 		
-		xgy += scaling * ((y[i] * temp) * x);
-		dgy += scaling * (temp - (y[i]*y[i])*temp);
+		for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0f);
+		dgy = T(0.0f);
+		
+		for(unsigned int i=0;i<num;i++){
+		  X.rowcopyto(x, i);
+		  
+#if 1
+		  xgy += scaling * (y[i]*y[i]*y[i])*x;
+		  dgy += scaling * T(3.0f)*y[i]*y[i];
 #endif
+		  
+#if 0
+		  for(unsigned int k=0;k<y[i].size();k++){
+		    for(unsigned int d=0;d<dim;d++)
+		      xgy[d][k] += scaling[0] * (y[i][k]*y[i][k]*y[i][k])*x[d][k];
+		    
+		    dgy[k] += scaling[0] * T(3.0f)[0]*y[i][k]*y[i][k];
+		  }
+#endif
+		}
 	      }
+	      else{ // g(u) u*exp(-u**2/2) non-linearity	    
+		
+		for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0);
+		dgy = T(0.0);
+		
+		for(unsigned int i=0;i<num;i++){
+		  X.rowcopyto(x, i);
+		  
+#if 0
+		  for(unsigned int k=0;k<y[i].size();k++){
+		    auto temp = whiteice::math::exp(-(y[i][k]*y[i][k])/(2.0));
+		    
+		    for(unsigned int d=0;d<dim;d++)
+		      xgy[d][k] += scaling[0] * ((y[i][k] * temp) * x[d][k]);
+		    
+		    dgy[k] += scaling[0] * (temp - (y[i][k]*y[i][k])*temp);
+		  }
+#endif
+		  
+#if 1
+		  T temp = whiteice::math::exp(-(y[i]*y[i])/T(2.0));
+		  
+		  xgy += scaling * ((y[i] * temp) * x);
+		  dgy += scaling * (temp - (y[i]*y[i])*temp);
+#endif
+		}
+	      }
+
+	      // update w
+	      w = xgy - dgy*w;
+	      
 	    }
 
-	    
-	    w = xgy - dgy*w;
-
-#if 0
-	    for(unsigned int k=0;k<dgy.size();k++)
-	      for(unsigned int d=0;d<dim;d++)
-		w[d][k] = dgy[k]*w[d][k] - xgy[d][k];
-#endif
 	    
 	    w.normalize();
 	    
@@ -284,9 +335,21 @@ namespace whiteice
 	    
 	    
 	    if(iter >= 10){
+	      // WE HAVE CONVERGED IF DOT PRODUCT IS +1 OR -1 (direction of w does not change)
 
 	      auto value = T(+1.0) - dotprod;
 	      unsigned int counter = 0;
+
+	      for(unsigned int k=0;k<value.size();k++)
+		if(whiteice::math::abs(value[k]) < TOLERANCE[0])
+		  counter++;
+
+	      if(counter >= value.size())
+		convergence = true;
+
+	      
+	      value = T(-1.0) - dotprod;
+	      counter = 0;
 
 	      for(unsigned int k=0;k<value.size();k++)
 		if(whiteice::math::abs(value[k]) < TOLERANCE[0])
