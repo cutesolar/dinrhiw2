@@ -7,6 +7,7 @@
 #include "vertex.h"
 #include "eig.h"
 #include "correlation.h"
+#include "RNG.h"
 
 #include <stdlib.h>
 
@@ -165,7 +166,7 @@ namespace whiteice
 	for(unsigned int j=0;j<dim;j++){
 	  for(unsigned int i=0;i<dim;i++){
 	    for(unsigned int k=0;k<W(j,i).size();k++){
-	      float r = ((float)rand())/ ((float)RAND_MAX);
+	      float r = whiteice::rng.uniform().real();
 	      r = 2.0f*r -1.0f; // [-1,+1]
 	      W(j,i)[k] = (r);
 	    }
@@ -177,13 +178,13 @@ namespace whiteice
 	w.resize(dim);            
 	
 	// solves each IC separatedly (deflate method)
-	for(unsigned int n=0;n<dim;n++){
+	for(unsigned int nn=0;nn<dim;nn++){
 	  
 	  // initialization
-	  W.rowcopyto(w, n);
+	  W.rowcopyto(w, nn);
 	  
 	  w.normalize();
-	  __ica_project(w, n, W);
+	  __ica_project(w, nn, W);
 	  
 	  bool convergence = 0;
 	  unsigned int iter = 0;
@@ -316,7 +317,7 @@ namespace whiteice
 	    
 	    w.normalize();
 	    
-	    __ica_project(w, n, W); // projection
+	    __ica_project(w, nn, W); // projection
 	    
  	    
 	    // checks for convergence / stopping critearias
@@ -371,16 +372,16 @@ namespace whiteice
 	    iter++;
 	  }
 	  
-	  W.rowcopyfrom(w, n);
+	  W.rowcopyfrom(w, nn);
 	  
 	  if(convergence == 0){
 	    if(verbose)
-	      std::cout << "Warning: IC " << (n+1) << " didn't converge"
+	      std::cout << "Warning: IC " << (nn+1) << " didn't converge"
 			<< std::endl;
 	  }
 	  else{
 	    if(verbose)
-	      std::cout << "IC " << (n+1) << " converged after " 
+	      std::cout << "IC " << (nn+1) << " converged after " 
 			<< iter << " iterations." << std::endl;
 	  }
 	}
