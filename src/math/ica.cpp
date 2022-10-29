@@ -212,6 +212,8 @@ namespace whiteice
 	      vertex<T> grad; grad.resize(dim);
 	      grad.zero();
 
+	      // T exps2 = T(0.0f);
+
 	      // calculates Hessian
 	      matrix<T> H; H.resize(dim,dim);
 	      H.zero();
@@ -220,6 +222,33 @@ namespace whiteice
 	      for(unsigned int i=0;i<num;i++){
 		X.rowcopyto(x, i);
 
+		T ss = T(-0.5);
+		T frobenius_norm2 = T(0.0f);
+		
+		for(unsigned int k=0;k<y[i].size();k++)
+		  frobenius_norm2 += y[i][k]*y[i][k];
+
+		auto xy = x;
+		xy.zero();
+		
+		for(unsigned int d=0;d<xy.size();d++)
+		  for(unsigned int k=0;k<xy[d].size();k++)
+		    xy[d] += x[d][k]*y[i][k];
+
+		matrix<T> xx; xx.resize(dim,dim);
+		xx.zero();
+		for(unsigned int b=0;b<dim;b++)
+		  for(unsigned int a=0;a<dim;a++)
+		    for(unsigned int k=0;k<x[0].size();k++)
+		      xx(b,a) += x[b][k]*x[a][k];
+
+		grad += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*xy;
+
+		H += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*
+		  (-xy.outerproduct() + xx);
+		//(T(1.0f) - y[i]*y[i])*x.outerproduct();
+
+#if 0
 		matrix<T> Z;
 		Z.resize(x.size(), x[0].size());
 		Z.zero();
@@ -239,20 +268,25 @@ namespace whiteice
 		auto ZZ = Z*Zt;
 		auto vv = ZZ*w;
 
-		// gradient
-		T ss = T(-0.5);
-
 		grad += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*vv;
 
 		// hessian
 
 		H += scaling*whiteice::math::exp(ss[0]*frobenius_norm2[0])*(ZZ - vv.outerproduct());
+#endif
 	      }
 
-	      
-	      assert(H.pseudoinverse() == true); // TODO: regularize if matrix is singular
 
-	      w = w - H*grad;
+#if 1
+	      assert(H.inv() == true); // TODO: regularize if matrix is singular
+	      //assert(H.pseudoinverse() == true); // TODO: regularize if matrix is singular
+
+	      T alpha = T(1.0); // was: 1.0
+
+	      w = w - alpha*(H*grad);
+#endif
+
+	      // w = w - grad/exps2;
 	      
 	    }
 	    else{

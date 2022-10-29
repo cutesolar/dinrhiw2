@@ -35,7 +35,9 @@
   not sinusoids although sources are sinusoids with different frequencies and
   phases. ConvPCA gives some useful results with
   <math|k=<around*|[|-11,+11|]>>. However, you still need Convolutional
-  ICA(?).
+  ICA(?). By calculating covariance matrix <math|C<rsub|x*x>=I> and mean
+  <math|\<mu\><rsub|x>=0> you get proper results so convolutional PCA works
+  and correlations between variables are removed.<math|>\ 
 
   <with|font-series|bold|Convolutional ICA>
 
@@ -64,47 +66,69 @@
 
   <math|H<around*|(|G<around*|(|\<b-w\>|)>|)>=<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>=-e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-X\>*\<b-X\><rsup|T>*\<b-w\>*\<b-w\><rsup|T>\<b-X\>*\<b-X\><rsup|T>+e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-X\>*\<b-X\><rsup|T>*>
 
-  Now you need to compute expectations to calculation Netwon iteration
+  We don't take approximation <math|E<rsub|\<b-x\>><around*|{|\<b-X\>*\<b-X\><rsup|T>|}>=\<b-I\>>.
+  In this case we must solve whole Hessian matrix from the data, and hope it
+  is well-defined and calculate it's inverse.
 
-  <math|E<rsub|\<b-x\>><around*|{|<frac|\<partial\>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\>\<b-w\>>|}>=E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-X\>*\<b-X\><rsup|T>*\<b-w\>|}>>,(
-  this can be computed directory from the data.
+  <math|\<b-w\><rsub|t+1>=\<b-w\><rsub|t>-\<alpha\>*H<around*|(|\<b-w\><rsub|t>|)><rsup|-1>*\<nabla\>G<around*|(|\<b-w\><rsub|t>|)>>,
+  <math|\<alpha\>=1>
 
-  <math|E<rsub|\<b-x\>><around*|{|<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>|}>=E<rsub|\<b-x\>><around*|{|-e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-X\>*\<b-X\><rsup|T>*\<b-w\>*\<b-w\><rsup|T>\<b-X\>*\<b-X\><rsup|T>+e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-X\>*\<b-X\><rsup|T>|}>>,
-  Now <math|E<rsub|\<b-x\>><around*|{|\<b-X\>*\<b-X\><rsup|T>|}>\<approx\>\<b-I\>>
-  because superresolutional numbers are white
-  <math|E<around*|[|s<rsub|i*>s<rsub|j>|]>=\<delta\><around*|(|i-j|)>>
-  [assuming circular convolution is a bit like vector multiplication where
-  high dimensions are small so it's regular convolution <math|\<Rightarrow\>>
-  linear]. This may mean we may take approximations
+  By using this update rule you get result where weigh vectors don't change
+  at all(?). The dot products are 1 in FastICA algorithm so weight vectors
+  are not updated when <math|\<alpha\>=1>. You should do line-search of
+  <math|\<alpha\>> to maximimze <math|G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>>
+  so to increase <math|\<alpha\>> until it becomes too large or
+  <math|G<around*|(|s|)>> becomes larger.. NOW: Just try different values
+  <math|\<alpha\>> to check if changing the value matters.
 
-  <math|E<rsub|\<b-x\>><around*|{|<frac|\<partial\>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\>\<b-w\>>|}>\<approx\>E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>**\<b-w\>|}>>
+  TODO: set time-delays to 0 so you get regular ICA problem. Try to get
+  superreso ICA solve it correctly..
 
-  <math|E<rsub|\<b-x\>><around*|{|<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>|}>=E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*<around*|(|\<b-I\>-\<b-w\>*\<b-w\><rsup|T>|)>|}>>
+  <strong|FIX(?):>
 
-  Now we need Newton iteration step to solve zero point for gradient
-  <math|G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>> function:
+  Are the gradients really:
 
-  <\math>
-    \<b-w\><rsub|t+1>=\<b-w\><rsub|t>-<around*|(|E<rsub|\<b-x\>><around*|{|e<rsup|+0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*|}><around*|(|\<b-I\>-\<b-w\>*<rsub|t>\<b-w\><rsub|t><rsup|T>|)>|)><rsup|-1>*E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>**|}>\<b-w\><rsub|t>
+  <math|\<nabla\><rsub|\<b-w\>>G<around*|(|\<b-w\>|)>=<frac|\<partial\>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\>\<b-w\>>=e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-x\>*<around*|(|\<b-x\><rsup|T>*\<b-w\>|)>=e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-x\>*s>\ 
 
-    \<b-w\><rsub|t+1>=\<b-w\><rsub|t>-**<around*|(|<around*|(|\<b-I\>-\<b-w\>*<rsub|t>\<b-w\><rsub|t><rsup|T>|)>|)><rsup|-1>*\<b-w\><rsub|t>
-  </math>
+  And for FastICA you also need second derivate fo <math|G<around*|(|s|)>>
+  (<strong|<math|\<b-x\>*\<b-x\><rsup|T>=\<b-I\>>>)
 
-  But this iteration does NOT depend on data so the approximation must be
-  wrong!
+  <math|H<around*|(|G<around*|(|\<b-w\>|)>|)>=<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>=-e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*s<rsup|2>*\<b-x\>*\<b-x\><rsup|T>+e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-x\>*\<b-x\><rsup|T>*=e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>><around*|(|1-s<rsup|2>|)>\<b-I\>>
 
-  Now, instead we don't take approximation
-  <math|E<rsub|\<b-x\>><around*|{|\<b-X\>*\<b-X\><rsup|T>|}>=\<b-I\>>. In
-  this case we must solve whole Hessian matrix from the data, and hope it is
-  well-defined and calculate it's inverse.
+  This means Newton iteration simplifies to
 
-  <math|\<b-w\><rsub|t+1>=\<b-w\><rsub|t>-H<around*|(|\<b-w\><rsub|t>|)><rsup|-1>*\<nabla\>G<around*|(|\<b-w\><rsub|t>|)>>
+  <math|\<b-w\><rsub|t+1>=\<b-w\><rsub|t>-\<alpha\>*E<rsub|\<b-x\>><around*|{|H<around*|(|\<b-w\><rsub|t>|)>|}><rsup|-1>*E<rsub|\<b-x\>><around*|{|\<nabla\>G<around*|(|\<b-w\><rsub|t>|)>|}>=\<b-w\><rsub|t>-\<alpha\>*E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>><around*|(|1-s<rsup|2>|)>|}><rsup|-1>*E<rsub|\<b-x\>><around*|{|e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>*\<b-x\>*s|}>>
 
   \;
 
+  This don't work, we don't assume <math|\<b-x\>*\<b-x\><rsup|T>=\<b-I\>> so
+  we get:
+
+  <math|H<around*|(|G<around*|(|\<b-w\>|)>|)>=<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>=e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>**\<b-x\>*\<b-x\><rsup|T><around*|(|1-s<rsup|2>|)>*>
+
+  And we need to compute for Hessian matrix..
+
   \;
 
-  =====
+  ABOVE DON'T WORK, MAYBE WE NEED TO HAVE:
+
+  \ 
+
+  <math|<frac|\<partial\><around*|\<\|\|\>|\<b-w\><rsup|T>\<b-x\>|\<\|\|\>><rsup|2><rsub|F>|\<partial\>\<b-w\>>=<frac|\<partial\>\<less\>\<b-w\><rsup|T>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsub|F>|\<partial\>\<b-w\>>=2\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsub|F>*=<big|sum><rsub|i>\<b-x\><around*|(|d|)><rsub|i><around*|(|\<b-w\><rsup|T>\<b-x\>|)><rsub|i>>
+
+  <math|\<nabla\><rsub|\<b-w\>>G<around*|(|\<b-w\>|)>=<frac|\<partial\>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\>\<b-w\>>=e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsub|F>>
+
+  Now Hessian matrix for this one is:
+
+  \ <math|H<around*|(|G<around*|(|\<b-w\>|)>|)>=<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>=-e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsup|><rsub|F>\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsub|F><rsup|T><rsup|><rsub|><rsup|>*+e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>\<less\>\<b-x\>,\<b-x\><rsup|T>\<gtr\><rsub|F>*>
+
+  \;
+
+  <em|<strong|PSEUDOINVERSE KOODISSA OLI VIKAA.> matrix.inv() koodi toimii
+  sen sijaan OIKEIN superresolutional numeroilla! Nyt ICA koodi konvergoituu
+  järkevästi johonkin, mutta mikä on konvergoituva ratkaisu???>
+
+  \;
 
   Compare this with Linear ICA where input data is data with added
   time-delays <math|<wide|\<b-x\>|^><around*|(|n|)>>. Try to solve demixing
