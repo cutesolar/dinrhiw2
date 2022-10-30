@@ -8,6 +8,7 @@
 #include "eig.h"
 #include "correlation.h"
 #include "RNG.h"
+#include "linear_ETA.h"
 
 #include <stdlib.h>
 
@@ -172,7 +173,10 @@ namespace whiteice
 	    }
 	  }
 	}
+
 	
+	whiteice::linear_ETA<float> eta;
+	eta.start(0, dim);
 	
 	vertex<T> w;
 	w.resize(dim);            
@@ -407,6 +411,8 @@ namespace whiteice
 	  }
 	  
 	  W.rowcopyfrom(w, nn);
+
+	  eta.update(nn+1);
 	  
 	  if(convergence == 0){
 	    if(verbose)
@@ -417,6 +423,10 @@ namespace whiteice
 	    if(verbose)
 	      std::cout << "IC " << (nn+1) << " converged after " 
 			<< iter << " iterations." << std::endl;
+	  }
+
+	  if(verbose){
+	    printf("ETA: %f hour(s)\n", eta.estimate()/3600.0f);
 	  }
 	}
 	

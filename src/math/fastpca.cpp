@@ -1,6 +1,8 @@
 
 #include "fastpca.h"
 #include "correlation.h"
+#include "linear_ETA.h"
+
 
 
 namespace whiteice
@@ -21,6 +23,8 @@ namespace whiteice
       if(data.size() == 0) return false;
       if(data[0].size() < dimensions) return false;
       if(dimensions == 0) return false;
+
+      const bool verbose = true;
       
       // TODO: compute eigenvectors directly into PCA matrix
 
@@ -42,6 +46,9 @@ namespace whiteice
 	
 	m /= T(data.size());
       }
+
+      linear_ETA<float> eta;
+      eta.start(0, dimensions);
       
       
       std::vector< math::vertex<T> > pca; // pca vectors
@@ -114,6 +121,14 @@ namespace whiteice
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 	
 	pca.push_back(g);
+
+	eta.update(pca.size());
+
+	if(verbose){
+	  printf("PCA %d/%d: ETA %f hour(s)\n", (int)pca.size(), dimensions,
+		 eta.estimate()/3600.0f);
+	}
+	
       }
       
       PCA.resize(pca.size(), data[0].size());
