@@ -535,7 +535,7 @@ namespace whiteice
 	}
 
 	const unsigned int DATASIZE = 
-	  (best_kmeans.size()*40) > data.size() ? data.size() : (best_kmeans.size()*40);
+	  (best_kmeans.size()*70) > data.size() ? data.size() : (best_kmeans.size()*70);
 
 #pragma omp parallel
 	{
