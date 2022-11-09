@@ -534,6 +534,9 @@ namespace whiteice
 	  TOTAL[i] = 0;
 	}
 
+	const unsigned int DATASIZE = 
+	  (best_kmeans.size()*40) > data.size() ? data.size() : (best_kmeans.size()*40);
+
 #pragma omp parallel
 	{
 	  auto kmeans_i = best_kmeans_current;
@@ -546,12 +549,15 @@ namespace whiteice
 	  }
 
 #pragma omp for nowait schedule(auto)
-	  for(unsigned int i=0;i<data.size();i++){
+	  for(unsigned int i=0;i<DATASIZE;i++){ // was: data.size()
+
+	    const unsigned int index = rng.rand() % data.size();
+	    
 	    unsigned int winner = 0;
 	    T error = T(INFINITY);
 
 	    for(unsigned int k=0;k<best_kmeans_current.size();k++){
-	      auto delta = best_kmeans_current[k] - data[i];
+	      auto delta = best_kmeans_current[k] - data[index];
 	      auto e = delta.norm();
 
 	      if(e < error){
@@ -560,7 +566,7 @@ namespace whiteice
 	      }
 	    }
 
-	    kmeans_i[winner] += data[i];
+	    kmeans_i[winner] += data[index];
 	    N[winner]++;
 	  }
 	  
