@@ -573,61 +573,123 @@ namespace whiteice
       // in case mne (minimum norm error) error term is E[||y-f(x)||]
       T error = T(0.0f);
 
-      //const unsigned int MINIBATCHSIZE = 200; // number of samples used to estimate gradient
-      
-      // calculates initial error
+      if(use_minibatch){
+
+	// number of samples used to estimate error
+	const unsigned int MINIBATCHSIZE = 1000 > dtest.size(0) ? dtest.size(0) : 1000; 
+
+	// calculates error
 #pragma omp parallel
-      {
-	T esum = T(0.0f);
-	
-	const whiteice::nnetwork<T>& nnet = net;
-	std::vector< std::vector<bool> > net_dropout;
-	
-	math::vertex<T> err;
-	math::vertex<T> out;
-
-	// calculates error from the testing dataset
-#pragma omp for nowait schedule(guided)
-	for(unsigned int i=0;i<dtest.size(0);i++){
-	  const unsigned int index = i; // rng.rand() % dtest.size(0);
-	  
-	  auto yvalue = dtest.access(1, index);
-
-	  if(dropout){
-	    nnet.setDropOut(net_dropout);
-	    nnet.calculate(dtest.access(0, index), out, net_dropout);
-	  }
-	  else{
-	    nnet.calculate(dtest.access(0, index), out);
-	  }
-
-	  if(dont_normalize_error){
-	    dtest.invpreprocess(1, yvalue);
-	    dtest.invpreprocess(1, out);
-	  }
-	  
-	  err = out - yvalue;
-
-	  if(mne) esum += err.norm();
-	  else{
-	    auto n = err.norm();
-	    esum += T(0.5f)*n*n;
-	  }
-
-	}
-	
-	esum /= T((float)dtest.size(0));
-	// esum /= T((float)MINIBATCHSIZE);
-	
-#pragma omp critical
 	{
-	  error += esum;
+	  T esum = T(0.0f);
+	  
+	  const whiteice::nnetwork<T>& nnet = net;
+	  std::vector< std::vector<bool> > net_dropout;
+	  
+	  math::vertex<T> err;
+	  math::vertex<T> out;
+	  
+	  // calculates error from the testing dataset
+#pragma omp for nowait schedule(guided)
+	  for(unsigned int i=0;i<MINIBATCHSIZE;i++){
+	    const unsigned int index = rng.rand() % dtest.size(0);
+	    
+	    auto yvalue = dtest.access(1, index);
+	    
+	    if(dropout){
+	      nnet.setDropOut(net_dropout);
+	      nnet.calculate(dtest.access(0, index), out, net_dropout);
+	    }
+	    else{
+	      nnet.calculate(dtest.access(0, index), out);
+	    }
+	    
+	    if(dont_normalize_error){
+	      dtest.invpreprocess(1, yvalue);
+	      dtest.invpreprocess(1, out);
+	    }
+	    
+	    err = out - yvalue;
+	    
+	    if(mne) esum += err.norm();
+	    else{
+	      auto n = err.norm();
+	      esum += T(0.5f)*n*n;
+	    }
+	    
+	  }
+	  
+	  // esum /= T((float)dtest.size(0));
+	  esum /= T((float)MINIBATCHSIZE);
+	  
+#pragma omp critical
+	  {
+	    error += esum;
+	  }
 	}
+	
+	// divides per output dimension
+	// [error is per one dimension so it is more comparable]
+	error /= T((float)dtest.access(1,0).size());
+	
       }
-
-      // divides per output dimension
-      // [error is per one dimension so it is more comparable]
-      error /= T((float)dtest.access(1,0).size());
+      else{
+	
+	// calculates error
+#pragma omp parallel
+	{
+	  T esum = T(0.0f);
+	  
+	  const whiteice::nnetwork<T>& nnet = net;
+	  std::vector< std::vector<bool> > net_dropout;
+	  
+	  math::vertex<T> err;
+	  math::vertex<T> out;
+	  
+	  // calculates error from the testing dataset
+#pragma omp for nowait schedule(guided)
+	  for(unsigned int i=0;i<dtest.size(0);i++){
+	    const unsigned int index = i; // rng.rand() % dtest.size(0);
+	    
+	    auto yvalue = dtest.access(1, index);
+	    
+	    if(dropout){
+	      nnet.setDropOut(net_dropout);
+	      nnet.calculate(dtest.access(0, index), out, net_dropout);
+	    }
+	    else{
+	      nnet.calculate(dtest.access(0, index), out);
+	    }
+	    
+	    if(dont_normalize_error){
+	      dtest.invpreprocess(1, yvalue);
+	      dtest.invpreprocess(1, out);
+	    }
+	    
+	    err = out - yvalue;
+	    
+	    if(mne) esum += err.norm();
+	    else{
+	      auto n = err.norm();
+	      esum += T(0.5f)*n*n;
+	    }
+	    
+	  }
+	  
+	  esum /= T((float)dtest.size(0));
+	  // esum /= T((float)MINIBATCHSIZE);
+	  
+#pragma omp critical
+	  {
+	    error += esum;
+	  }
+	}
+	
+	// divides per output dimension
+	// [error is per one dimension so it is more comparable]
+	error /= T((float)dtest.access(1,0).size());
+	
+      }
 
       if(regularize){
 	whiteice::math::vertex<T> w;
@@ -644,6 +706,8 @@ namespace whiteice
 
       return error;
     }
+
+
 
     
     template <typename T>
@@ -909,7 +973,7 @@ namespace whiteice
 	    sumgrad.zero();
 
 	    // number of samples used to estimate gradient in minibatch mode
-	    const unsigned int MINIBATCHSIZE = 100; 
+	    const unsigned int MINIBATCHSIZE = 1000 > dtrain.size(0) ? dtrain.size(0) : 1000;
 
 	    if(use_minibatch){
 	      const T ninv = T(1.0f/MINIBATCHSIZE);
