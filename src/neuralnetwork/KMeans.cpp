@@ -586,8 +586,8 @@ namespace whiteice
 	// check if error has decreased
 	auto err = error(kmeans_sum, data);
 
-	// check if means has changed
-	bool change = means_changed(kmeans_sum, best_kmeans_current);
+	// check if means has changed [DISABLED]
+	// bool change = means_changed(kmeans_sum, best_kmeans_current);
 	best_kmeans_current = kmeans_sum;
 
 	
@@ -599,7 +599,7 @@ namespace whiteice
 
 	  noimprove = 0;
 	}
-	else if(change == false){
+	else{ // checked earlier too that k-means has changed.. [DISABLED]
 	  noimprove++;
 
 	  if(noimprove > 5)
