@@ -214,7 +214,7 @@ namespace whiteice
 					 bool dropout,
 					 bool initiallyUseNN)
     {
-      if(data.getNumberOfClusters() != 2) return false;
+      if(data.getNumberOfClusters() < 2) return false;
 
       if(data.size(0) != data.size(1)) return false;
 
@@ -713,6 +713,9 @@ namespace whiteice
     template <typename T>
     void NNGradDescent<T>::optimizer_loop()
     {
+      try{
+
+      
       // set thread priority (non-standard)
       {
 	sched_param sch_params;
@@ -1394,6 +1397,12 @@ namespace whiteice
 	  }
 	}
 	
+	
+      }
+
+      }
+      catch(std::exception& e){
+	std::cout << "NNGradDescent::optimizer_loop(). Unexpected exception: " << e.what() << std::endl;
 	
       }
 
