@@ -602,7 +602,7 @@ namespace whiteice
 	else{ // checked earlier too that k-means has changed.. [DISABLED]
 	  noimprove++;
 
-	  if(noimprove > 5)
+	  if(noimprove > 10)
 	    break;
 	}
 	
