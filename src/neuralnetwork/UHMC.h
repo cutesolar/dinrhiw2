@@ -52,7 +52,7 @@ namespace whiteice
     
     // probability functions for hamiltonian MC sampling
     T U(const math::vertex<T>& q, bool useRegulizer = true) const;
-    math::vertex<T> Ugrad(const math::vertex<T>& q) const;
+    math::vertex<T> Ugrad(const math::vertex<T>& q, bool useRegulizer = true) const;
     
     /*
      * error terms e = y-f(x|w) covariance matrix used during

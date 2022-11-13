@@ -146,7 +146,7 @@ namespace whiteice
   
   
   template <typename T>
-  math::vertex<T> UHMC<T>::Ugrad(const math::vertex<T>& q) const
+  math::vertex<T> UHMC<T>::Ugrad(const math::vertex<T>& q, bool useRegulizer) const
   {
     math::vertex<T> sum;
     sum.resize(q.size());
@@ -230,8 +230,9 @@ namespace whiteice
       sum /= temperature; // scales gradient with temperature
     }
       
-      
-    sum += alpha*q;
+    if(useRegulizer){
+      sum += alpha*q;
+    }
     
     // sum.normalize();
     
