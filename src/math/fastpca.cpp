@@ -18,14 +18,13 @@ namespace whiteice
     bool fastpca(const std::vector< vertex<T> >& data, 
 		 const unsigned int dimensions,
 		 math::matrix<T>& PCA,
-		 std::vector<T>& eigenvalues)
+		 std::vector<T>& eigenvalues,
+		 const bool verbose)
     {
       if(data.size() == 0) return false;
       if(data[0].size() < dimensions) return false;
       if(dimensions == 0) return false;
 
-      const bool verbose = true;
-      
       // TODO: compute eigenvectors directly into PCA matrix
 
       math::vertex<T> m;
@@ -35,11 +34,22 @@ namespace whiteice
       m.zero();
       
       if(m.size() <= 1000 && data.size() > 30){
+
+	if(verbose){
+	  printf("Estimating Cxx matrix directly..\n");
+	  fflush(stdout);
+	}
+	
 	if(mean_covariance_estimate(m, Cxx, data) == false)
 	  return false;
       }
       else{
 	// calculates Cxx live and only precalculates mean value m
+
+	if(verbose){
+	  printf("Using statistical inner product with Cxx matrix/data (Cxx would be HUGE)..\n");
+	  fflush(stdout);
+	}
 
 	for(const auto& di : data)
 	  m += di;
@@ -127,6 +137,7 @@ namespace whiteice
 	if(verbose){
 	  printf("PCA %d/%d: ETA %f hour(s)\n", (int)pca.size(), dimensions,
 		 eta.estimate()/3600.0f);
+	  fflush(stdout);
 	}
 	
       }
@@ -191,7 +202,8 @@ namespace whiteice
     bool fastpca_p(const std::vector <vertex<T> >& data,
 		   const float percent_total_variance,
 		   math::matrix<T>& PCA,
-		   std::vector<T>& eigenvalues)
+		   std::vector<T>& eigenvalues,
+		   const bool verbose)
     {
       if(percent_total_variance <= 0.0f ||
 	 percent_total_variance > 1.0f)
@@ -214,6 +226,12 @@ namespace whiteice
       T total_variance = T(0.0f);
       
       if(m.size() <= 1000 && data.size() > 30){
+
+	if(verbose){
+	  printf("Estimating Cxx matrix directly..\n");
+	  fflush(stdout);
+	}
+	
 	if(mean_covariance_estimate(m, Cxx, data) == false)
 	  return false;
 
@@ -222,6 +240,11 @@ namespace whiteice
       }
       else{
 	// calculates Cxx live and only precalculates mean value m
+
+	if(verbose){
+	  printf("Using statistical inner product with Cxx matrix/data (Cxx would be HUGE)..\n");
+	  fflush(stdout);
+	}
 
 	for(const auto& d : data)
 	  m += d;
@@ -330,6 +353,11 @@ namespace whiteice
 	}
 	
 	pca.push_back(g);
+
+	if(verbose){
+	  printf("PCA %d/%d dimension calculated.\n", (int)pca.size(), dimensions);
+	  fflush(stdout);
+	}
       }
       
       PCA.resize(pca.size(), data[0].size());
@@ -391,26 +419,30 @@ namespace whiteice
     (const std::vector< vertex< blas_real<float> > >& data, 
      const unsigned int dimensions,
      math::matrix< blas_real<float> >& PCA,
-     std::vector< blas_real<float> >& eigenvalues);
+     std::vector< blas_real<float> >& eigenvalues,
+     const bool verbose);
     
     template bool fastpca< blas_real<double> >
     (const std::vector< vertex< blas_real<double> > >& data, 
      const unsigned int dimensions,
      math::matrix< blas_real<double> >& PCA,
-     std::vector< blas_real<double> >& eigenvalues);
+     std::vector< blas_real<double> >& eigenvalues,
+     const bool verbose);
 
 
     template bool fastpca< superresolution< blas_real<float>, modular<unsigned int> > >
     (const std::vector< vertex< superresolution< blas_real<float>, modular<unsigned int> > > >& data, 
      const unsigned int dimensions,
      math::matrix< superresolution< blas_real<float>, modular<unsigned int> > >& PCA,
-     std::vector< superresolution< blas_real<float>, modular<unsigned int> > >& eigenvalues);
+     std::vector< superresolution< blas_real<float>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
     
     template bool fastpca< superresolution< blas_real<double>, modular<unsigned int> > >
     (const std::vector< vertex< superresolution< blas_real<double>, modular<unsigned int> > > >& data, 
      const unsigned int dimensions,
      math::matrix< superresolution< blas_real<double>, modular<unsigned int> > >& PCA,
-     std::vector< superresolution< blas_real<double>, modular<unsigned int> > >& eigenvalues);
+     std::vector< superresolution< blas_real<double>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
     
     
     
@@ -419,13 +451,15 @@ namespace whiteice
     (const std::vector <vertex< blas_real<float> > >& data,
      const float percent_total_variance,
      math::matrix< blas_real<float> >& PCA,
-     std::vector< blas_real<float> >& eigenvalues);
+     std::vector< blas_real<float> >& eigenvalues,
+     const bool verbose);
     
     template bool fastpca_p< blas_real<double> >
     (const std::vector <vertex< blas_real<double> > >& data,
      const float percent_total_variance,
      math::matrix< blas_real<double> >& PCA,
-     std::vector< blas_real<double> >& eigenvalues);
+     std::vector< blas_real<double> >& eigenvalues,
+     const bool verbose);
     
   };
   
