@@ -22,6 +22,7 @@ namespace whiteice
 		this->alpha = alpha;
 		this->temperature = T(1.0);
 		this->store = store;
+		this->use_minibatch = false;
 
 		sum_N = 0;
 		sum_mean.zero();
@@ -65,95 +66,178 @@ namespace whiteice
 	}
   
 
-	template <typename T>
-	T UHMC<T>::U(const math::vertex<T>& q, bool useRegulizer) const
-	{
-		T E = T(0.0f);
+  template <typename T>
+  T UHMC<T>::U(const math::vertex<T>& q, bool useRegulizer) const
+  {
+    T E = T(0.0f);
 
-		// E = SUM 0.5*e(i)^2
+    whiteice::nnetwork<T> nnet(this->nnet);
+    nnet.importdata(q);
+
+    
+    if(use_minibatch)
+    {
+      const unsigned int SAMPLES_MINIBATCH = (1000 > data.size(0)) ? data.size(0) : 1000;
+      
+      // E = SUM 0.5*e(i)^2
 #pragma omp parallel shared(E)
-		{
-			whiteice::nnetwork<T> nnet(this->nnet);
-			nnet.importdata(q);
-
-			math::vertex<T> err;
-			T e = T(0.0f);
+      {
+	math::vertex<T> err;
+	T e = T(0.0f);
 
 #pragma omp for nowait schedule(auto)
-			for(unsigned int i=0;i<data.size(0);i++){
-				nnet.input() = data.access(0, i);
-				nnet.calculate(false);
-				err = data.access(1, i) - nnet.output();
-				// T inv = T(1.0f/err.size());
-				err = (err*err);
-				e = e  + T(0.5f)*err[0];
-			}
-
-#pragma omp critical (mvjrwewoiasaq)
-			{
-				E = E + e;
-			}
-		}
-
-		E /= sigma2;
-
-		E /= temperature;
-		
-		// TODO: is this really correct squared error term to use?
-
-		return (E);
+	for(unsigned int i=0;i<SAMPLES_MINIBATCH;i++){
+	  const unsigned int index = rng.rand() % data.size(0);
+	  
+	  nnet.calculate(data.access(0,index), err);
+	  err -= data.access(1, index);
+	  
+	  err = (err*err);
+	  e = e  + T(0.5f)*err[0];
 	}
-  
-  
-	template <typename T>
-	math::vertex<T> UHMC<T>::Ugrad(const math::vertex<T>& q) const
+	
+#pragma omp critical (aamvjrwewoiasaq)
 	{
-		math::vertex<T> sum;
-		sum.resize(q.size());
-		sum.zero();
-
-		// positive gradient
-#pragma omp parallel shared(sum)
-		{
-			// const T ninv = T(1.0f); // T(1.0f/data.size(0));
-			math::vertex<T> sumgrad, grad, err;
-			sumgrad.resize(q.size());
-			sumgrad.zero();
-
-			whiteice::nnetwork<T> nnet(this->nnet);
-			nnet.importdata(q);
-
-#pragma omp for nowait schedule(auto)
-			for(unsigned int i=0;i<data.size(0);i++){
-				nnet.input() = data.access(0, i);
-				nnet.calculate(true);
-				err = nnet.output() - data.access(1,i);
-
-				if(nnet.mse_gradient(err, grad) == false){
-					std::cout << "gradient failed." << std::endl;
-					assert(0); // FIXME
-				}
-
-				sumgrad += grad;
-			}
-
-#pragma omp critical (mfdjrweaaqe)
-			{
-				sum += sumgrad;
-			}
-		}
-		
-		sum /= sigma2;
-
-		sum /= temperature; // scales gradient with temperature
-
-		
-		sum += T(0.5)*alpha*q;
-		
-		sum.normalize();
-
-		return (sum);
+	  E = E + e;
 	}
+      }
+
+      E *= T(((float)data.size(0))/((float)SAMPLES_MINIBATCH));
+      
+      E /= sigma2;
+      
+      E /= temperature;
+    }
+    else{
+      // E = SUM 0.5*e(i)^2
+#pragma omp parallel shared(E)
+      {
+	math::vertex<T> err;
+	T e = T(0.0f);
+	
+#pragma omp for nowait schedule(auto)
+	for(unsigned int i=0;i<data.size(0);i++){
+
+	  nnet.calculate(data.access(0,i), err);
+	  err -= data.access(1, i);
+
+	  err = (err*err);
+	  e = e  + T(0.5f)*err[0];
+	}
+	
+#pragma omp critical (mvjrwewoiasaq)
+	{
+	  E = E + e;
+	}
+      }
+      
+      E /= sigma2;
+      
+      E /= temperature;
+    }
+    
+    
+    if(useRegulizer){
+      E += T(0.5)*alpha*(q*q)[0];
+    }
+  
+    return (E);
+  }
+  
+  
+  template <typename T>
+  math::vertex<T> UHMC<T>::Ugrad(const math::vertex<T>& q, bool useRegulizer) const
+  {
+    math::vertex<T> sum;
+    sum.resize(q.size());
+    sum.zero();
+
+    whiteice::nnetwork<T> nnet(this->nnet);
+    nnet.importdata(q);
+
+    if(use_minibatch)
+    {
+      const unsigned int SAMPLES_MINIBATCH = (1000 > data.size(0)) ? data.size(0) : 1000;
+      
+      // positive gradient
+#pragma omp parallel shared(sum)
+      {
+	math::vertex<T> sumgrad, grad, err;
+	sumgrad.resize(q.size());
+	sumgrad.zero();
+
+	std::vector< math::vertex<T> > bpdata;
+	
+#pragma omp for nowait schedule(auto)
+	for(unsigned int i=0;i<SAMPLES_MINIBATCH;i++){
+	  const unsigned int index = rng.rand() % data.size(0);
+	  
+	  nnet.calculate(data.access(0, index), err, bpdata);
+	  err -= data.access(1, index);
+	  
+	  if(nnet.mse_gradient(err, bpdata, grad) == false){
+	    std::cout << "gradient failed." << std::endl;
+	    assert(0); // FIXME
+	  }
+	  
+	  sumgrad += grad;
+	}
+	
+#pragma omp critical (mfdjrweaaqe)
+	{
+	  sum += sumgrad;
+	}
+      }
+
+      sum *= T(((float)data.size(0))/((float)SAMPLES_MINIBATCH));
+      
+      sum /= sigma2;
+      
+      sum /= temperature; // scales gradient with temperature
+
+    }
+    else{
+      // positive gradient
+#pragma omp parallel shared(sum)
+      {
+	math::vertex<T> sumgrad, grad, err;
+	sumgrad.resize(q.size());
+	sumgrad.zero();
+
+	std::vector< math::vertex<T> > bpdata;
+	
+#pragma omp for nowait schedule(auto)
+	for(unsigned int i=0;i<data.size(0);i++){
+	  nnet.calculate(data.access(0, i), err, bpdata);
+	  err -= data.access(1, i);
+	  
+	  if(nnet.mse_gradient(err, bpdata, grad) == false){
+	    std::cout << "gradient failed." << std::endl;
+	    assert(0); // FIXME
+	  }
+	  
+	  sumgrad += grad;
+	}
+	
+#pragma omp critical (mfdjrweaaqe)
+	{
+	  sum += sumgrad;
+	}
+      }
+      
+      sum /= sigma2;
+      
+      sum /= temperature; // scales gradient with temperature
+    }
+      
+    if(useRegulizer){
+      sum += alpha*q;
+    }
+    
+    // sum.normalize();
+    
+    return (sum);
+  }
   
   
   

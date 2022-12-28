@@ -501,6 +501,9 @@ namespace whiteice
 
 #pragma omp for nowait schedule(auto)
       for(unsigned int i=(nnets.size() - latestN);i<nnets.size();i++){
+
+	const unsigned int index = rng.rand() % nnets.size();
+	
 	math::vertex<T> in(nnets[0]->input_size());
 	math::vertex<T> out(DIM), out_nn(nnets[0]->output_size());
 	math::vertex<T> rdim(RDIM);
@@ -517,7 +520,7 @@ namespace whiteice
 	    in.write_subvertex(rdim, input.size());
 	  }
 	  
-	  nnets[i]->calculate(in, out_nn); // recurrent calculations if needed
+	  nnets[index]->calculate(in, out_nn); // recurrent calculations if needed
 	  
 	  if(SIMULATION_DEPTH > 1){
 	    out_nn.subvertex(rdim, DIM, rdim.size());
@@ -588,6 +591,9 @@ namespace whiteice
 
 #pragma omp for nowait schedule(auto)
       for(unsigned int i=(nnets.size() - latestN);i<nnets.size();i++){
+
+	const unsigned int index = rng.rand() % nnets.size();
+	
 	math::vertex<T> in(nnets[0]->input_size());
 	math::vertex<T> out(DIM), out_nn(nnets[0]->output_size());
 	math::vertex<T> rdim(RDIM);
@@ -604,7 +610,8 @@ namespace whiteice
 	    in.write_subvertex(rdim, input.size());
 	  }
 	  
-	  nnets[i]->calculate(in, out_nn); // recurrent calculations if needed
+	  nnets[index]->calculate(in, out_nn); // recurrent calculations if needed
+	  
 	  if(SIMULATION_DEPTH > 1){
 	    out_nn.subvertex(rdim, DIM, rdim.size());
 	  }

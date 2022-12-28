@@ -36,10 +36,23 @@ namespace whiteice
     
     bool setTemperature(const T t); // set "temperature" for probability distribution [default T = 1 => no temperature]
     T getTemperature();             // get "temperature" of probability distribution
+
+    
+    // set use of minibatch of samples when calculating U() and Ugrad()
+    // (useful with large number of samples)
+    void setMinibatch(bool minibatch = true){
+      use_minibatch = minibatch;
+    }
+
+    
+    bool getMinibatch() const {
+      return use_minibatch;
+    }
+
     
     // probability functions for hamiltonian MC sampling
     T U(const math::vertex<T>& q, bool useRegulizer = true) const;
-    math::vertex<T> Ugrad(const math::vertex<T>& q) const;
+    math::vertex<T> Ugrad(const math::vertex<T>& q, bool useRegulizer = true) const;
     
     /*
      * error terms e = y-f(x|w) covariance matrix used during
@@ -99,6 +112,7 @@ namespace whiteice
     T temperature; // temperature parameter for the probability function
     bool adaptive;
     bool store;
+    bool use_minibatch; // only use minibatch of samples to predict expectations (U(), Ugrad())
     
     // used to calculate statistics when needed
     math::vertex<T> sum_mean;

@@ -222,7 +222,8 @@ namespace whiteice
     printf("\n");
     fflush(stdout);
 
-    
+
+#if 0
     printf("NEURAL NETWORK LAYER WEIGHTS:\n");
 
     for(unsigned int l=0;l<getLayers();l++){
@@ -230,6 +231,7 @@ namespace whiteice
       std::cout << "W(" << l << ") = " << W[l] << std::endl;
       std::cout << "b(" << l << ") = " << b[l] << std::endl;
     }
+#endif
       
   }
 
