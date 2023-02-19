@@ -122,11 +122,21 @@
 
   \ <math|H<around*|(|G<around*|(|\<b-w\>|)>|)>=<frac|\<partial\><rsup|2>G<around*|(|s=\<b-w\><rsup|T>\<b-x\>|)>|\<partial\><rsup|2>\<b-w\>>=-e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsup|><rsub|F>\<less\>\<b-x\>,\<b-w\><rsup|T>\<b-x\>\<gtr\><rsub|F><rsup|T><rsup|><rsub|><rsup|>*+e<rsup|-0.5*<around*|\<\|\|\>|s|\<\|\|\>><rsup|2><rsub|F>>\<less\>\<b-x\>,\<b-x\><rsup|T>\<gtr\><rsub|F>*>
 
-  \;
-
   <em|<strong|PSEUDOINVERSE KOODISSA OLI VIKAA.> matrix.inv() koodi toimii
   sen sijaan OIKEIN superresolutional numeroilla! Nyt ICA koodi konvergoituu
   järkevästi johonkin, mutta mikä on konvergoituva ratkaisu???>
+
+  Yllä olevilla määritelmillä/laskuilla, gradientti ja hessian matriisi ovat
+  reaaliarvoiset joten rotatoidaan kaikkia komponentteja samalla vektorilla w
+  joka siis on lähes reaaliarvoinen rotatioija paitsi että alkuarvot antavat
+  arvoja muillekin dimensiokomponenteille.
+
+  \;
+
+  TODO:
+
+  - testaa 31-ulotteisilla luvuilla jossa DELAY termit on otettu huomioon,
+  toimiiko tällöin?\ 
 
   \;
 
