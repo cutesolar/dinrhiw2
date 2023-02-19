@@ -40,7 +40,8 @@ namespace whiteice
     bool fastpca(const std::vector< vertex<T> >& data, 
 		 const unsigned int dimensions,
 		 math::matrix<T>& PCA,
-		 std::vector<T>& eigenvalues);
+		 std::vector<T>& eigenvalues,
+		 const bool verbose = true);
     
     /*
      * Extracts PCA vectors having top p% E (0,1] of the total
@@ -52,7 +53,8 @@ namespace whiteice
     bool fastpca_p(const std::vector <vertex<T> >& data,
 		   const float percent_total_variance,
 		   math::matrix<T>& PCA,
-		   std::vector<T>& eigenvalues);
+		   std::vector<T>& eigenvalues,
+		   const bool verbose = true);
 		 
 
     
@@ -60,26 +62,30 @@ namespace whiteice
     (const std::vector< vertex< blas_real<float> > >& data, 
      const unsigned int dimensions,
      math::matrix< blas_real<float> >& PCA,
-     std::vector< blas_real<float> >& eigenvalues);
+     std::vector< blas_real<float> >& eigenvalues,
+     const bool verbose);
     
     extern template bool fastpca< blas_real<double> >
     (const std::vector< vertex< blas_real<double> > >& data, 
      const unsigned int dimensions,
      math::matrix< blas_real<double> >& PCA,
-     std::vector< blas_real<double> >& eigenvalues);
+     std::vector< blas_real<double> >& eigenvalues,
+     const bool verbose);
 
 
     extern template bool fastpca< superresolution< blas_real<float>, modular<unsigned int> > >
     (const std::vector< vertex< superresolution< blas_real<float>, modular<unsigned int> > > >& data, 
      const unsigned int dimensions,
      math::matrix< superresolution< blas_real<float>, modular<unsigned int> > >& PCA,
-     std::vector< superresolution< blas_real<float>, modular<unsigned int> > >& eigenvalues);
+     std::vector< superresolution< blas_real<float>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
     
     extern template bool fastpca< superresolution< blas_real<double>, modular<unsigned int> > >
     (const std::vector< vertex< superresolution< blas_real<double>, modular<unsigned int> > > >& data, 
      const unsigned int dimensions,
      math::matrix< superresolution< blas_real<double>, modular<unsigned int> > >& PCA,
-     std::vector< superresolution< blas_real<double>, modular<unsigned int> > >& eigenvalues);
+     std::vector< superresolution< blas_real<double>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
 
 
     
@@ -88,13 +94,15 @@ namespace whiteice
     (const std::vector <vertex< blas_real<float> > >& data,
      const float percent_total_variance,
      math::matrix< blas_real<float> >& PCA,
-     std::vector< blas_real<float> >& eigenvalues);
+     std::vector< blas_real<float> >& eigenvalues,
+     const bool verbose);
 
     extern template bool fastpca_p< blas_real<double> >
     (const std::vector <vertex< blas_real<double> > >& data,
      const float percent_total_variance,
      math::matrix< blas_real<double> >& PCA,
-     std::vector< blas_real<double> >& eigenvalues);
+     std::vector< blas_real<double> >& eigenvalues,
+     const bool verbose);
     
   };
 };
