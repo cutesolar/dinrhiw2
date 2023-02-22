@@ -2,6 +2,9 @@
 
 #include "decisiontree.h"
 
+#include <stdexcept>
+#include <system_error>
+
 
 namespace whiteice
 {
@@ -64,11 +67,11 @@ namespace whiteice
 
       try{
 	running = true;
-	worker_thread = new std::thread(DecisionTree::worker_thread_loop);
+	worker_thread = new std::thread(DecisionTree::worker_thread_loop, this);
 
 	return running;
       }
-      catch(){
+      catch(std::system_error& e){
 	if(worker_thread) delete worker_thread;
 	worker_thread = nullptr;
 	running = false;
@@ -127,7 +130,7 @@ namespace whiteice
 	else return current->outcome;
       }
       else if(input[current->decisionVariable] == true){
-	if(current->right0) current = current->right0;
+	if(current->right1) current = current->right1;
 	else return current->outcome;
       }
     }
@@ -139,7 +142,7 @@ namespace whiteice
   bool DecisionTree::save(const std::string& filename) const
   {
     // for each node we save following information:
-    // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT0_NODEID
+    // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT1_NODEID
     // there are all int variables (2**31 values)
 
     std::vector<int> data;
@@ -158,8 +161,7 @@ namespace whiteice
       
       data.resize(counter*5);
       
-      if(tree->saveData(data) == false)
-	return false;
+      tree->saveData(data);
     }
 
     // saves data vector to disk
@@ -167,7 +169,7 @@ namespace whiteice
     FILE* handle = fopen(filename.c_str(), "wb");
     if(handle == NULL) return false;
     
-    if(fwrite(handle, sizeof(int), data.size(), data.data()) != data.size()){
+    if(fwrite(data.data(), sizeof(int), data.size(), handle) != data.size()){
       fclose(handle);
       return false;
     }
@@ -180,7 +182,7 @@ namespace whiteice
 
 #include <sys/stat.h>
   
-  long long GetFileSize(std::string& filename)
+  long long GetFileSize(const std::string& filename)
   {
     struct stat stat_buf;
     int rc = stat(filename.c_str(), &stat_buf);
@@ -203,7 +205,7 @@ namespace whiteice
     FILE* handle = fopen(filename.c_str(), "rb");
     if(handle == NULL) return false;
 
-    if(fread(handle, sizeof(int), data.size(), data.data()) != data.size()){
+    if(fread(data.data(), sizeof(int), data.size(), handle) != data.size()){
       fclose(handle);
       return false;
     }
@@ -211,12 +213,13 @@ namespace whiteice
     fclose(handle);
     
     // recreates tree structure from data:
-    // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT0_NODEID
+    // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT1_NODEID
     // there are all int variables (2**31 values)
 
     DTNode* node;
+    int nvalue = 0;
 
-    if(node->loadData(std::vector<int>& data, 0) == false){
+    if(node->loadData(data, nvalue) == false){
 
       node->deleteChilds();
       
@@ -241,7 +244,7 @@ namespace whiteice
 
 
   // returns true if node's parent's variables matches to data
-  bool DecisionTree:matchData(const DTNode* n, const std::vector<bool>& data) const{
+  bool DecisionTree::matchData(const DTNode* n, const std::vector<bool>& data) const{
 
     while(n->parent != NULL){
 
@@ -337,13 +340,13 @@ namespace whiteice
 	// calculate outcome [p-values of current node]
 	std::vector<float> pfull;
 	
-	pfull0.resize((*outcomes)[0].size());
+	pfull.resize((*outcomes)[0].size());
 	
-	for(auto& pfull : p0) p = 0.0f;
+	for(auto& p : pfull) p = 0.0f;
       
 	for(auto& r : rows0){
-	  for(unsigned int k=0;k<p0.size();k++)
-	    if((*outcomes)[r][k]) p0[k]++;
+	  for(unsigned int k=0;k<pfull.size();k++)
+	    if((*outcomes)[r][k]) pfull[k]++;
 	}
 	
 	for(auto& r : rows1){
@@ -389,8 +392,8 @@ namespace whiteice
     std::map<DTNode*, float> goodness;
     std::set<int> initialVariableSet;
 
-    for(unsigned int i=0;i<inputs.size();i++)
-      initialVaribleSet.insert((int)i);
+    for(unsigned int i=0;i<inputs->size();i++)
+      initialVariableSet.insert((int)i);
     
     int var = -1;
     int outcome = -1;
@@ -398,8 +401,9 @@ namespace whiteice
     
     current->variableSet = initialVariableSet;
 
-    if(calculateGoodnessSplit(current, var, g) == true){
+    if(calculateGoodnessSplit(current, var, g, outcome) == true){
       current->decisionVariable = var;
+      current->outcome = outcome;
       goodness.insert(std::pair<DTNode*,float>(current, g));
     }
 

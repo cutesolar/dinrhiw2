@@ -1,5 +1,6 @@
 /*
- * experimental decision tree for binary input data and probability distribution (p_1..p_N) of discrete labels
+ * experimental decision tree for binary input data and 
+ * probability distribution (p_1..p_N) of output labels
  *
  */
 
@@ -13,6 +14,10 @@
 #include <mutex>
 #include <thread>
 
+#include <set>
+#include <map>
+
+
 namespace whiteice
 {
   class DTNode
@@ -25,7 +30,7 @@ namespace whiteice
       
       parent = NULL;
       left0 = NULL;
-      right0 = NULL;
+      right1 = NULL;
     }
 
     // deletes tree's child nodes
@@ -63,7 +68,7 @@ namespace whiteice
       if(left0) data[this->nodeid*5 + 3] = left0->nodeid;
       else data[this->nodeid*5 + 3] = -1;
       
-      if(right0) data[this->nodeid*5 + 4] = right0->nodeid;
+      if(right1) data[this->nodeid*5 + 4] = right1->nodeid;
       else data[this->nodeid*5 + 4] = -1;
     }
 
@@ -91,8 +96,8 @@ namespace whiteice
 	right1 = new DTNode();
 	right1->nodeid = data[counter*5 + 4];
 
-	if(right0->loadData(data, ++counter) == false) return false;
-	if(right0->nodeid != data[origcounter*5 + 4]) return false;
+	if(right1->loadData(data, ++counter) == false) return false;
+	if(right1->nodeid != data[origcounter*5 + 4]) return false;
 	
       }
       
@@ -129,16 +134,27 @@ namespace whiteice
   private:
 
     // input data: pointers to const objects
-    std::vector< std::vector<bool> > const * inputs
+    std::vector< std::vector<bool> > const * inputs;
     std::vector< std::vector<bool> > const * outcomes;
 
     // calculated decision tree
     DTNode* tree;
-    mutable std::mutex tree_lock;
+    mutable std::mutex tree_mutex;
 
     bool running;
     std::thread* worker_thread;
-    std::mutex thread_mutex;
+    mutable std::mutex thread_mutex;
+
+    
+
+    bool matchData(const DTNode* n, const std::vector<bool>& data) const;
+    
+    bool calculateGoodnessSplit(const DTNode* n,
+				int& split_variable, float& split_goodness, int& node_outcome) const;
+    
+    
+    void worker_thread_loop(); // worker thread function
+    
   };
 
   
