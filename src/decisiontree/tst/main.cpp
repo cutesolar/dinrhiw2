@@ -68,6 +68,7 @@ int main(void)
   printf("OUTCOME IS %d. FOR FIRST INPUT DATA ELEMENT.\n", outcome);
 
   printf("ALL TESTS DONE.\n");
+  
 
   return 0;
 }

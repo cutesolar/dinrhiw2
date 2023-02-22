@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 #include <system_error>
+#include <functional>
+
 
 
 namespace whiteice
@@ -38,6 +40,16 @@ namespace whiteice
       
       tree = nullptr;
     }
+
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      
+      if(worker_thread)
+	delete worker_thread;
+      
+      worker_thread = nullptr;
+    }
+    
   }
 
   
@@ -45,7 +57,12 @@ namespace whiteice
 				const std::vector< std::vector<bool> >& outcomes)
   {
     if(running) return false;
-
+    if(inputs.size() <= 0) return false;
+    if(inputs.size() != outcomes.size()) return false;
+    if(inputs[0].size() <= 0) return false;
+    if(outcomes[0].size() <= 0) return false;
+    
+    
     {
       std::lock_guard<std::mutex> lock(thread_mutex);
 
@@ -67,7 +84,7 @@ namespace whiteice
 
       try{
 	running = true;
-	worker_thread = new std::thread(DecisionTree::worker_thread_loop, this);
+	worker_thread = new std::thread(std::bind(&DecisionTree::worker_thread_loop, this));
 
 	return running;
       }
@@ -82,14 +99,26 @@ namespace whiteice
       
     return false;
   }
+
   
   bool DecisionTree::stopTrain()
   {
-    if(running == false) return false;
+    if(running == false){
+      std::lock_guard<std::mutex> lock(thread_mutex);
+
+      if(worker_thread){
+	worker_thread->join();
+	delete worker_thread;
+	worker_thread = nullptr;
+      }
+      
+      return false;
+    }
+    
 
     {
       std::lock_guard<std::mutex> lock(thread_mutex);
-
+      
       if(running == false) return false;
 
       running = false;
@@ -172,7 +201,7 @@ namespace whiteice
       
       data.resize(counter*5);
       
-      tree->saveData(data);
+      if(tree->saveData(data) == false) return false;
     }
 
     // saves data vector to disk
@@ -227,7 +256,7 @@ namespace whiteice
     // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT1_NODEID
     // there are all int variables (2**31 values)
 
-    DTNode* node;
+    DTNode* node = new DTNode();
     int nvalue = 0;
 
     if(node->loadData(data, nvalue) == false){
@@ -401,7 +430,7 @@ namespace whiteice
     std::map<DTNode*, float> goodness;
     std::set<int> initialVariableSet;
 
-    for(unsigned int i=0;i<inputs->size();i++)
+    for(unsigned int i=0;i<(*inputs)[0].size();i++)
       initialVariableSet.insert((int)i);
     
     int var = -1;
@@ -453,6 +482,7 @@ namespace whiteice
 	current->left0 = left0;
 	goodness.insert(std::pair<DTNode*,float>(left0, g));
       }
+      else delete left0;
       
       if(calculateGoodnessSplit(right1, var, g, outcome) == true){
 	right1->decisionVariable = var;
@@ -460,6 +490,7 @@ namespace whiteice
 	current->right1 = right1;
 	goodness.insert(std::pair<DTNode*,float>(right1, g));
       }
+      else delete right1;
       
     }
 
