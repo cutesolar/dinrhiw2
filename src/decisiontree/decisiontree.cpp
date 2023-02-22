@@ -120,11 +120,22 @@ namespace whiteice
   
 
   // classify input to target class of the most active variable in outcomes
-  unsigned int DecisionTree::classify(std::vector<bool>& input) const
+  int DecisionTree::classify(std::vector<bool>& input) const
   {
-    DTNode* current;
+    std::lock_guard<std::mutex> lock(tree_mutex);
+    
+    DTNode* current = tree;
+
+    if(current == NULL) return -1;
+    
+    if(current->left0 == NULL && current->right1 == NULL)
+      return current->outcome;
+    
 
     while(current->decisionVariable > 0){
+      if(current->decisionVariable >= input.size())
+	return -1;
+      
       if(input[current->decisionVariable] == false){
 	if(current->left0) current = current->left0;
 	else return current->outcome;
@@ -271,10 +282,9 @@ namespace whiteice
     if(n->variableSet.size() == 0) return false;
 
     int best_variable = -1;
-    float best_goodness = -1.0f;
+    float best_goodness = -1000000.0f;
     int best_outcome = -1;
-    
-    
+
     for(auto& candidateSplit : n->variableSet){
 
       std::set<unsigned long long> rows0; // data rows where variable is 0 and parent nodes are as set
@@ -383,7 +393,6 @@ namespace whiteice
   {
     if(running == false) return;
 
-    
     std::lock_guard<std::mutex> lock(tree_mutex);
     
     tree = new DTNode(); 
@@ -401,6 +410,7 @@ namespace whiteice
     
     current->variableSet = initialVariableSet;
 
+    
     if(calculateGoodnessSplit(current, var, g, outcome) == true){
       current->decisionVariable = var;
       current->outcome = outcome;
@@ -408,12 +418,21 @@ namespace whiteice
     }
 
     
-    while(goodness.size() > 0 && running){
+    
+    while(goodness.size() > 0){
+
+      {
+	std::lock_guard<std::mutex> lock(thread_mutex);
+	if(running == false) break;
+      }
       
       auto iter = goodness.end();
       iter--;
       current = iter->first;
       goodness.erase(iter);
+
+      current->left0 = nullptr;
+      current->right1 = nullptr;
 
       // now split based on variable
 
@@ -441,9 +460,17 @@ namespace whiteice
 	current->right1 = right1;
 	goodness.insert(std::pair<DTNode*,float>(right1, g));
       }
-
+      
     }
 
+
+    
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      running = false;
+    }
+    
+    
   }
   
   

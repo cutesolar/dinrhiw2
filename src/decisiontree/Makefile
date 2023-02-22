@@ -3,7 +3,7 @@
 # Tomas Ukkonen
 #
 
-CFLAGS=-I. -I..
+CFLAGS=-I. -I.. -g -fsanitize=address
 CXXFLAGS=$(CFLAGS)
 
 OBJECTS = decisiontree.o

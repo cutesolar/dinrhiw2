@@ -126,7 +126,7 @@ namespace whiteice
     bool stopTrain();
     bool isRunning() const;
 
-    unsigned int classify(std::vector<bool>& input) const;
+    int classify(std::vector<bool>& input) const;
 
     bool save(const std::string& filename) const;
     bool load(const std::string& filename);
