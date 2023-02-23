@@ -120,6 +120,16 @@ namespace whiteice
       
       return true;
     }
+
+
+    void printTree(){
+      printf("NODE %d (%llx): %d %d %llx %llx %llx\n",
+	     nodeid, this, decisionVariable, outcome, parent, left0, right1);
+      
+      if(left0) left0->printTree();
+      if(right1) right1->printTree();
+      
+    }
     
     
     int decisionVariable;
