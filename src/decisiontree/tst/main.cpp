@@ -49,7 +49,31 @@ int main(void)
 
   dt.stopTrain();
 
-#if 0
+  {
+    std::vector<int> outcomes;
+    
+    unsigned int correct=0, wrong=0;
+    
+    for(unsigned int i=0;i<input.size();i++){
+      
+      const int outcome = dt.classify(input[i]);
+      
+      if(output[i][outcome]){
+	correct++;
+      }
+      else{
+	wrong++;
+      }
+      
+      outcomes.push_back(outcome);
+    }
+    
+    printf("OUTCOME IS %d. FOR FIRST INPUT DATA ELEMENT.\n", outcomes[0]);
+    
+    printf("PERCENT CLASSIFICATIONS CORRECT: %f\n", (float)correct/((float)(correct+wrong)));
+  }
+
+
   printf("Saving decision tree..\n"); 
 
   if(dt.save("dt.dat") == false){
@@ -63,28 +87,32 @@ int main(void)
     printf("ERROR: CANNOT LOAD DECISION TREE\n");
     return -1;
   }
-#endif
 
-  std::vector<int> outcomes;
-  unsigned int correct=0, wrong=0;
-
-  for(unsigned int i=0;i<input.size();i++){
-
-    const int outcome = dt.classify(input[i]);
-
-    if(output[i][outcome]){
-      correct++;
-    }
-    else{
-      wrong++;
+  
+  {
+    std::vector<int> outcomes;
+    
+    unsigned int correct=0, wrong=0;
+    
+    for(unsigned int i=0;i<input.size();i++){
+      
+      const int outcome = dt.classify(input[i]);
+      
+      if(output[i][outcome]){
+	correct++;
+      }
+      else{
+	wrong++;
+      }
+      
+      outcomes.push_back(outcome);
     }
     
-    outcomes.push_back(outcome);
+    printf("OUTCOME IS %d. FOR FIRST INPUT DATA ELEMENT.\n", outcomes[0]);
+    
+    printf("PERCENT CLASSIFICATIONS CORRECT: %f\n", (float)correct/((float)(correct+wrong)));
   }
-
-  printf("OUTCOME IS %d. FOR FIRST INPUT DATA ELEMENT.\n", outcomes[0]);
-
-  printf("PERCENT CLASSIFICATIONS CORRECT: %f\n", (float)correct/((float)(correct+wrong)));
+  
 
   printf("ALL TESTS DONE.\n");
   
