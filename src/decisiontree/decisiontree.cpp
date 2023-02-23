@@ -399,7 +399,7 @@ namespace whiteice
 	int pindex = 0;
 
 	for(int i=0;i<pfull.size();i++){
-	  if(pbest > pfull[i]){
+	  if(pbest < pfull[i]){
 	    pbest = pfull[i];
 	    pindex = i;
 	  }
