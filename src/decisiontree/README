@@ -1,7 +1,6 @@
+Runs now but may FAIL.
+
 TODO:
- - make compile
- - write test cases
- - bug-fix
- - run testcases
- - write binarizes code for continuous data
+ - run testcases and bugfix, run hand-made test-case and check results are CORRECT
+ - write binarization code for continuous data
 

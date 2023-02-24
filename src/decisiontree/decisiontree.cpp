@@ -4,6 +4,11 @@
 
 #include <stdexcept>
 #include <system_error>
+#include <functional>
+
+#include <iostream>
+#include <stdio.h>
+
 
 
 namespace whiteice
@@ -38,6 +43,16 @@ namespace whiteice
       
       tree = nullptr;
     }
+
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      
+      if(worker_thread)
+	delete worker_thread;
+      
+      worker_thread = nullptr;
+    }
+    
   }
 
   
@@ -45,7 +60,12 @@ namespace whiteice
 				const std::vector< std::vector<bool> >& outcomes)
   {
     if(running) return false;
-
+    if(inputs.size() <= 0) return false;
+    if(inputs.size() != outcomes.size()) return false;
+    if(inputs[0].size() <= 0) return false;
+    if(outcomes[0].size() <= 0) return false;
+    
+    
     {
       std::lock_guard<std::mutex> lock(thread_mutex);
 
@@ -67,7 +87,7 @@ namespace whiteice
 
       try{
 	running = true;
-	worker_thread = new std::thread(DecisionTree::worker_thread_loop, this);
+	worker_thread = new std::thread(std::bind(&DecisionTree::worker_thread_loop, this));
 
 	return running;
       }
@@ -82,14 +102,26 @@ namespace whiteice
       
     return false;
   }
+
   
   bool DecisionTree::stopTrain()
   {
-    if(running == false) return false;
+    if(running == false){
+      std::lock_guard<std::mutex> lock(thread_mutex);
+
+      if(worker_thread){
+	worker_thread->join();
+	delete worker_thread;
+	worker_thread = nullptr;
+      }
+      
+      return false;
+    }
+    
 
     {
       std::lock_guard<std::mutex> lock(thread_mutex);
-
+      
       if(running == false) return false;
 
       running = false;
@@ -132,7 +164,7 @@ namespace whiteice
       return current->outcome;
     
 
-    while(current->decisionVariable > 0){
+    while(current->decisionVariable >= 0){
       if(current->decisionVariable >= input.size())
 	return -1;
       
@@ -172,7 +204,7 @@ namespace whiteice
       
       data.resize(counter*5);
       
-      tree->saveData(data);
+      if(tree->saveData(data) == false) return false;
     }
 
     // saves data vector to disk
@@ -227,7 +259,7 @@ namespace whiteice
     // NODEID, DECISION_VARIABLE, OUTCOME_VARIABLE, LEFT0_NODEID, RIGHT1_NODEID
     // there are all int variables (2**31 values)
 
-    DTNode* node;
+    DTNode* node = new DTNode();
     int nvalue = 0;
 
     if(node->loadData(data, nvalue) == false){
@@ -279,7 +311,7 @@ namespace whiteice
 					    int& split_variable, float& split_goodness, int& node_outcome) const
   {
     if(n == NULL) return false;
-    if(n->variableSet.size() == 0) return false;
+    //if(n->variableSet.size() == 0) return false;
 
     int best_variable = -1;
     float best_goodness = -1000000.0f;
@@ -346,41 +378,55 @@ namespace whiteice
       if(GINI > best_goodness){
 	best_goodness = GINI;
 	best_variable = candidateSplit;
-
-	// calculate outcome [p-values of current node]
-	std::vector<float> pfull;
-	
-	pfull.resize((*outcomes)[0].size());
-	
-	for(auto& p : pfull) p = 0.0f;
+      }
+    }
+    
+    
+    // calculate outcome for this node
+    {
+      std::set<unsigned long long> rows; // data rows where variables are as in parents
       
-	for(auto& r : rows0){
-	  for(unsigned int k=0;k<pfull.size();k++)
-	    if((*outcomes)[r][k]) pfull[k]++;
+      for(unsigned long long i=0;i<inputs->size();i++){
+	if(matchData(n, (*inputs)[i])){ // checks if node's variable selection matches row
+	  rows.insert(i);
 	}
-	
-	for(auto& r : rows1){
-	  for(unsigned int k=0;k<pfull.size();k++)
-	    if((*outcomes)[r][k]) pfull[k]++;
-	}
-	
-	for(auto& p : pfull) p /= (float)(rows0.size() + rows1.size());
-
-	float pbest = pfull[0];
-	int pindex = 0;
-
-	for(int i=0;i<pfull.size();i++){
-	  if(pbest > pfull[i]){
-	    pbest = pfull[i];
-	    pindex = i;
-	  }
-	}
-	
-	best_outcome = pindex;
       }
       
-    }
+      
+      // calculate outcome [p-values of current node]
+      std::vector<float> pfull;
+      
+      pfull.resize((*outcomes)[0].size());
+      
+      for(auto& p : pfull) p = 0.0f;
+      
+      for(auto& r : rows){
+	for(unsigned int k=0;k<pfull.size();k++)
+	  if((*outcomes)[r][k]) pfull[k]++;
+      }
 
+      
+      std::cout << "pfull = ";
+      for(auto& p : pfull){
+	p /= (float)(rows.size());
+	std::cout << p << " ";
+      }
+      std::cout << std::endl;
+      
+      float pbest = pfull[0];
+      int pindex = 0;
+      
+      for(int i=0;i<pfull.size();i++){
+	if(pbest < pfull[i]){
+	  pbest = pfull[i];
+	  pindex = i;
+	}
+      }
+      
+      best_outcome = pindex;
+    }
+    
+    
     split_variable = best_variable;
     split_goodness = best_goodness;
     node_outcome = best_outcome;
@@ -401,7 +447,7 @@ namespace whiteice
     std::map<DTNode*, float> goodness;
     std::set<int> initialVariableSet;
 
-    for(unsigned int i=0;i<inputs->size();i++)
+    for(unsigned int i=0;i<(*inputs)[0].size();i++)
       initialVariableSet.insert((int)i);
     
     int var = -1;
@@ -447,22 +493,49 @@ namespace whiteice
       left0->variableSet.erase(current->decisionVariable);
       right1->variableSet.erase(current->decisionVariable);
 
-      if(calculateGoodnessSplit(left0, var, g, outcome) == true){
-	left0->decisionVariable = var;
-	left0->outcome = outcome;
+      //if(left0->variableSet.size() > 0)
+      {
 	current->left0 = left0;
-	goodness.insert(std::pair<DTNode*,float>(left0, g));
+	
+	if(calculateGoodnessSplit(left0, var, g, outcome) == true){
+	  left0->decisionVariable = var;
+	  left0->outcome = outcome;
+	  
+	  goodness.insert(std::pair<DTNode*,float>(left0, g));
+	}
+	else{
+	  left0->decisionVariable = var;
+	  left0->outcome = outcome;
+	  current->left0 = left0;
+	  //goodness.insert(std::pair<DTNode*,float>(left0, g));
+	}
+	
       }
-      
-      if(calculateGoodnessSplit(right1, var, g, outcome) == true){
-	right1->decisionVariable = var;
-	right1->outcome = outcome;
+      //else delete left0;
+
+      //if(right1->variableSet.size() > 0)
+      {
 	current->right1 = right1;
-	goodness.insert(std::pair<DTNode*,float>(right1, g));
+	
+	if(calculateGoodnessSplit(right1, var, g, outcome) == true){
+	  right1->decisionVariable = var;
+	  right1->outcome = outcome;
+	  
+	  goodness.insert(std::pair<DTNode*,float>(right1, g));
+	}
+	else{
+	  right1->decisionVariable = var;
+	  right1->outcome = outcome;
+	  current->right1 = right1;
+	  //goodness.insert(std::pair<DTNode*,float>(right1, g));
+	}
       }
+      //else delete right1;
       
     }
 
+    printf("CALCULATED DECISION TREE\n");
+    tree->printTree();
 
     
     {

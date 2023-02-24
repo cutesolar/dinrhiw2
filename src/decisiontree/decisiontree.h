@@ -55,11 +55,14 @@ namespace whiteice
       if(right1) right1->calculateNodeIDs(counter_mutex, counter);
       
     }
+    
 
-    void saveData(std::vector<int>& data){
+    bool saveData(std::vector<int>& data){
       
-      if(left0) left0->saveData(data);
-      if(right1) right1->saveData(data);
+      if(left0) if(left0->saveData(data) == false) return false;
+      if(right1) if(right1->saveData(data) == false) return false;
+
+      if(nodeid*5 + 5 > data.size()) return false;
 
       data[this->nodeid*5 + 0] = this->nodeid;
       data[this->nodeid*5 + 1] = this->decisionVariable;
@@ -70,14 +73,21 @@ namespace whiteice
       
       if(right1) data[this->nodeid*5 + 4] = right1->nodeid;
       else data[this->nodeid*5 + 4] = -1;
+
+      return true;
     }
 
-    bool loadData(std::vector<int>& data, int& counter){
-
+    
+    bool loadData(std::vector<int>& data, int& counter)
+    {
+      if(counter*5 + 5  > data.size()) return false;
+      
       this->nodeid = data[counter*5 + 0];
       if(this->nodeid != counter) return false;
       this->decisionVariable = data[counter*5 + 1];
       this->outcome = data[counter*5 + 2];
+      this->left0 = nullptr;
+      this->right1 = nullptr;
 
       int origcounter = counter;
 
@@ -85,23 +95,40 @@ namespace whiteice
 
 	left0 = new DTNode();
 	left0->nodeid = data[counter*5 + 3];
-	
-	if(left0->loadData(data, ++counter) == false) return false;
-	if(left0->nodeid != data[origcounter*5 + 3]) return false;
-	
-      }
 
-      if(data[counter*5 + 4] >= 0){
+	counter++;
+	
+	if(left0->loadData(data, counter) == false) return false;
+	if(left0->nodeid != data[origcounter*5 + 3]) return false;
+
+	left0->parent = this;
+      }
+      
+      
+      if(data[origcounter*5 + 4] >= 0){
 	
 	right1 = new DTNode();
-	right1->nodeid = data[counter*5 + 4];
+	right1->nodeid = data[origcounter*5 + 4];
 
-	if(right1->loadData(data, ++counter) == false) return false;
+	counter++;
+
+	if(right1->loadData(data, counter) == false) return false;
 	if(right1->nodeid != data[origcounter*5 + 4]) return false;
-	
+
+	right1->parent = this;
       }
       
       return true;
+    }
+
+
+    void printTree(){
+      printf("NODE %d (%llx): %d %d %llx %llx %llx\n",
+	     nodeid, this, decisionVariable, outcome, parent, left0, right1);
+      
+      if(left0) left0->printTree();
+      if(right1) right1->printTree();
+      
     }
     
     
