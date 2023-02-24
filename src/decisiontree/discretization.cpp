@@ -27,12 +27,14 @@ namespace whiteice
     if(input.size() == 0 || output.size() == 0) return false;
     if(input.size() != output.size()) return false;
 
+    if(output[0].size() != 1) return false; // output is one-dimensional line
+
     inputResults.clear();
     outputResults.clear();
 
     // discretization:
     // 1. detect discrete variables (N=30 different discrete cases max)
-    // 2. calculate clustering for continuous variables (K=min(numdata/2, 25) clusters)
+    // 2. calculate clustering for continuous variables (K=min(numdata/2, 5) clusters)
     // 3. discretize continuous variables based on distance to cluster center
     //    (5 discretizations per cluster/distance)
     // 4. binarize discrete (all) variables
@@ -101,9 +103,9 @@ namespace whiteice
 
 
       // calculates KMeans clustering of input data with
-      // K=min(numdata/2, 25) clusters clusters
+      // K=min(numdata/2, 5) clusters clusters
       
-      const unsigned int K = cdata.size()/2 < 25 ? (cdata.size()/2) : 25;
+      const unsigned int K = cdata.size()/2 < 5 ? (cdata.size()/2) : 5;
 
       whiteice::KMeans<T> kmeans;
 
@@ -253,9 +255,10 @@ namespace whiteice
 
 
       // calculates KMeans clustering of input data with
-      // K=min(numdata/2, 25) clusters clusters
+      // K=min(numdata/2, 5) clusters clusters
       
-      const unsigned int K = cdata.size()/2 < 25 ? (cdata.size()/2) : 25;
+      //const unsigned int K = cdata.size()/2 < 5 ? (cdata.size()/2) : 5;
+      const unsigned int K = 1; // only one cluster for a real-line
 
       whiteice::KMeans<T> kmeans;
 
@@ -270,7 +273,7 @@ namespace whiteice
       std::vector<T> distances;
 
       for(unsigned long long i=0;i<cdata.size();i++){
-	T d = (cdata[i] - kmeans[ kmeans.getClusterIndex(cdata[i]) ]).norm();
+	T d = (cdata[i] - kmeans[ kmeans.getClusterIndex(cdata[i]) ])[0];
 	distances.push_back(d);
       }
 
@@ -294,18 +297,24 @@ namespace whiteice
 
       for(unsigned long long i=0;i<cdata.size();i++){
 	const unsigned int index = kmeans.getClusterIndex(cdata[i]); // cluster*5
-	unsigned int k = 0;
-	whiteice::math::convert(k, distances[i]/unit_distance); // 5 distances per cluster
+	int k = 0;
+	T dk = T(0.0f);
+	whiteice::math::convert(dk, distances[i]/unit_distance); // 5 distances per cluster
 
-	if(k > 5) k = 5;
+	k = (int)dk.c[0];
+
+	if(k >  5) k = 5;
+	if(k < -5) k = -5;
+
+	k += 5;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*5);
+	binarized.resize(kmeans.size()*10);
 
 	for(unsigned int i=0;i<binarized.size();i++)
 	  binarized[i] = false;
 
-	binarized[index*5 + k] = true;
+	binarized[index*10 + k] = true;
 
 	ocb_data.push_back(binarized);
       }
