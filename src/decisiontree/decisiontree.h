@@ -62,7 +62,7 @@ namespace whiteice
       if(left0) if(left0->saveData(data) == false) return false;
       if(right1) if(right1->saveData(data) == false) return false;
 
-      if(nodeid*5 + 5 > data.size()) return false;
+      if(nodeid*5 + 5 > (int)data.size()) return false;
 
       data[this->nodeid*5 + 0] = this->nodeid;
       data[this->nodeid*5 + 1] = this->decisionVariable;
@@ -80,7 +80,7 @@ namespace whiteice
     
     bool loadData(std::vector<int>& data, int& counter)
     {
-      if(counter*5 + 5  > data.size()) return false;
+      if(counter*5 + 5  > (int)data.size()) return false;
       
       this->nodeid = data[counter*5 + 0];
       if(this->nodeid != counter) return false;
@@ -124,7 +124,7 @@ namespace whiteice
 
     void printTree(){
       printf("NODE %d (%llx): %d %d %llx %llx %llx\n",
-	     nodeid, this, decisionVariable, outcome, parent, left0, right1);
+	     nodeid, (long long)this, decisionVariable, outcome, (long long)parent, (long long)left0, (long long)right1);
       
       if(left0) left0->printTree();
       if(right1) right1->printTree();

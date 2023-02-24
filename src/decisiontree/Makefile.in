@@ -1,0 +1,43 @@
+# experimental decision tree implemenention (non-elegant, non-optimal)
+#
+# Tomas Ukkonen
+#
+
+CC = @CC@
+CXX = @CXX@
+
+SOURCES = decisiontree.cpp discretization.cpp tst/main.cpp
+
+EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
+	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
+	../math/real.o 	../dataset.o ../conffile.o ../linear_ETA.o \
+	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \
+	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
+	../math/modular.o ../math/superresolution.o \
+	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o \
+	../neuralnetwork/KMeans.o
+
+OBJECTS = decisiontree.o discretization.o
+TST_OBJ = tst/main.o
+
+OPTIMIZE=@optimization_flags@
+CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
+
+CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -Ineuro-diffeqs -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn -I../neuralnetwork $(OPTIMIZE)
+
+# -fsanitize=address
+
+LIBS=@EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
+
+TARGET  = dtest
+
+######################################################################
+
+all: $(OBJECTS) $(EXTRA_OBJECTS) $(TST_OBJ)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(TST_OBJ) $(OBJECTS) $(LIBS)
+
+clean:
+	$(RM) $(OBJECTS) $(TST_OBJ) $(TARGET)
+	$(RM) $(EXTRA_OBJECTS)
+	$(RM) *~

@@ -165,7 +165,7 @@ namespace whiteice
     
 
     while(current->decisionVariable >= 0){
-      if(current->decisionVariable >= input.size())
+      if(current->decisionVariable >= (int)input.size())
 	return -1;
       
       if(input[current->decisionVariable] == false){
@@ -416,7 +416,7 @@ namespace whiteice
       float pbest = pfull[0];
       int pindex = 0;
       
-      for(int i=0;i<pfull.size();i++){
+      for(unsigned int i=0;i<pfull.size();i++){
 	if(pbest < pfull[i]){
 	  pbest = pfull[i];
 	  pindex = i;
