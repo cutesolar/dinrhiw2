@@ -460,8 +460,113 @@ namespace whiteice
 
     return true;
   }
+
+
+  // calculates inverse function from output to input [assumes inverse function of
+  // non-linearities exists and that linear operators has some kind of
+  // pseudo-inverse with regularization)
+  template <typename T>
+  bool nnetwork<T>::inv_calculate(math::vertex<T>& input,
+				  const math::vertex<T>& output,
+				  const std::vector< std::vector<bool> >& dropout,
+				  bool collectSamples)
+  {
+    // TODO write cblas and cuBLAS optimized version which uses
+    // direct accesses to matrix/vertex memory areas
+
+    // FIXME: repeatedly calculates matrix inverse everytime this function is called!!!
+    
+    // FORWARD PASS TO LEARN ABOUT RESIDUAL VALUES FOR BACKWARD PASS
+    
+    if(input.size() != input_size() || output.size() != output_size())
+      return false;
+
+    if(dropout.size() != getLayers()) return false;
+    
+    math::vertex<T> state = input;
+
+    std::vector< math::vertex<T> > xsamples;
+    
+    if(collectSamples){
+      samples.resize(getLayers());
+    }
+
+    math::vertex<T> skipValue;
+
+    if(residual) skipValue = state;
+
+    for(unsigned int l=0;l<getLayers();l++){
+      xsamples.push_back(state);
+
+      const bool residualActive =
+	(residual && (l % 2) == 0 && l != 0 && W[l].ysize() == skipValue.size());
+
+      if(residualActive)
+	state = W[l]*state + b[l] + skipValue;
+      else
+	state = W[l]*state + b[l];
+
+      for(unsigned int i=0;i<state.size();i++){
+	if(dropout[l][i]) state[i] = T(0.0f);
+	else state[i] = nonlin_nodropout(state[i], l, i);
+      }
+
+      if(residual && (l % 2) == 0 && l != 0)
+	skipValue = state;
+    }
+
+    // BACKWARD PASS FROM OUTPUT TO INPUT AND COLLECT SAMPLES IF NEEDED
+
+    state = output;
+    if(residual){
+      int index = 0;
+      index = ((getLayers()-1)&(0xFFFFFFFF-1))-2;
+      if(index >= 0) 
+	skipValue = xsamples[index];
+      else
+	skipValue = input; 
+    }
+
+    math::matrix<T> A;
+    math::vertex<T> c;
+
+    for(int l=getLayers()-1;l>=0;l--){
+      if(collectSamples)
+	samples[l].push_back(state);
+      
+      for(unsigned int i=0;i<state.size();i++){
+	state[i] = inv_nonlin_nodropout(state[i], l, i); // ASSUMES NO DROPOUT FOR INVERSE FUNCTION
+      }
+
+      const bool residualActive =
+	(residual && (l % 2) == 0 && l != 0 && W[l].ysize() == skipValue.size());
+
+      if(residualActive){
+	A = W[l];
+	c = b[l] + skipValue;
+      }
+      else{
+	A = W[l];
+	c = b[l];
+      }
+
+      if(A.pseudoinverse() == false) return false;
+      
+      state = A*(state - c);
+      
+      if(residual && ((l-2) % 2) == 0 && l-2 >= 0){
+	skipValue = xsamples[l-2];
+      }
+      
+    }
+
+    input = state; // saves predicted x value from output value
+    
+
+    return true;
+  }
   
-  
+   
   // simple thread-safe version
   // [parallelizable version of calculate: don't calculate gradient nor collect samples]
   template <typename T>
@@ -3198,6 +3303,75 @@ namespace whiteice
     T output = T(0.0f);
 
     assert(0); // there is NO inverse function
+    
+    return output;
+  }
+
+
+  template <typename T>
+  inline T nnetwork<T>::inv_nonlin_nodropout(const T& input,
+					     unsigned int layer,
+					     unsigned int neuron) const 
+  {
+    // inverse of non-linearity used
+    T output = input;
+
+    const float RELUcoef = 0.01f; // original was 0.01f
+
+    if(nonlinearity[layer] == pureLinear){
+      if(batchnorm && layer != getLayers()-1){
+	output = output*bn_sigma[layer][neuron] + bn_mu[layer][neuron];
+      }
+
+      return output;
+    }
+    else if(nonlinearity[layer] == rectifier){
+      if(batchnorm && layer != getLayers()-1){
+	output = output*bn_sigma[layer][neuron] + bn_mu[layer][neuron];
+      }
+
+      if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	 typeid(T) == typeid(whiteice::math::blas_real<double>)){
+	if(input.first().real() < 0.0f)
+	  output = output/T(RELUcoef);
+	else
+	  output = output;
+
+	return output;
+      }
+      else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
+	      typeid(T) == typeid(whiteice::math::blas_complex<double>)){
+	math::blas_complex<double> out;
+	out.real(output.first().real());
+	out.imag(output.first().imag());
+	
+	if(output.first().real() < 0.0f){
+	  out.first().real(out.real()/RELUcoef);
+	}
+	
+	if(output.first().imag() < 0.0f){
+	  out.first().imag(out.imag()/RELUcoef);
+	}
+
+	output = T(out);
+
+	return output;
+      }
+      else{ // superresolution class
+
+	for(unsigned int i=0;i<output.size();i++){ // was only 1
+	  if(output[0].real() < 0.0f)
+	    output[i] /= RELUcoef;
+	}
+
+	return output;
+      }
+      
+    }
+    else{
+      output = T(0.0f);
+      assert(0); // FIXME: there is NO inverse function IMPLEMENTATION FOR MANY CASES
+    }
     
     return output;
   }

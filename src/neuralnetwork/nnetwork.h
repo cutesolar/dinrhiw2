@@ -95,6 +95,15 @@ namespace whiteice
     bool operator()(bool gradInfo = false, bool collectSamples = false){
       return calculate(gradInfo, collectSamples);
     }
+
+    // calculates inverse function from output to input [assumes inverse function of
+    // non-linearities exists and that linear operators has some kind of
+    // pseudo-inverse with regularization)
+    bool inv_calculate(math::vertex<T>& input,
+		       const math::vertex<T>& output,
+		       const std::vector< std::vector<bool> >& dropout,
+		       bool collectSamples = false); // not a thread-safe
+
     
     // simple thread-safe version [parallelizable version of calculate: don't calculate gradient nor collect samples]
     bool calculate(const math::vertex<T>& input, math::vertex<T>& output) const;
@@ -359,8 +368,12 @@ namespace whiteice
     inline T nonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const;
     inline T Dnonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const;
 
-    
+    // NOT IMPLEMENTED
     T inv_nonlin(const T& input, unsigned int layer, unsigned int neuron) const ; // inverse of non-linearity used [not really used]
+
+    
+    T inv_nonlin_nodropout(const T& input, unsigned int layer, unsigned int neuron) const ; // inverse of non-linearity used [not really used]
+
     
     // exports and imports batch norm parameters to/from vertex [used by save() and load()]
     bool exportBNdata(math::vertex<T>& v) const;
