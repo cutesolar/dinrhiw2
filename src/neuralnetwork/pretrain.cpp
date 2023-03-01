@@ -29,6 +29,9 @@
 
 #include "pretrain.h"
 #include "deep_ica_network_priming.h"
+#include "nnetwork.h"
+#include "linear_equations.h"
+
 
 
 namespace whiteice
@@ -46,24 +49,34 @@ namespace whiteice
 
     // zero means,unit variances neural network weights/data in layers
     
-    if(whiten1d_nnetwork(nnet, data) == false) return false;
+    // if(whiten1d_nnetwork(nnet, data) == false) return false;
+    
+    //printf("WHITENING DONE\n");
        
     // optimizes each layers linear parameters, first last layer
 
-    const unsigned int SAMPLES = ((data.size() > 5000) ? 5000 : data.size());
+    const unsigned int SAMPLES = ((data.size(0) > 500) ? 500 : data.size(0));
     std::vector< math::vertex<T> > samples;
     
 
-    for(unsigned int int l=(nnet.getLayers()),l>0;l--){
-      const unsigned int L = l-1;
+    for(unsigned int l=0;l<nnet.getLayers();l++){
+      // for(unsigned int l=(nnet.getLayers());l>0;l--){
+      // const unsigned int L = l-1;
+      const unsigned int L = l;
 
+      // printf("LAYER: %d/%d\n", L+1, nnet.getLayers());
+
+      ////////////////////////////////////////////////////////////////////////
       // first calculates x values for the layer
 
-      for(unsigned int s=0;SAMPLES;s++){
+      for(unsigned int s=0;s<SAMPLES;s++){
 	const unsigned int index = rand() % data.size(0);
 	samples.push_back(data.access(0, index));
 	nnet.input() = data.access(0, index);
-	if(nnet.calculate(false, true) == false) return false;
+	
+	if(nnet.calculate(false, true) == false)
+	  
+	  return false;
       }
 
       std::vector< math::vertex<T> > xsamples;
@@ -72,12 +85,20 @@ namespace whiteice
 	return false;
 
       nnet.clearSamples();
-      
-      // next calculates y values for the layer
 
-      for(unsigned int s=0;SAMPLES;s++){
-	nnet.output() = samples[s];
-	if(nnet.inv_calculate(true) == false) return false;
+      // printf("X SAMPLES DONE\n");
+
+      //////////////////////////////////////////////////////////////////////
+      // next calculates y values for the layer
+      
+      std::vector< std::vector<bool> > dropout;
+      nnet.setDropOut(dropout, T(1.0f));
+      
+      for(unsigned int s=0;s<SAMPLES;s++){
+	math::vertex<T> x, y;
+	x = samples[s];
+	nnet.calculate(x, y);
+	if(nnet.inv_calculate(x, y, dropout, true) == false) return false;
       }
 
       std::vector< math::vertex<T> > ysamples;
@@ -87,15 +108,21 @@ namespace whiteice
 
       nnet.clearSamples();
 
+      // printf("Y SAMPLES DONE\n");
+
+      ////////////////////////////////////////////////////////////////////////
       // calculates y' = g^-1(y) for the linear problems y values
       
       for(unsigned int s=0;s<ysamples.size();s++){
 	auto& v = ysamples[s];
 
 	for(unsigned int i=0;i<v.size();i++)
-	  v[i] = nnet.inv_nonlin(v[i], L, i);
+	  v[i] = nnet.inv_nonlin_nodropout(v[i], L, i);
       }
 
+      // printf("Y SAMPLES INVERSE DONE\n");
+
+      ////////////////////////////////////////////////////////////////////////
       // optimizes linear problem y' = A*x + b, solves A and b and injects them into network
 
       math::matrix<T> W;
@@ -121,30 +148,30 @@ namespace whiteice
 	mx.zero();
 	my.zero();
 	
-	for(unsigned int i=0;i<N;i++){
+	for(unsigned int i=0;i<SAMPLES;i++){
 	  Cxx += input[i].outerproduct();
 	  Cxy += input[i].outerproduct(output[i]);
 	  mx  += input[i];
 	  my  += output[i];
 	}
 	
-	Cxx /= T((float)N);
-	Cxy /= T((float)N);
-	mx  /= T((float)N);
-	my  /= T((float)N);
+	Cxx /= T((float)SAMPLES);
+	Cxy /= T((float)SAMPLES);
+	mx  /= T((float)SAMPLES);
+	my  /= T((float)SAMPLES);
       
 	Cxx -= mx.outerproduct();
 	Cxy -= mx.outerproduct(my);
 	
 	math::matrix<T> INV;
-	T l = T(10e-6);
+	T l = T(10e-3);
 	
 	do{
 	  INV = Cxx;
 	  
 	  T trace = T(0.0f);
 	  
-	  for(unsigned int i=0;(i<Cxx.xsize()) && (i<Cxx.ysize())++){
+	  for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
 	    trace += Cxx(i,i);
 	    INV(i,i) += l; // regularizes Cxx (if needed)
 	  }
@@ -154,15 +181,34 @@ namespace whiteice
 	  else
 	    trace /= Cxx.ysize();
 	  
-	  l += T(0.1)*(trace + T(2.0f)*l); // keeps "scale" of the matrix same
+	  l += (T(0.1)*trace + T(2.0f)*l); // keeps "scale" of the matrix same
 	}
 	while(whiteice::math::symmetric_inverse(INV) == false);
+
 	
-	
-	W = Cxy.transpose() * INV;
-	b = my - W*mx;
+	if((whiteice::rng.rand() % 200) == 0){
+
+	  math::matrix<T> A(W);
+	  math::vertex<T> c(b);
+
+	  for(unsigned int i=0;i<A.size();i++)
+	    A[i] = whiteice::rng.normal();
+
+	  for(unsigned int i=0;i<c.size();i++)
+	    c[i] = whiteice::rng.normal();
+
+	  W = T(0.250f)*W + T(0.750f)*A;
+	  b = T(0.250f)*b + T(0.750f)*c;
+	}
+	else{
+	  W = T(0.950f)*W + T(0.05f)*(Cxy.transpose() * INV);
+	  b = T(0.950f)*b + T(0.05f)*(my - W*mx);
+	}
       }
 
+      
+
+      ////////////////////////////////////////////////////////////////////////
       // sets new weights for this layer
       
       if(nnet.setWeights(W, L) == false)
@@ -170,7 +216,8 @@ namespace whiteice
       
       if(nnet.setBias(b, L) == false)
 	return false;
-      
+
+      // printf("CALCULATE WEIGHTS DONE\n");
     }
 
 
@@ -180,6 +227,218 @@ namespace whiteice
 
     return true;
   }
+
+
+  //////////////////////////////////////////////////////////////////////
+
+
+  // assumes whole network is linear matrix operations y = M*x, M = A*B*C*D,
+  // linear M is solves from data
+  // solves changes D to matrix using equation A*(B+D)*C = M => D = A^-1*M*C^-1 - B
+  // solves D for each matrix and then applies changes
+  // [assumes linearity so this is not very good solution] 
+  template <typename T>
+  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet, const dataset<T>& data)
+  {
+    if(data.getNumberOfClusters() < 2) return false;
+    if(data.size(0) != data.size(1)) return false;
+    if(data.size(0) < 10) return false; // needs at least 10 data points to calculate something usable
+    
+    if(data.dimension(0) != nnet.input_size()) return false;
+    if(data.dimension(1) != nnet.output_size()) return false;
+
+    std::vector< math::matrix<T> > operators;
+
+    math::matrix<T> W, A;
+    math::vertex<T> b;
+
+    for(unsigned int l=0;l<nnet.getLayers();l++){
+      nnet.getWeights(W, l);
+      nnet.getBias(b, l);
+
+      A.resize(W.ysize()+1, W.xsize()+1);
+
+      A.zero();
+
+      for(unsigned int j=0;j<W.ysize();j++)
+	for(unsigned int i=0;i<W.xsize();i++)
+	  A(j,i) = W(j,i);
+
+      for(unsigned int i=0;i<b.size();i++)
+	A(i, W.xsize()) = b[i];
+
+      A(A.ysize()-1, A.xsize()-1) = T(1.0f);
+
+      operators.push_back(A);
+    }
+
+    // solves matrix M from data
+    math::matrix<T> M;
+
+    math::matrix<T> V;
+
+    if(nnet.getWeights(W, 0) == false) return false;
+    if(nnet.getBias(b, 0) == false) return false;
+    
+    if(nnet.getWeights(V, nnet.getLayers()-1) == false) return false;
+    if(nnet.getBias(b, nnet.getLayers()-1) == false) return false;
+
+    M.resize(V.ysize()+1, W.xsize()+1);
+    M.zero();
+    M(V.ysize(), W.xsize()) = T(1.0f);
+    
+    {
+      std::vector< math::vertex<T> > input;
+      std::vector< math::vertex<T> > output;
+
+      data.getData(0, input);
+      data.getData(1, output);
+
+      const unsigned int SAMPLES = input.size(); 
+      
+      math::matrix<T> Cxx, Cxy;
+      math::vertex<T> mx, my;
+      
+      Cxx.resize(input[0].size(),input[0].size());
+      Cxy.resize(input[0].size(),output[0].size());
+      mx.resize(input[0].size());
+      my.resize(output[0].size());
+      
+      Cxx.zero();
+      Cxy.zero();
+      mx.zero();
+      my.zero();
+      
+      for(unsigned int i=0;i<SAMPLES;i++){
+	Cxx += input[i].outerproduct();
+	Cxy += input[i].outerproduct(output[i]);
+	mx  += input[i];
+	my  += output[i];
+      }
+      
+      Cxx /= T((float)SAMPLES);
+      Cxy /= T((float)SAMPLES);
+      mx  /= T((float)SAMPLES);
+      my  /= T((float)SAMPLES);
+      
+      Cxx -= mx.outerproduct();
+      Cxy -= mx.outerproduct(my);
+      
+      math::matrix<T> INV;
+      T l = T(10e-3);
+      
+      do{
+	INV = Cxx;
+	
+	T trace = T(0.0f);
+	
+	for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
+	  trace += Cxx(i,i);
+	  INV(i,i) += l; // regularizes Cxx (if needed)
+	}
+	
+	if(Cxx.xsize() < Cxx.ysize())	  
+	  trace /= Cxx.xsize();
+	else
+	  trace /= Cxx.ysize();
+	
+	l += (T(0.1)*trace + T(2.0f)*l); // keeps "scale" of the matrix same
+      }
+      while(whiteice::math::symmetric_inverse(INV) == false);
+      
+      
+      W = (Cxy.transpose() * INV);
+      b = (my - W*mx);
+
+
+      for(unsigned int j=0;j<W.ysize();j++)
+	for(unsigned int i=0;i<W.xsize();i++)
+	  M(j,i) = W(j,i);
+      
+      for(unsigned int i=0;i<b.size();i++)
+	M(i, W.xsize()) = b[i];
+    }
+    
+    // now we have all operators in matrix format!
+
+    std::vector< math::matrix<T> > deltas; // delta matrices to solve for each matrix operator
+
+    for(unsigned int l=0;l<nnet.getLayers();l++){
+
+      math::matrix<T> LEFT, RIGHT;
+      
+      LEFT.resize(operators[0].xsize(), operators[0].xsize());
+      RIGHT.resize(operators[operators.size()-1].ysize(), operators[operators.size()-1].ysize());
+      
+      LEFT.identity(); // I matrix
+      RIGHT.identity(); // I matrix
+
+      //std::cout << "LAYER: " << l << std::endl;
+      //std::cout << LEFT.ysize() << "x" << LEFT.xsize() << std::endl;
+      //std::cout << M.ysize() << "x" << M.xsize() << std::endl;
+      //std::cout << RIGHT.ysize() << "x" << RIGHT.xsize() << std::endl;
+
+
+      for(unsigned int k=0;k<l;k++){
+	//std::cout << "LAYER: " << k << std::endl;
+	//std::cout << operators[k].ysize() << "x" << operators[k].xsize() << std::endl;
+	RIGHT = operators[k]*RIGHT;
+      }
+
+      for(unsigned int k=nnet.getLayers()-1;k>l;k--){
+	//std::cout << "LAYER: " << k << std::endl;
+	//std::cout << operators[k].ysize() << "x" << operators[k].xsize() << std::endl;
+	LEFT *= operators[k];
+      }
+
+      if(LEFT.pseudoinverse() == false) return false;
+      if(RIGHT.pseudoinverse() == false) return false;
+
+
+      
+      auto DELTA = LEFT*M*RIGHT;
+
+      deltas.push_back(DELTA);
+
+      // does Ployak averaging/moving average and keeps only 10% of matrix weight changes
+      
+      //for(unsigned int l=0;l<nnet.getLayers();l++)
+      {
+	operators[l] = T(0.90)*operators[l] + T(0.1)*deltas[l];
+      }
+
+    }
+
+
+
+
+    // finally solve parameters for W*x+b linear equation each per layer
+
+    for(unsigned int l=0;l<nnet.getLayers();l++){
+      nnet.getWeights(W, l);
+      nnet.getBias(b, l);
+
+      A.resize(W.ysize()+1, W.xsize()+1);
+
+      A = operators[l];
+
+      if(A.ysize() != W.ysize()+1 || W.xsize()+1 != A.xsize())
+	return false; // extra check
+
+      for(unsigned int j=0;j<W.ysize();j++)
+	for(unsigned int i=0;i<W.xsize();i++)
+	  W(j,i) = A(j,i);
+
+      for(unsigned int i=0;i<b.size();i++)
+	b[i] = A(i, W.xsize());
+
+      nnet.setWeights(W, l);
+      nnet.setBias(b, l);
+    }
+
+    return true;
+  }
+
   
 
   //////////////////////////////////////////////////////////////////////
@@ -189,6 +448,13 @@ namespace whiteice
   (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data);
   
   template bool pretrain_nnetwork< math::blas_real<double> >
+  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+
+
+  template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
+  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data);
+  
+  template bool pretrain_nnetwork_matrix_factorization< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
 
   

@@ -25,6 +25,8 @@
 #include "HMC_gaussian.h"
 #include "deep_ica_network_priming.h"
 
+#include "pretrain.h"
+
 #include "RBM.h"
 #include "GBRBM.h"
 #include "HMCGBRBM.h"
@@ -154,6 +156,8 @@ void simple_global_optimum_test();
 
 void kmeans_test();
 
+void pretrain_test(); // good pretraining, optimization idea test
+
 void compressed_neuralnetwork_test();
 
 
@@ -179,6 +183,8 @@ int main()
     // nnetwork_entropy_test();
 
     // nnetwork_kl_divergence_test();
+
+    pretrain_test();
 
     bayesian_nnetwork_test();    
     
@@ -338,6 +344,158 @@ private:
   char* reason;
   
 };
+
+/************************************************************/
+
+void pretrain_test() // good pretraining, optimization idea test
+{
+  std::cout << "smart neural network pretraining test." << std::endl;
+
+
+  // generates test data, 10-layer 10->10 dimensional neural nnetwork
+  // (residual rectifier neural network)
+
+  const unsigned int LAYERS = 1000;
+  const unsigned int INPUT_DIM = 10;
+  const unsigned int HIDDEN_DIM = 100;
+  const unsigned int OUTPUT_DIM = INPUT_DIM;
+  
+  whiteice::nnetwork<> nnet;
+
+  std::vector<unsigned int> layers;
+
+  layers.push_back(INPUT_DIM);
+  
+  for(unsigned int i=0;i<(LAYERS-1);i++) 
+    layers.push_back(HIDDEN_DIM);
+  
+  layers.push_back(OUTPUT_DIM);
+
+  nnet.setArchitecture(layers);
+  nnet.setResidual(false);
+  nnet.setNonlinearity(whiteice::nnetwork<>::pureLinear);
+
+  nnet.randomize(2, 0.01);
+
+
+  whiteice::nnetwork<> gennet; // for generating dataset example problem
+
+  layers.clear();
+  layers.push_back(INPUT_DIM);
+  layers.push_back(INPUT_DIM);
+  layers.push_back(INPUT_DIM);
+  layers.push_back(OUTPUT_DIM);
+
+  gennet.setArchitecture(layers);
+  gennet.setNonlinearity(whiteice::nnetwork<>::rectifier);
+
+  gennet.randomize();
+
+  
+  whiteice::dataset<> data;
+  
+  data.createCluster("input", INPUT_DIM);
+  data.createCluster("output", OUTPUT_DIM);
+
+  for(unsigned int i=0;i<5000;i++){ // only 5000 elements for faster results..
+    math::vertex<> datum(INPUT_DIM), output;
+    rng.normal(datum);
+
+    for(unsigned int i=0;i<datum.size();i++)
+      datum[i] = math::blas_real<float>(2.0f)*datum[i] - math::blas_real<float>(1.0f);
+    
+    data.add(0, datum);
+
+    gennet.calculate(datum, output);
+
+    data.add(1, output);
+  }
+
+  printf("DATA GENERATED %d\n", data.size(0));
+  
+
+  // trains similar network using pretrain and reports error in 20 first iterations
+  
+  std::vector< math::vertex<> > vdata;
+
+  data.getData(0, vdata);
+  
+  
+  const unsigned int ITERS = 20; // was: 100,20 
+
+  auto initial_mse = nnet.mse(data);
+  auto best_mse = math::blas_real<float>(1e20);
+  math::vertex<> weights;
+  nnet.exportdata(weights);
+
+  //for(unsigned int k=0;k<ITERS;k++){
+  unsigned int k = 0;
+  while(k<ITERS){
+
+    nnet.setBatchNorm(false);
+    nnet.calculateBatchNorm(vdata);
+    
+    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data) == false){
+      printf("pretrain_nnetwork() FAILED!\n");
+      return; 
+    }
+
+    auto mse = nnet.mse(data);
+    
+    if(best_mse > mse){
+      best_mse = mse;
+      nnet.exportdata(weights);
+    }
+    
+    printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%%\n",
+	   k, ITERS, mse.c[0],
+	   (mse/initial_mse).c[0]*100.0f,
+	   best_mse.c[0],
+	   (best_mse/initial_mse).c[0]*100.0f);
+    
+    
+    
+
+    k++;
+  }
+
+
+  nnet.importdata(weights);
+  
+  nnet.setBatchNorm(false);
+  nnet.calculateBatchNorm(vdata);
+  
+  // nnet.setNonlinearity(whiteice::nnetwork<>::rectifier);
+  
+  auto mse = nnet.mse(data);
+  printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
+
+  
+  // trains neural network using SGD
+
+  whiteice::math::NNGradDescent grad;
+
+  grad.setUseMinibatch(true);
+  grad.setOverfit(true);
+
+  grad.startOptimize(data, nnet, 3, 5000);
+
+  while(grad.isRunning()){
+    math::blas_real<float> error = 0.0f;
+    unsigned int iters = 0;
+
+    if(grad.getSolutionStatistics(error, iters)){
+      std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
+		<< " ITERS: " << iters << "/5000" << std::endl;
+    }
+    
+    sleep(1);
+  }
+
+  grad.stopComputation();
+
+  printf("pretrain_nnetwork() tests OK (?)\n");
+}
 
 /************************************************************/
 

@@ -477,7 +477,7 @@ namespace whiteice
     // FIXME: repeatedly calculates matrix inverse everytime this function is called!!!
     
     // FORWARD PASS TO LEARN ABOUT RESIDUAL VALUES FOR BACKWARD PASS
-    
+
     if(input.size() != input_size() || output.size() != output_size())
       return false;
 
@@ -541,16 +541,35 @@ namespace whiteice
       const bool residualActive =
 	(residual && (l % 2) == 0 && l != 0 && W[l].ysize() == skipValue.size());
 
-      if(residualActive){
-	A = W[l];
-	c = b[l] + skipValue;
-      }
-      else{
-	A = W[l];
-	c = b[l];
-      }
+      // regularizes A if it don't have pseudoinverse
+      {
+	bool donthaveinverse = true;
+	T regularizer = T(1e-4);
+	
+	while(donthaveinverse){
+	  
+	  if(residualActive){
+	    A = W[l];
+	    c = b[l] + skipValue;
+	  }
+	  else{
+	    A = W[l];
+	    c = b[l];
+	  }
 
-      if(A.pseudoinverse() == false) return false;
+	  for(unsigned int i=0;i<A.ysize() && i <A.xsize();i++){
+	    A(i,i) += regularizer;
+	  }
+	  
+	  if(A.pseudoinverse() == false){
+	    // printf("PSEUDOINVERSE FAILED\n");
+	    regularizer *= T(4.0);
+	  }
+	  else{
+	    donthaveinverse = false;
+	  }
+	}
+      }
       
       state = A*(state - c);
       
@@ -1109,7 +1128,44 @@ namespace whiteice
     return true;
   }
   
-  
+
+  // calculates MSE error of the dataset or negative in case of error
+  template <typename T>
+  T nnetwork<T>::mse(const whiteice::dataset<T>& data) const
+  {
+    T error = T(0.0f);
+
+    if(data.getNumberOfClusters() < 2) return T(-1.0f);
+    
+    if(data.dimension(0) != input_size() || data.dimension(1) != output_size())
+      return T(-1.0f);
+
+    if(data.size(0) != data.size(1))
+      return T(-1.0f);
+
+    // TODO OpenMP parallelize me (easy) 
+    for(unsigned int i=0;i<data.size(0);i++){
+      const auto& input = data.access(0, i);
+      math::vertex<T> output;
+
+      if(this->calculate(input, output) == false)
+	return T(-1.0);
+
+      output -= data.access(1, i);
+      T n = output.norm();
+
+      error += n*n;
+    }
+
+    if(data.size(0)) error /= data.size(0);
+
+    error = T(0.5)*error; // E{ 0.5*||error||^2 }
+
+    // normalizes per dimension
+    error /= data.dimension(1);
+    
+    return error;
+  }
   
   
   // calculates gradient of [ 1/2*(network(last_input|w) - last_output)^2 ]
@@ -3337,11 +3393,15 @@ namespace whiteice
 	else
 	  output = output;
 
+	if(output.first().real() < -10.0f) output = T(-10.0f);
+	else if(output > T(+10.0f)) output = T(+10.0f);
+
 	return output;
       }
       else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
 	      typeid(T) == typeid(whiteice::math::blas_complex<double>)){
 	math::blas_complex<double> out;
+	
 	out.real(output.first().real());
 	out.imag(output.first().imag());
 	
@@ -3354,6 +3414,12 @@ namespace whiteice
 	}
 
 	output = T(out);
+	
+	if(output.first().real() < (-10.0f)) output.first().real(-10.0f);
+	else if(output.first().real() > (+10.0f)) output.first().real(+10.0f);
+
+	if(output.first().imag() < (-10.0f)) output.first().imag(-10.0f);
+	else if(output.first().imag() > (+10.0f)) output.first().imag(+10.0f);
 
 	return output;
       }
@@ -3362,6 +3428,9 @@ namespace whiteice
 	for(unsigned int i=0;i<output.size();i++){ // was only 1
 	  if(output[0].real() < 0.0f)
 	    output[i] /= RELUcoef;
+	  
+	  if(output[i].real() < -10.0f) output[i] = -10.0f;
+	  else if(output[i].real() > +10.0f) output[i] = +10.0f;
 	}
 
 	return output;
@@ -5288,6 +5357,7 @@ namespace whiteice
 
       for(unsigned int i=0;i<mu.size();i++){
 	sigma[i] -= mu[i]*mu[i];
+	sigma[i] = whiteice::math::abs(sigma[i]);
 	sigma[i] += epsilon;
 	sigma[i] = whiteice::math::sqrt(sigma[i]);
       }

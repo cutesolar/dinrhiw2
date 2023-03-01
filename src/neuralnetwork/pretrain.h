@@ -39,8 +39,17 @@ namespace whiteice
 {
   
   template <typename T>
-    bool pretrain_nnetwork(nnetwork<T>& nnet, const dataset<T>& data);
-
+  bool pretrain_nnetwork(nnetwork<T>& nnet, const dataset<T>& data);
+  
+  
+  // assumes whole network is linear matrix operations y = M*x,
+  // M = A*B*C*D, linear M is solves from data
+  // solves changes D to matrix using equation A*(B+D)*C = M => D = A^-1*M*C^-1 - B
+  // solves D for each matrix and then applies changes
+  // [assumes linearity so this is not very good solution] 
+  template <typename T>
+  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet, const dataset<T>& data);
+  
 
   //////////////////////////////////////////////////////////////////////
   
@@ -50,6 +59,14 @@ namespace whiteice
   
   extern template bool pretrain_nnetwork< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+
+
+  extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
+  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data);
+
+  extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<double> >
+  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+
   
 };
 

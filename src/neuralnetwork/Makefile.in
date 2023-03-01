@@ -20,7 +20,7 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	stackedRBM_pretraining.cpp rLBFGS_nnetwork.cpp Mixture.cpp EnsembleMeans.cpp \
 	rLBFGS_recurrent_nnetwork.cpp SGD_recurrent_nnetwork.cpp \
 	rLBFGS_recurrent_nnetwork_softmax_actions.cpp \
-	SGD_snet.cpp \
+	SGD_snet.cpp pretrain.cpp \
 	globaloptimum.cpp KMBoosting.cpp WeightingOptimizer.cpp \
 	DiffEQ_HMC.cpp neuro-diffeqs/diffeqs.cpp neuro-diffeqs/HMC_diffeq.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
@@ -41,7 +41,7 @@ OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensio
 	stackedRBM_pretraining.o rLBFGS_nnetwork.o Mixture.o EnsembleMeans.o \
 	rLBFGS_recurrent_nnetwork.o SGD_recurrent_nnetwork.o \
 	rLBFGS_recurrent_nnetwork_softmax_actions.o \
-	SGD_snet.o \
+	SGD_snet.o pretrain.o \
 	globaloptimum.o KMBoosting.o WeightingOptimizer.o \
 	DiffEQ_HMC.o neuro-diffeqs/diffeqs.o neuro-diffeqs/HMC_diffeq.o
 

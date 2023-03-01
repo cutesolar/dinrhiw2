@@ -139,6 +139,11 @@ namespace whiteice
     // set weights randomly using smart heuristic except last layer which is linearly optimized to fit the data
     bool presetWeightsFromDataRandom(const whiteice::dataset<T>& ds);
 
+
+    // calculates MSE error of the dataset or returns negative value in case of error 
+    T mse(const whiteice::dataset<T>& data) const;
+    
+
     // calculates gradient of parameter weights w f(v|w) when using squared error: 
     // grad(0,5*error^2) = grad(output - right) = nn(x) - y
     // used backpropagation data stored within nnetwork<> by non const calculate() call.
