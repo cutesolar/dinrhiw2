@@ -48,7 +48,8 @@ namespace whiteice
   // solves D for each matrix and then applies changes
   // [assumes linearity so this is not very good solution] 
   template <typename T>
-  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet, const dataset<T>& data);
+  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet, const dataset<T>& data,
+					      const T step_length = T(1e-5f));
   
 
   //////////////////////////////////////////////////////////////////////
@@ -62,10 +63,12 @@ namespace whiteice
 
 
   extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
-  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data);
+  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data,
+   const math::blas_real<float> step_length);
 
   extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<double> >
-  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data,
+   const math::blas_real<double> step_length);
 
   
 };

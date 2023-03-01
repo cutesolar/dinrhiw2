@@ -76,7 +76,7 @@
 
 #include <fenv.h>
 
-#if 0
+#if 1
 
 extern "C" {
 
@@ -86,7 +86,7 @@ extern "C" {
 #include <fenv.h>
   static void __attribute__ ((constructor))
   trapfpe(){
-    feenableexcept(FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);
+    feenableexcept(FE_INVALID); // |FE_DIVBYZERO); // |FE_OVERFLOW);
   }
 #endif
   
@@ -355,12 +355,13 @@ void pretrain_test() // good pretraining, optimization idea test
   // generates test data, 10-layer 10->10 dimensional neural nnetwork
   // (residual rectifier neural network)
 
-  const unsigned int LAYERS = 1000;
+  const unsigned int LAYERS = 10;
   const unsigned int INPUT_DIM = 10;
-  const unsigned int HIDDEN_DIM = 100;
+  const unsigned int HIDDEN_DIM = 10; // was: 100
   const unsigned int OUTPUT_DIM = INPUT_DIM;
   
-  whiteice::nnetwork<> nnet;
+  whiteice::nnetwork< math::blas_real<double> > nnet;
+  whiteice::RNG< math::blas_real<double> > rng;
 
   std::vector<unsigned int> layers;
 
@@ -373,12 +374,12 @@ void pretrain_test() // good pretraining, optimization idea test
 
   nnet.setArchitecture(layers);
   nnet.setResidual(false);
-  nnet.setNonlinearity(whiteice::nnetwork<>::pureLinear);
+  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::pureLinear);
 
   nnet.randomize(2, 0.01);
 
 
-  whiteice::nnetwork<> gennet; // for generating dataset example problem
+  whiteice::nnetwork< math::blas_real<double> > gennet; // for generating dataset example problem
 
   layers.clear();
   layers.push_back(INPUT_DIM);
@@ -387,18 +388,19 @@ void pretrain_test() // good pretraining, optimization idea test
   layers.push_back(OUTPUT_DIM);
 
   gennet.setArchitecture(layers);
-  gennet.setNonlinearity(whiteice::nnetwork<>::rectifier);
+  gennet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
 
   gennet.randomize();
 
   
-  whiteice::dataset<> data;
+  whiteice::dataset< math::blas_real<double> > data;
   
   data.createCluster("input", INPUT_DIM);
   data.createCluster("output", OUTPUT_DIM);
 
-  for(unsigned int i=0;i<5000;i++){ // only 5000 elements for faster results..
-    math::vertex<> datum(INPUT_DIM), output;
+  for(unsigned int i=0;i<2000;i++){ // only 2000 elements for faster results..
+    math::vertex< math::blas_real<double> > datum(INPUT_DIM), output;
+    datum.resize(INPUT_DIM);
     rng.normal(datum);
 
     for(unsigned int i=0;i<datum.size();i++)
@@ -416,42 +418,86 @@ void pretrain_test() // good pretraining, optimization idea test
 
   // trains similar network using pretrain and reports error in 20 first iterations
   
-  std::vector< math::vertex<> > vdata;
+  std::vector< math::vertex< math::blas_real<double> > > vdata;
 
   data.getData(0, vdata);
   
   
-  const unsigned int ITERS = 20; // was: 100,20 
+  const unsigned int ITERS = 2000; // was: 100,20 
 
   auto initial_mse = nnet.mse(data);
-  auto best_mse = math::blas_real<float>(1e20);
-  math::vertex<> weights;
+  auto best_mse = math::blas_real<double>(1e5);
+  math::vertex< math::blas_real<double> > weights, w0, w1;
   nnet.exportdata(weights);
+
+  math::blas_real<double> adaptive_step_length = (1e-4f);
 
   //for(unsigned int k=0;k<ITERS;k++){
   unsigned int k = 0;
   while(k<ITERS){
 
     nnet.setBatchNorm(false);
-    nnet.calculateBatchNorm(vdata);
+    // nnet.calculateBatchNorm(vdata);
+
+
+    if((whiteice::rng.rand() % 25) == 0){
+      printf("LARGE ADAPTIVE STEPLENGTH\n");
+      adaptive_step_length = 0.45f;
+    }
+
+
+#if 0
+    if((whiteice::rng.rand() % 100) == 0)
+      whiten1d_nnetwork(nnet, data);
+#endif
+
+    nnet.exportdata(w1);
     
-    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data) == false){
+    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data,
+							math::blas_real<double>(0.5f)*adaptive_step_length) == false)
+    {
       printf("pretrain_nnetwork() FAILED!\n");
       return; 
     }
 
-    auto mse = nnet.mse(data);
+    auto smaller_mse = nnet.mse(data);
+    nnet.exportdata(w0);
+    nnet.importdata(w1);
+
+    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data,
+							math::blas_real<double>(2.0f)*adaptive_step_length) == false)
+    {
+      printf("pretrain_nnetwork() FAILED!\n");
+      return; 
+    }
+
+    auto larger_mse = nnet.mse(data);
+    auto mse = larger_mse;
+
+    if(smaller_mse < larger_mse){
+      adaptive_step_length *= (0.5f);
+      mse = smaller_mse;
+
+      nnet.importdata(w0);
+    }
+    else{
+      adaptive_step_length *= (1.5f);
+      if(adaptive_step_length.c[0] >= 0.45f)
+	adaptive_step_length = 0.45f;
+    }
+    
     
     if(best_mse > mse){
       best_mse = mse;
       nnet.exportdata(weights);
     }
     
-    printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%%\n",
+    printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
 	   k, ITERS, mse.c[0],
 	   (mse/initial_mse).c[0]*100.0f,
 	   best_mse.c[0],
-	   (best_mse/initial_mse).c[0]*100.0f);
+	   (best_mse/initial_mse).c[0]*100.0f,
+	   adaptive_step_length.c[0]);
     
     
     
@@ -463,9 +509,10 @@ void pretrain_test() // good pretraining, optimization idea test
   nnet.importdata(weights);
   
   nnet.setBatchNorm(false);
-  nnet.calculateBatchNorm(vdata);
+  // nnet.calculateBatchNorm(vdata);
   
-  // nnet.setNonlinearity(whiteice::nnetwork<>::rectifier);
+  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
+  nnet.setResidual(true);
   
   auto mse = nnet.mse(data);
   printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
@@ -473,7 +520,7 @@ void pretrain_test() // good pretraining, optimization idea test
   
   // trains neural network using SGD
 
-  whiteice::math::NNGradDescent grad;
+  whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
 
   grad.setUseMinibatch(true);
   grad.setOverfit(true);
@@ -481,7 +528,7 @@ void pretrain_test() // good pretraining, optimization idea test
   grad.startOptimize(data, nnet, 3, 5000);
 
   while(grad.isRunning()){
-    math::blas_real<float> error = 0.0f;
+    math::blas_real<double> error = 0.0f;
     unsigned int iters = 0;
 
     if(grad.getSolutionStatistics(error, iters)){

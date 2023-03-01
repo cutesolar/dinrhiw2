@@ -238,7 +238,9 @@ namespace whiteice
   // solves D for each matrix and then applies changes
   // [assumes linearity so this is not very good solution] 
   template <typename T>
-  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet, const dataset<T>& data)
+  bool pretrain_nnetwork_matrix_factorization(nnetwork<T>& nnet,
+					      const dataset<T>& data,
+					      const T step_length) // step-lenght is small 1e-5 or so
   {
     if(data.getNumberOfClusters() < 2) return false;
     if(data.size(0) != data.size(1)) return false;
@@ -246,6 +248,8 @@ namespace whiteice
     
     if(data.dimension(0) != nnet.input_size()) return false;
     if(data.dimension(1) != nnet.output_size()) return false;
+
+    if(step_length <= T(0.0f) || step_length >= T(1.0)) return false;
 
     std::vector< math::matrix<T> > operators;
 
@@ -260,12 +264,25 @@ namespace whiteice
 
       A.zero();
 
-      for(unsigned int j=0;j<W.ysize();j++)
-	for(unsigned int i=0;i<W.xsize();i++)
-	  A(j,i) = W(j,i);
+      for(unsigned int j=0;j<W.ysize();j++){
+	for(unsigned int i=0;i<W.xsize();i++){
 
-      for(unsigned int i=0;i<b.size();i++)
+	  printf("W(%d,%d) = %f\n", j, i, W(j,i).c[0]);
+	  
+	  if(W(j,i) > T(1e1)){ W(j,i) = T(1e1); }
+	  if(W(j,i) < T(-1e1)){ W(j,i) = T(-1e1); }
+	  
+	  A(j,i) = W(j,i);
+	}
+      }
+      
+      for(unsigned int i=0;i<b.size();i++){
+	
+	if(b[i] > T(1e1)){ b[i] = T(1e1); }
+	if(b[i] < T(-1e1)){ b[i] = T(-1e1); }
+	
 	A(i, W.xsize()) = b[i];
+      }
 
       A(A.ysize()-1, A.xsize()-1) = T(1.0f);
 
@@ -293,6 +310,12 @@ namespace whiteice
 
       data.getData(0, input);
       data.getData(1, output);
+
+      while(input.size() > 200){
+	const unsigned int index = whiteice::rng.rand() % input.size();
+	input.erase(input.begin()+index);
+	output.erase(output.begin()+index);
+      }
 
       const unsigned int SAMPLES = input.size(); 
       
@@ -350,6 +373,25 @@ namespace whiteice
       W = (Cxy.transpose() * INV);
       b = (my - W*mx);
 
+#if 0
+      // calculates average error
+      {
+	T error = T(0.0f);
+
+	for(unsigned int i=0;i<SAMPLES;i++){
+	  auto e = (W*input[i] + b) - output[i];
+	  auto enorm = e.norm();
+	  error += enorm*enorm;
+	}
+
+	error /= SAMPLES;
+	error /= output[0].size();
+	error *= T(0.50f);
+
+	std::cout << "Average error of linear fitting to data is: "  << error << std::endl;
+      }
+#endif
+
 
       for(unsigned int j=0;j<W.ysize();j++)
 	for(unsigned int i=0;i<W.xsize();i++)
@@ -391,10 +433,74 @@ namespace whiteice
 	LEFT *= operators[k];
       }
 
-      if(LEFT.pseudoinverse() == false) return false;
-      if(RIGHT.pseudoinverse() == false) return false;
+      for(unsigned int j=0;j<RIGHT.ysize();j++)
+	for(unsigned int i=0;i<RIGHT.xsize();i++){
+	  if(RIGHT(j,i) > T(+1e4f)) RIGHT(j,i) = T(+1e4f);
+	  if(RIGHT(j,i) < T(-1e4f)) RIGHT(j,i) = T(-1e4f);
+	}
 
+      for(unsigned int j=0;j<LEFT.ysize();j++)
+	for(unsigned int i=0;i<LEFT.xsize();i++){
+	  if(LEFT(j,i) > T(+1e4f)) LEFT(j,i) = T(+1e4f);
+	  if(LEFT(j,i) < T(-1e4f)) LEFT(j,i) = T(-1e4f);
+	}
 
+      // calculating pseudoinverse may require regularization.. 
+      {
+	math::matrix<T> INV;
+	T l = T(1e-3);
+	
+	do{
+	  INV = LEFT;
+
+	  T trace = T(0.0f);
+
+	  for(unsigned int i=0;(i<(INV.xsize()) && (i<INV.ysize()));i++){
+	    trace += INV(i,i);
+	    INV(i,i) += l; // regularizes matrix (if needed)
+	  }
+
+	  if(INV.xsize() < INV.ysize())	  
+	    trace /= INV.xsize();
+	  else
+	    trace /= INV.ysize();
+
+	  l += (T(0.1)*trace + T(2.0f)*l); // keeps "scale" of the matrix same
+	}
+	while(INV.pseudoinverse() == false);
+
+	LEFT = INV;
+      }
+      
+      
+      // calculating pseudoinverse may require regularization.. 
+      {
+	math::matrix<T> INV;
+	T l = T(1e-3);
+	
+	do{
+	  INV = RIGHT;
+
+	  T trace = T(0.0f);
+
+	  for(unsigned int i=0;(i<(INV.xsize()) && (i<INV.ysize()));i++){
+	    trace += INV(i,i);
+	    INV(i,i) += l; // regularizes matrix (if needed)
+	  }
+
+	  if(INV.xsize() < INV.ysize())	  
+	    trace /= INV.xsize();
+	  else
+	    trace /= INV.ysize();
+	  
+	  l += (T(0.1)*trace + T(2.0f)*l); // keeps "scale" of the matrix same
+	}
+	while(INV.pseudoinverse() == false);
+
+	RIGHT = INV;
+      }
+      
+      
       
       auto DELTA = LEFT*M*RIGHT;
 
@@ -404,7 +510,32 @@ namespace whiteice
       
       //for(unsigned int l=0;l<nnet.getLayers();l++)
       {
-	operators[l] = T(0.90)*operators[l] + T(0.1)*deltas[l];
+	if((whiteice::rng.rand()%1000)==0){
+
+	  // sets weights to random values! (jumps out of local minimum)
+	  
+	  nnet.getWeights(W, l);
+	  nnet.getBias(b, l);
+	  
+	  A.resize(W.ysize()+1, W.xsize()+1);
+	  
+	  A = operators[l];
+	  
+	  if(A.ysize() != W.ysize()+1 || W.xsize()+1 != A.xsize())
+	    return false; // extra check
+	  
+	  for(unsigned int j=0;j<W.ysize();j++)
+	    for(unsigned int i=0;i<W.xsize();i++)
+	      A(j,i) = T(5.0f) * whiteice::rng.normal();
+	  
+	  for(unsigned int i=0;i<b.size();i++)
+	    A(i, W.xsize()) = T(5.0f) * whiteice::rng.normal();
+
+	  operators[l] = A;
+	}
+	else{
+	  operators[l] = (T(1.0)-step_length)*operators[l] + step_length*deltas[l];
+	}
       }
 
     }
@@ -425,20 +556,31 @@ namespace whiteice
       if(A.ysize() != W.ysize()+1 || W.xsize()+1 != A.xsize())
 	return false; // extra check
 
-      for(unsigned int j=0;j<W.ysize();j++)
-	for(unsigned int i=0;i<W.xsize();i++)
+      for(unsigned int j=0;j<W.ysize();j++){
+	for(unsigned int i=0;i<W.xsize();i++){
+
+	  if(A(j,i) > T(+1e1f)) A(j,i) = T(+1e1f);
+	  if(A(j,i) < T(-1e1f)) A(j,i) = T(-1e1f);
+	  
 	  W(j,i) = A(j,i);
+	}
+      }
 
-      for(unsigned int i=0;i<b.size();i++)
+      for(unsigned int i=0;i<b.size();i++){
+	if(A(i, W.xsize()) > T(+1e1f)) A(i, W.xsize()) = T(+1e1f);
+	if(A(i, W.xsize()) < T(-1e1f)) A(i, W.xsize()) = T(-1e1f);
+	
 	b[i] = A(i, W.xsize());
+      }
 
+      
       nnet.setWeights(W, l);
       nnet.setBias(b, l);
     }
 
     return true;
   }
-
+  
   
 
   //////////////////////////////////////////////////////////////////////
@@ -452,10 +594,12 @@ namespace whiteice
 
 
   template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
-  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data);
+  (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data,
+   const math::blas_real<float> step_length);
   
   template bool pretrain_nnetwork_matrix_factorization< math::blas_real<double> >
-  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+  (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data,
+   const math::blas_real<double> step_length);
 
   
 };

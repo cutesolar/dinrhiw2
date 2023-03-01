@@ -2369,7 +2369,6 @@ namespace whiteice
 	  return output;
 	}
       }
-#if 1
       else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<float>,
 				  whiteice::math::modular<unsigned int> >) ||
@@ -2381,21 +2380,10 @@ namespace whiteice
 	
 	T output = input;
 
-#if 1
 	for(unsigned int i=0;i<output.size();i++){ // was only 1
 	  if(output[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
-#endif
-
-#if 0
-	if(input[0].real() < 0.0f){
-	  output = T(RELUcoef)*input;
-	}
-	else{
-	  //return input;
-	}
-#endif
 
 	if(batchnorm && layer != getLayers()-1){
 	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
@@ -2404,10 +2392,32 @@ namespace whiteice
 	  return output;
 	}
       }
-#endif
       else{ // superresolution class [almost linear because superresolution numbers are non-linear already]
-	if(input[0].real() < 0.0f){
-	  T output = T(RELUcoef)*input;
+	
+	if(input.first().real() < 0.0f){
+	  T output = T(RELUcoef*input.first().real());
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else{
+	  T output = T(input.first().real());
+
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	
+#if 0
+	if(input.first().real() < 0.0f){
+	  T output = T(((double)RELUcoef))*input;
 
 	  if(batchnorm && layer != getLayers()-1){
 	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
@@ -2428,6 +2438,7 @@ namespace whiteice
 	  }
 	  
 	}
+#endif
 	
       }
     }
