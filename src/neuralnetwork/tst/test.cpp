@@ -355,7 +355,7 @@ void pretrain_test() // good pretraining, optimization idea test
   // generates test data, 10-layer 10->10 dimensional neural nnetwork
   // (residual rectifier neural network)
 
-  const unsigned int LAYERS = 10; // was: 10, 100
+  const unsigned int LAYERS = 3; // was: 10, 100
   const unsigned int INPUT_DIM = 10;
   const unsigned int HIDDEN_DIM = 50; // was: 100
   const unsigned int OUTPUT_DIM = INPUT_DIM;
