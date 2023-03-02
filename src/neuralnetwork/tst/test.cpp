@@ -355,9 +355,9 @@ void pretrain_test() // good pretraining, optimization idea test
   // generates test data, 10-layer 10->10 dimensional neural nnetwork
   // (residual rectifier neural network)
 
-  const unsigned int LAYERS = 10;
+  const unsigned int LAYERS = 10; // was: 10, 100
   const unsigned int INPUT_DIM = 10;
-  const unsigned int HIDDEN_DIM = 10; // was: 100
+  const unsigned int HIDDEN_DIM = 50; // was: 100
   const unsigned int OUTPUT_DIM = INPUT_DIM;
   
   whiteice::nnetwork< math::blas_real<double> > nnet;
@@ -423,14 +423,20 @@ void pretrain_test() // good pretraining, optimization idea test
   data.getData(0, vdata);
   
   
-  const unsigned int ITERS = 2000; // was: 100,20 
+  const unsigned int ITERS = 5000; // was: 100,20, 5000 
 
   auto initial_mse = nnet.mse(data);
   auto best_mse = math::blas_real<double>(1e5);
   math::vertex< math::blas_real<double> > weights, w0, w1;
   nnet.exportdata(weights);
 
-  math::blas_real<double> adaptive_step_length = (1e-4f);
+  math::blas_real<double> adaptive_step_length = (1e-5f);
+
+
+  // convergence detection
+  std::list< math::blas_real<double> > errors;
+  const unsigned int ERROR_HISTORY_SIZE = 30;
+  
 
   //for(unsigned int k=0;k<ITERS;k++){
   unsigned int k = 0;
@@ -439,15 +445,18 @@ void pretrain_test() // good pretraining, optimization idea test
     nnet.setBatchNorm(false);
     // nnet.calculateBatchNorm(vdata);
 
-
-    if((whiteice::rng.rand() % 25) == 0){
+#if 1
+    if((whiteice::rng.rand() % 100) == 0){
       printf("LARGE ADAPTIVE STEPLENGTH\n");
-      adaptive_step_length = 0.45f;
+      adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+      if(adaptive_step_length.c[0] >= 0.45f)
+	adaptive_step_length = 0.45f;
     }
+#endif
 
 
 #if 0
-    if((whiteice::rng.rand() % 100) == 0)
+    if((whiteice::rng.rand() % 200) == 0)
       whiten1d_nnetwork(nnet, data);
 #endif
 
@@ -460,8 +469,22 @@ void pretrain_test() // good pretraining, optimization idea test
       return; 
     }
 
-    auto smaller_mse = nnet.mse(data);
     nnet.exportdata(w0);
+#if 1
+    for(unsigned int i=0;i<w0.size();i++){
+      
+      if(w0[i].c[0] < -0.75f) w0[i].c[0] = -0.75f;
+      if(w0[i].c[0] > +0.75f) w0[i].c[0] = +0.75f;
+
+      // printf("w0[%d] = %f\n", i, w0[i].c[0]);
+    }
+#endif
+    
+    
+    nnet.importdata(w0);
+
+    auto smaller_mse = nnet.mse(data);
+
     nnet.importdata(w1);
 
     if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data,
@@ -471,19 +494,77 @@ void pretrain_test() // good pretraining, optimization idea test
       return; 
     }
 
+    nnet.exportdata(w1);
+
+#if 1
+    for(unsigned int i=0;i<w1.size();i++){
+      if(w1[i].c[0] < -0.75f) w1[i].c[0] = -0.75f;
+      if(w1[i].c[0] > +0.75f) w1[i].c[0] = +0.75f;
+
+      // printf("w1[%d] = %f\n", i, w1[i].c[0]);
+    }
+#endif
+    
+    nnet.importdata(w1);
+
     auto larger_mse = nnet.mse(data);
     auto mse = larger_mse;
 
     if(smaller_mse < larger_mse){
       adaptive_step_length *= (0.5f);
+      if(adaptive_step_length < 1e-10)
+	adaptive_step_length = 1e-10;
       mse = smaller_mse;
 
       nnet.importdata(w0);
     }
     else{
-      adaptive_step_length *= (1.5f);
+      adaptive_step_length *= (2.0f);
       if(adaptive_step_length.c[0] >= 0.45f)
 	adaptive_step_length = 0.45f;
+    }
+
+
+    {
+      errors.push_back(mse);
+      
+      while(errors.size() > ERROR_HISTORY_SIZE)
+	errors.pop_front();
+
+      if(errors.size() >= ERROR_HISTORY_SIZE){
+
+	auto iter = errors.begin();
+	
+	auto mean = *iter;
+	auto stdev  = (*iter)*(*iter);
+
+	iter++;
+
+	for(unsigned int i=1;i<errors.size();i++,iter++){
+	  mean += *iter;
+	  stdev += (*iter)*(*iter);
+	};
+
+	mean /= errors.size();
+	stdev /= errors.size();
+
+	stdev = stdev - mean*mean;
+	stdev = whiteice::math::sqrt(whiteice::math::abs(stdev));
+
+	auto convergence = (stdev/(whiteice::math::blas_real<double>(1e-5) + mean));
+	
+	std::cout << "convergence = " << convergence << std::endl;
+
+	if(convergence < 0.1f){
+	  printf("LARGE ADAPTIVE STEPLENGTH\n");
+	  adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+	  if(adaptive_step_length.c[0] >= 0.45f)
+	    adaptive_step_length = 0.45f;
+
+	  errors.clear();
+	}
+	
+      }
     }
     
     
@@ -491,7 +572,16 @@ void pretrain_test() // good pretraining, optimization idea test
       best_mse = mse;
       nnet.exportdata(weights);
     }
-    
+
+    // adaptive_step_length = 1e-5;
+
+#if 0
+    if(mse > 10000.0f){
+      nnet.randomize(2, 0.01);
+      printf("RANDOMIZE NEURAL NETWORK\n");
+    }
+#endif
+
     printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
 	   k, ITERS, mse.c[0],
 	   (mse/initial_mse).c[0]*100.0f,

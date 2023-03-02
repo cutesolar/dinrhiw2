@@ -1152,6 +1152,7 @@ namespace whiteice
 	return T(-1.0);
 
       output -= data.access(1, i);
+
       T n = output.norm();
 
       error += n*n;

@@ -267,10 +267,10 @@ namespace whiteice
       for(unsigned int j=0;j<W.ysize();j++){
 	for(unsigned int i=0;i<W.xsize();i++){
 
-	  printf("W(%d,%d) = %f\n", j, i, W(j,i).c[0]);
+	  // printf("W(%d,%d) = %f\n", j, i, W(j,i).c[0]);
 	  
-	  if(W(j,i) > T(1e1)){ W(j,i) = T(1e1); }
-	  if(W(j,i) < T(-1e1)){ W(j,i) = T(-1e1); }
+	  if(W(j,i).c[0] > (1e2)){ W(j,i).c[0] = (1e2); }
+	  if(W(j,i).c[0] < (-1e2)){ W(j,i).c[0] = (-1e2); }
 	  
 	  A(j,i) = W(j,i);
 	}
@@ -278,8 +278,8 @@ namespace whiteice
       
       for(unsigned int i=0;i<b.size();i++){
 	
-	if(b[i] > T(1e1)){ b[i] = T(1e1); }
-	if(b[i] < T(-1e1)){ b[i] = T(-1e1); }
+	if(b[i].c[0] > (1e2)){ b[i].c[0] = (1e2); }
+	if(b[i].c[0] < (-1e2)){ b[i].c[0] = (-1e2); }
 	
 	A(i, W.xsize()) = b[i];
       }
@@ -433,17 +433,22 @@ namespace whiteice
 	LEFT *= operators[k];
       }
 
-      for(unsigned int j=0;j<RIGHT.ysize();j++)
+#if 1
+      
+      for(unsigned int j=0;j<RIGHT.ysize();j++){
 	for(unsigned int i=0;i<RIGHT.xsize();i++){
-	  if(RIGHT(j,i) > T(+1e4f)) RIGHT(j,i) = T(+1e4f);
-	  if(RIGHT(j,i) < T(-1e4f)) RIGHT(j,i) = T(-1e4f);
+	  if(RIGHT(j,i).c[0] > (+1.0f)) RIGHT(j,i).c[0] = (+1.0f);
+	  if(RIGHT(j,i).c[0] < (-1.0f)) RIGHT(j,i).c[0] = (-1.0f);
 	}
+      }
 
-      for(unsigned int j=0;j<LEFT.ysize();j++)
+      for(unsigned int j=0;j<LEFT.ysize();j++){
 	for(unsigned int i=0;i<LEFT.xsize();i++){
-	  if(LEFT(j,i) > T(+1e4f)) LEFT(j,i) = T(+1e4f);
-	  if(LEFT(j,i) < T(-1e4f)) LEFT(j,i) = T(-1e4f);
+	  if(LEFT(j,i).c[0] > (+1.0f)) LEFT(j,i).c[0] = (+1.0f);
+	  if(LEFT(j,i).c[0] < (-1.0f)) LEFT(j,i).c[0] = (-1.0f);
 	}
+      }
+#endif
 
       // calculating pseudoinverse may require regularization.. 
       {
@@ -510,7 +515,10 @@ namespace whiteice
       
       //for(unsigned int l=0;l<nnet.getLayers();l++)
       {
-	if((whiteice::rng.rand()%1000)==0){
+#if 1
+	if((whiteice::rng.rand()%(31*nnet.getLayers()))==0){ // was 1000, which means 31 for two runs which must both happen..
+
+	  printf("RANDOM MATRIX\n");
 
 	  // sets weights to random values! (jumps out of local minimum)
 	  
@@ -526,15 +534,29 @@ namespace whiteice
 	  
 	  for(unsigned int j=0;j<W.ysize();j++)
 	    for(unsigned int i=0;i<W.xsize();i++)
-	      A(j,i) = T(5.0f) * whiteice::rng.normal();
+	      A(j,i) = T(0.5f) * whiteice::rng.normal();
 	  
 	  for(unsigned int i=0;i<b.size();i++)
-	    A(i, W.xsize()) = T(5.0f) * whiteice::rng.normal();
+	    A(i, W.xsize()) = T(0.5f) * whiteice::rng.normal();
 
 	  operators[l] = A;
 	}
-	else{
+	else
+#endif
+	{
 	  operators[l] = (T(1.0)-step_length)*operators[l] + step_length*deltas[l];
+
+#if 1
+	  auto& W = operators[l];
+
+	  for(unsigned int j=0;j<(W.ysize()-1);j++){
+	    for(unsigned int i=0;i<W.xsize();i++){
+	      if(W(j,i) < -1.0f) W(j,i) = -1.00f;
+	      else if(W(j,i) > 1.00f) W(j,i) = 1.00f;
+	    }
+	  }
+#endif
+
 	}
       }
 
@@ -559,16 +581,16 @@ namespace whiteice
       for(unsigned int j=0;j<W.ysize();j++){
 	for(unsigned int i=0;i<W.xsize();i++){
 
-	  if(A(j,i) > T(+1e1f)) A(j,i) = T(+1e1f);
-	  if(A(j,i) < T(-1e1f)) A(j,i) = T(-1e1f);
+	  if(A(j,i).c[0] > (+1e2f)) A(j,i).c[0] = (+1e2f);
+	  if(A(j,i).c[0] < (-1e2f)) A(j,i).c[0] = (-1e2f);
 	  
 	  W(j,i) = A(j,i);
 	}
       }
 
       for(unsigned int i=0;i<b.size();i++){
-	if(A(i, W.xsize()) > T(+1e1f)) A(i, W.xsize()) = T(+1e1f);
-	if(A(i, W.xsize()) < T(-1e1f)) A(i, W.xsize()) = T(-1e1f);
+	if(A(i, W.xsize()).c[0] > (+1e2)) A(i, W.xsize()).c[0] = (+1e2f);
+	if(A(i, W.xsize()).c[0] < (-1e2)) A(i, W.xsize()).c[0] = (-1e2f);
 	
 	b[i] = A(i, W.xsize());
       }
