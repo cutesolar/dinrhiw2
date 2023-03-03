@@ -442,8 +442,36 @@ void pretrain_test() // good pretraining, optimization idea test
 
   printf("DATA GENERATED %d\n", data.size(0));
   
-
+  nnet.setBatchNorm(false);
+  
   // trains similar network using pretrain and reports error in 20 first iterations
+
+  PretrainNN< math::blas_real<double> > pretrainer;
+  const unsigned int MAXITERS = 2000;
+
+  if(pretrainer.startTrain(nnet, data, MAXITERS) == false){
+    printf("ERROR: starting pretrainer FAILED.\n");
+    return;
+  }
+
+  while(pretrainer.isRunning()){
+    sleep(1);
+    math::blas_real<double> error;
+    unsigned int iters = 0;
+
+    pretrainer.getStatistics(iters, error);
+
+    std::cout << "Pretrainer " << iters << "/" << MAXITERS << " : " << error << std::endl;
+  }
+
+  pretrainer.stopTrain();
+  if(pretrainer.getResults(nnet) == false){
+    printf("ERROR: getting results from pretrainer FAILED.\n");
+    return;
+  }
+  
+
+#if 0
   
   std::vector< math::vertex< math::blas_real<double> > > vdata;
 
@@ -465,6 +493,7 @@ void pretrain_test() // good pretraining, optimization idea test
   const unsigned int ERROR_HISTORY_SIZE = 30;
   
 
+  
   //for(unsigned int k=0;k<ITERS;k++){
   unsigned int k = 0;
   while(k<ITERS){
@@ -602,12 +631,10 @@ void pretrain_test() // good pretraining, optimization idea test
 
     // adaptive_step_length = 1e-5;
 
-#if 0
-    if(mse > 10000.0f){
-      nnet.randomize(2, 0.01);
-      printf("RANDOMIZE NEURAL NETWORK\n");
-    }
-#endif
+    //if(mse > 10000.0f){
+    //  nnet.randomize(2, 0.01);
+    //  printf("RANDOMIZE NEURAL NETWORK\n");
+    //}
 
     printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
 	   k, ITERS, mse.c[0],
@@ -624,6 +651,8 @@ void pretrain_test() // good pretraining, optimization idea test
 
 
   nnet.importdata(weights);
+
+#endif
   
   nnet.setBatchNorm(false);
   // nnet.calculateBatchNorm(vdata);
@@ -631,8 +660,8 @@ void pretrain_test() // good pretraining, optimization idea test
   nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
   nnet.setResidual(true);
   
-  auto mse = nnet.mse(data);
-  printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
+  //auto mse = nnet.mse(data);
+  //printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
 
   
   // trains neural network using SGD

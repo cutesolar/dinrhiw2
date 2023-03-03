@@ -33,10 +33,65 @@
 #include "nnetwork.h"
 #include "dataset.h"
 
+#include <mutex>
+#include <thread>
 
 
 namespace whiteice
 {
+
+  // class to run pretraining of neural network in the background (matrix factorization method)
+  // sets nnet to be linear neural network for training and disables residual neural network,
+  // later actual optimization/training should switch to rectifier non-linearity for quite close to
+  // linear operation where found parameter weights using linear pretrainer are still quite good
+  // starting points.
+  template <typename T>
+  class PretrainNN
+  {
+  public:
+    
+    PretrainNN();
+    virtual ~PretrainNN();
+
+    bool startTrain(const whiteice::nnetwork<T>& nnet,
+		    const whiteice::dataset<T>& data,
+		    const unsigned int NUMITERATIONS = 2000);
+
+    bool isRunning() const;
+
+    void getStatistics(unsigned int& iterations, T& error) const;
+
+    bool stopTrain();
+
+    bool getResults(whiteice::nnetwork<T>& nnet) const;
+    
+  private:
+
+    void worker_loop();
+
+    mutable std::mutex solution_mutex;
+    whiteice::nnetwork<T> nnet;
+    whiteice::dataset<T> data;
+    
+    unsigned int iterations;
+    T current_error;
+
+    unsigned int MAXITERS;
+    
+    
+    mutable std::mutex thread_mutex;
+    std::thread* worker_thread;
+
+    bool running;
+  };
+
+  
+  extern template class PretrainNN< math::blas_real<float> >;
+  extern template class PretrainNN< math::blas_real<double> >;
+
+  
+  //////////////////////////////////////////////////////////////////////
+  
   
   template <typename T>
   bool pretrain_nnetwork(nnetwork<T>& nnet, const dataset<T>& data);

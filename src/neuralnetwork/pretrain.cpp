@@ -32,10 +32,348 @@
 #include "nnetwork.h"
 #include "linear_equations.h"
 
+#include "Log.h"
+
+
+#include <functional>
+#include <system_error>
+
 
 
 namespace whiteice
 {
+
+  template <typename T>
+  PretrainNN<T>::PretrainNN()
+  {
+    running = false;
+    iterations = 0;
+    MAXITERS = 0;
+
+    worker_thread = nullptr;
+  }
+
+  
+  template <typename T>
+  PretrainNN<T>::~PretrainNN()
+  {
+    stopTrain();
+  }
+
+  
+  template <typename T>
+  bool PretrainNN<T>::startTrain(const whiteice::nnetwork<T>& nnet,
+				 const whiteice::dataset<T>& data,
+				 const unsigned int NUMITERATIONS)
+  {
+    std::lock_guard<std::mutex> lock(thread_mutex);
+
+    if(running) return false;
+    if(NUMITERATIONS == 0) return false;
+
+    if(data.getNumberOfClusters() < 2) return false;
+    if(data.size(0) != data.size(1)) return false;
+    if(data.dimension(0) != nnet.input_size()) return false;
+    if(data.dimension(1) != nnet.output_size()) return false;
+    
+    if(worker_thread){
+      delete worker_thread;
+      worker_thread = nullptr;
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(solution_mutex);
+      iterations = 0;
+      MAXITERS = NUMITERATIONS;
+      this->nnet = nnet;
+      this->nnet.setResidual(false);
+      this->nnet.setNonlinearity(whiteice::nnetwork<T>::pureLinear);
+      this->data = data;
+      current_error = T(-1.0f);
+    }
+
+    try{
+      running = true;
+      worker_thread = new std::thread(std::bind(&PretrainNN<T>::worker_loop, this));
+
+      return true;
+    }
+    catch(const std::system_error& e){
+      running = false;
+      worker_thread = nullptr;
+
+      return false;
+    }
+
+    return true;
+  }
+
+  
+  template <typename T>
+  bool PretrainNN<T>::isRunning() const
+  {
+    std::lock_guard<std::mutex> lock(thread_mutex);
+
+    if(running == true && worker_thread != nullptr) return true;
+    else return false;
+  }
+
+  
+  template <typename T>
+  void PretrainNN<T>::getStatistics(unsigned int& iterations, T& error) const
+  {
+    std::lock_guard<std::mutex> lock(solution_mutex);
+
+    iterations = this->iterations;
+    error = this->current_error;
+  }
+
+  
+  template <typename T>
+  bool PretrainNN<T>::stopTrain()
+  {
+    std::lock_guard<std::mutex> lock(thread_mutex);
+
+    if(running == false) return false;
+    
+    try{
+      running = false;
+      
+      if(worker_thread) worker_thread->join();
+    }
+    catch(const std::system_error& e){
+      if(worker_thread) running = true;
+      return false;
+    }
+
+    delete worker_thread;
+    worker_thread = nullptr;
+
+    return true;
+  }
+  
+
+  template <typename T>
+  bool PretrainNN<T>::getResults(whiteice::nnetwork<T>& nnet) const
+  {
+    std::lock_guard<std::mutex> lock(solution_mutex);
+
+    if(iterations > 0){
+      nnet = this->nnet;
+      return true;
+    }
+
+    return false;
+  }
+
+  
+  template <typename T>
+  void PretrainNN<T>::worker_loop()
+  {
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+
+      if(!running) return; 
+    }
+
+    whiteice::nnetwork<T> nnet;
+
+    {
+      std::lock_guard<std::mutex> lock(solution_mutex);
+
+      nnet = this->nnet;
+    }
+    
+    std::vector< math::vertex<T> > vdata;
+    
+    data.getData(0, vdata);
+
+    
+    auto initial_mse = nnet.mse(data);
+    auto best_mse = initial_mse;
+    math::vertex<T> weights, w0, w1;
+    
+    nnet.exportdata(weights);
+    
+    T adaptive_step_length = (1e-5f);
+    
+    // convergence detection
+    std::list< T > errors;
+    const unsigned int ERROR_HISTORY_SIZE = 30;
+    
+    
+    
+    while(1){
+      
+      {
+	std::lock_guard<std::mutex> lock(thread_mutex);
+	
+	if(!running)
+	  break;
+      }
+
+      {
+	std::lock_guard<std::mutex> lock(solution_mutex);
+	
+	if(iterations > MAXITERS)
+	  break;
+      }
+
+
+      if(nnet.getBatchNorm()){
+	nnet.calculateBatchNorm(vdata);
+      }
+
+      if((whiteice::rng.rand() % 100) == 0){
+	adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+	if(adaptive_step_length.c[0] >= 0.45f)
+	  adaptive_step_length = 0.45f;
+      }
+
+
+      nnet.exportdata(w1);
+      
+      if(whiteice::pretrain_nnetwork_matrix_factorization
+	 (nnet, data,
+	  T(0.5f)*adaptive_step_length) == false){
+
+	break;
+      }
+
+      nnet.exportdata(w0);
+
+      for(unsigned int i=0;i<w0.size();i++){
+	if(w0[i].c[0] < -0.75f) w0[i].c[0] = -0.75f;
+	if(w0[i].c[0] > +0.75f) w0[i].c[0] = +0.75f;
+      }
+
+      nnet.importdata(w0);
+      
+      auto smaller_mse = nnet.mse(data);
+      
+      nnet.importdata(w1);
+      
+      if(whiteice::pretrain_nnetwork_matrix_factorization
+	 (nnet, data,
+	  T(2.0f)*adaptive_step_length) == false){
+	
+	break;
+      }
+
+      nnet.exportdata(w1);
+
+      for(unsigned int i=0;i<w1.size();i++){
+	if(w1[i].c[0] < -0.75f) w1[i].c[0] = -0.75f;
+	if(w1[i].c[0] > +0.75f) w1[i].c[0] = +0.75f;
+      }
+      
+      nnet.importdata(w1);
+      
+      auto larger_mse = nnet.mse(data);
+      auto mse = larger_mse;
+      
+      if(smaller_mse < larger_mse){
+	adaptive_step_length *= (0.5f);
+	if(adaptive_step_length < 1e-10)
+	  adaptive_step_length = 1e-10;
+	mse = smaller_mse;
+	
+	nnet.importdata(w0);
+      }
+      else{
+	adaptive_step_length *= (2.0f);
+	if(adaptive_step_length.c[0] >= 0.45f)
+	  adaptive_step_length = 0.45f;
+      }
+      
+      
+      {
+	errors.push_back(mse);
+	
+	while(errors.size() > ERROR_HISTORY_SIZE)
+	  errors.pop_front();
+	
+	if(errors.size() >= ERROR_HISTORY_SIZE){
+	  
+	  auto iter = errors.begin();
+	  
+	  auto mean = *iter;
+	  auto stdev  = (*iter)*(*iter);
+	  
+	  iter++;
+	  
+	  for(unsigned int i=1;i<errors.size();i++,iter++){
+	    mean += *iter;
+	    stdev += (*iter)*(*iter);
+	  };
+	  
+	  mean /= errors.size();
+	  stdev /= errors.size();
+	  
+	  stdev = stdev - mean*mean;
+	  stdev = whiteice::math::sqrt(whiteice::math::abs(stdev));
+	  
+	  auto convergence = (stdev/(whiteice::math::blas_real<double>(1e-5) + mean));
+	  
+	  // std::cout << "convergence = " << convergence << std::endl;
+	  
+	  if(convergence < 0.1f){
+	    // printf("LARGE ADAPTIVE STEPLENGTH\n");
+	    adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+	    if(adaptive_step_length.c[0] >= 0.45f)
+	      adaptive_step_length = 0.45f;
+	    
+	    errors.clear();
+	  }
+	  
+	}
+      }
+      
+      
+      if(best_mse > mse){
+	best_mse = mse;
+	this->current_error = best_mse;
+	nnet.exportdata(weights);
+      }
+
+      // adaptive_step_length = 1e-5;
+
+      // debugging messages
+      {
+	std::lock_guard<std::mutex> lock(solution_mutex);
+	
+	char buffer[256]; 
+	
+	snprintf(buffer, 256,
+		 "whiteice::Pretrain: %d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
+		 iterations, MAXITERS, mse.c[0],
+		 (mse/initial_mse).c[0]*100.0f,
+		 best_mse.c[0],
+		 (best_mse/initial_mse).c[0]*100.0f,
+		 adaptive_step_length.c[0]);
+
+	whiteice::logging.info(buffer);
+      }
+	
+      {
+        std::lock_guard<std::mutex> lock(solution_mutex);
+	
+	iterations++;
+	this->nnet.importdata(weights);
+      }
+    }
+
+    running = false;
+    
+  }
+  
+  
+
+
+  template class PretrainNN< math::blas_real<float> >;
+  template class PretrainNN< math::blas_real<double> >;
+
+  //////////////////////////////////////////////////////////////////////
   
   template <typename T>
   bool pretrain_nnetwork(nnetwork<T>& nnet, const dataset<T>& data)
@@ -518,7 +856,7 @@ namespace whiteice
 #if 1
 	if((whiteice::rng.rand()%(31*nnet.getLayers()))==0){ // was 1000, which means 31 for two runs which must both happen..
 
-	  printf("RANDOM MATRIX\n");
+	  // printf("RANDOM MATRIX\n");
 
 	  // sets weights to random values! (jumps out of local minimum)
 	  
