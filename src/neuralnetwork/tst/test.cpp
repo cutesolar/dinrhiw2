@@ -443,7 +443,8 @@ void pretrain_test() // good pretraining, optimization idea test
   printf("DATA GENERATED %d\n", data.size(0));
   
   nnet.setBatchNorm(false);
-  
+
+#if 1
   // trains similar network using pretrain and reports error in 20 first iterations
 
   PretrainNN< math::blas_real<double> > pretrainer;
@@ -465,10 +466,12 @@ void pretrain_test() // good pretraining, optimization idea test
   }
 
   pretrainer.stopTrain();
+
   if(pretrainer.getResults(nnet) == false){
     printf("ERROR: getting results from pretrainer FAILED.\n");
     return;
   }
+#endif
   
 
 #if 0
@@ -660,8 +663,8 @@ void pretrain_test() // good pretraining, optimization idea test
   nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
   nnet.setResidual(true);
   
-  //auto mse = nnet.mse(data);
-  //printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
+  auto mse = nnet.mse(data);
+  printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
 
   
   // trains neural network using SGD

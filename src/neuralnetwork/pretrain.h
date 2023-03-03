@@ -41,6 +41,7 @@ namespace whiteice
 {
 
   // class to run pretraining of neural network in the background (matrix factorization method)
+  // 
   // sets nnet to be linear neural network for training and disables residual neural network,
   // later actual optimization/training should switch to rectifier non-linearity for quite close to
   // linear operation where found parameter weights using linear pretrainer are still quite good

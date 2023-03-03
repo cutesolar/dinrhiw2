@@ -215,7 +215,7 @@ namespace whiteice
       {
 	std::lock_guard<std::mutex> lock(solution_mutex);
 	
-	if(iterations > MAXITERS)
+	if(iterations >= MAXITERS)
 	  break;
       }
 
