@@ -356,7 +356,7 @@ void pretrain_test() // good pretraining, optimization idea test
   // (residual rectifier neural network)
 
   const unsigned int LAYERS = 3; // was: 10, 100
-  const unsigned int INPUT_DIM = 10;
+  const unsigned int INPUT_DIM = 4;
   const unsigned int HIDDEN_DIM = 50; // was: 100
   const unsigned int OUTPUT_DIM = INPUT_DIM;
   
@@ -383,8 +383,8 @@ void pretrain_test() // good pretraining, optimization idea test
 
   layers.clear();
   layers.push_back(INPUT_DIM);
-  layers.push_back(INPUT_DIM);
-  layers.push_back(INPUT_DIM);
+  layers.push_back(HIDDEN_DIM);
+  layers.push_back(HIDDEN_DIM);
   layers.push_back(OUTPUT_DIM);
 
   gennet.setArchitecture(layers);
@@ -401,17 +401,44 @@ void pretrain_test() // good pretraining, optimization idea test
   for(unsigned int i=0;i<2000;i++){ // only 2000 elements for faster results..
     math::vertex< math::blas_real<double> > datum(INPUT_DIM), output;
     datum.resize(INPUT_DIM);
+    output.resize(OUTPUT_DIM);
     rng.normal(datum);
 
-    for(unsigned int i=0;i<datum.size();i++)
-      datum[i] = math::blas_real<float>(2.0f)*datum[i] - math::blas_real<float>(1.0f);
-    
+    math::blas_real<double> sigma = 4.0;
+    math::blas_real<double> f = 10.0, a = 1.10, w = 10.0, one = 1.0;
+
+    datum = sigma*datum;
+
     data.add(0, datum);
 
-    gennet.calculate(datum, output);
+    auto& x = datum;
+    auto& y = output;
+
+    
+    y[0] = math::sin((f*x[0]*x[1]*x[2]*x[3]));
+    if(x[3].c[0] >= 0.0f)
+      y[1] =  math::pow(a, (x[0]/(math::abs(x[2])+one)) );
+    else
+      y[1] = -math::pow(a, (x[0]/(math::abs(x[2])+one)) );
+
+    y[2] = 0.0f;
+    if(x[1].c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    if(x[3].c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    auto temp = math::cos(w*x[0]);
+    if(temp.c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    
+    y[3] = x[1]/(math::abs(x[0])+one) + x[2]*math::sqrt(math::abs(x[3])) + math::abs(x[3] - x[0]);
+    
+    // gennet.calculate(datum, output);
 
     data.add(1, output);
   }
+
+  data.preprocess(0);
+  data.preprocess(1);
 
   printf("DATA GENERATED %d\n", data.size(0));
   
@@ -423,7 +450,7 @@ void pretrain_test() // good pretraining, optimization idea test
   data.getData(0, vdata);
   
   
-  const unsigned int ITERS = 5000; // was: 100,20, 5000 
+  const unsigned int ITERS = 0; // was: 100,20, 5000 
 
   auto initial_mse = nnet.mse(data);
   auto best_mse = math::blas_real<double>(1e5);
