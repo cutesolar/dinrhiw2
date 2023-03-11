@@ -32,10 +32,12 @@ int main(void)
     whiteice::math::matrix<> A;
     whiteice::math::vertex<> b;
 
-    in.resize(10);
+    const unsigned int DIM = 1;
+
+    in.resize(DIM);
     out.resize(1);
 
-    A.resize(1, 10);
+    A.resize(1, DIM);
     b.resize(1);
 
     for(unsigned int y=0;y<A.ysize();y++)
@@ -56,9 +58,10 @@ int main(void)
     discretization(cinput, coutput,
 		   input, output);
 
-    std::cout << "INPUT DATA SIZE: " << input.size() << std::endl;
+    std::cout << "INPUT  DATA SIZE: " << input.size() << std::endl;
     std::cout << "OUTPUT DATA SIZE: " << output.size() << std::endl;
 
+    std::cout << "INPUT  DIM: " << input[0].size() << std::endl;
     std::cout << "OUTPUT DIM: " << output[0].size() << std::endl;
 
     

@@ -34,7 +34,7 @@ namespace whiteice
 
     // discretization:
     // 1. detect discrete variables (N=30 different discrete cases max)
-    // 2. calculate clustering for continuous variables (K=min(numdata/2, 50) clusters)
+    // 2. calculate clustering for continuous variables (K=min(numdata/20, 100) clusters)
     // 3. discretize continuous variables based on distance to cluster center
     //    (5 discretizations per cluster/distance)
     // 4. binarize discrete (all) variables
@@ -103,9 +103,9 @@ namespace whiteice
 
 
       // calculates KMeans clustering of input data with
-      // K=min(numdata/2, 50) clusters clusters
+      // K=min(numdata/20, 100) clusters clusters
       
-      const unsigned int K = cdata.size()/2 < 50 ? (cdata.size()/2) : 50;
+      const unsigned int K = (1 + cdata.size()/20) < 1 ? (1 + cdata.size()/20) : 1; // was: 100
 
       whiteice::KMeans<T> kmeans;
 
@@ -139,24 +139,26 @@ namespace whiteice
       
       distance_stdev = math::sqrt(distance_stdev);
 
+      const unsigned int L = 5;
+
       // now we have st.dev., divide st.dev. by 2.5 to find discretization unit distance
-      T unit_distance = distance_stdev / T(2.5f);
+      T unit_distance = distance_stdev / T(L / 2.0f);
 
       for(unsigned long long i=0;i<cdata.size();i++){
 	const unsigned int index = kmeans.getClusterIndex(cdata[i]); // cluster*5
 	unsigned int k = 0;
 	whiteice::math::convert(k, distances[i]/unit_distance); // 5 distances per cluster
 
-	if(k >= K) k = K-1;
+	if(k >= L) k = L-1;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*K);
+	binarized.resize(kmeans.size()*L);
 
 	for(unsigned int i=0;i<binarized.size();i++){
 	  binarized[i] = false;
 	}
 
-	binarized[index*K + k] = true;
+	binarized[index*L + k] = true;
 
 	icb_data.push_back(binarized);
       }
@@ -292,8 +294,10 @@ namespace whiteice
       
       distance_stdev = math::sqrt(distance_stdev);
 
+      const int KL = 5;
+
       // now we have st.dev., divide st.dev. by 2.5 to find discretization unit distance
-      T unit_distance = distance_stdev / T(2.5f);
+      T unit_distance = distance_stdev / T(KL/2.0f);
 
       for(unsigned long long i=0;i<cdata.size();i++){
 	const unsigned int index = kmeans.getClusterIndex(cdata[i]); // cluster*5
@@ -303,18 +307,18 @@ namespace whiteice
 
 	k = (int)dk.c[0];
 
-	if(k >  5) k = 5;
-	if(k < -5) k = -5;
+	if(k >=  KL) k =  KL;
+	if(k <= -KL) k = -KL;
 
 	k += 5;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*10);
+	binarized.resize(kmeans.size()*(KL*2+1));
 
 	for(unsigned int i=0;i<binarized.size();i++)
 	  binarized[i] = false;
 
-	binarized[index*10 + k] = true;
+	binarized[index*(KL*2+1) + k] = true;
 
 	ocb_data.push_back(binarized);
       }
