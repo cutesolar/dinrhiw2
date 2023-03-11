@@ -417,8 +417,8 @@ namespace whiteice
     
 
     
-    if(rows.size() <= 20)
-      return false; // don't split node if there is less than 21 data points
+    // if(rows.size() <= 20) return false; // don't split node if there is less than 21 data points
+      
 
     
     std::cout << "ROWS = " << rows.size() << std::endl;
@@ -465,7 +465,7 @@ namespace whiteice
 
       for(auto& p : p0) p = 0.0f;
       
-      for(auto& r : rows0){
+      for(const auto& r : rows0){
 	for(unsigned int k=0;k<p0.size();k++)
 	  if((*outcomes)[r][k]) p0[k]++;
       }
@@ -475,7 +475,7 @@ namespace whiteice
 
       for(auto& p : p1) p = 0.0f;
 
-      for(auto& r : rows1){
+      for(const auto& r : rows1){
 	for(unsigned int k=0;k<p1.size();k++)
 	  if((*outcomes)[r][k]) p1[k]++;
       }
@@ -725,9 +725,11 @@ namespace whiteice
       right1->parent = current;
       left0->variableSet = current->variableSet;
       right1->variableSet = current->variableSet;
-      
+
       
 #if 0
+      // NO NEED !
+      
       if(current->decisionVariable2 < 0){
 	left0->variableSet.erase(current->decisionVariable);
 	right1->variableSet.erase(current->decisionVariable);
@@ -740,6 +742,7 @@ namespace whiteice
 #endif
       
 
+      
       //if(left0->variableSet.size() > 0)
       {
 	current->left0 = left0;

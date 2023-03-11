@@ -105,7 +105,7 @@ namespace whiteice
       // calculates KMeans clustering of input data with
       // K=min(numdata/20, 100) clusters clusters
       
-      const unsigned int K = (1 + cdata.size()/20) < 1 ? (1 + cdata.size()/20) : 1; // was: 100
+      const unsigned int K = (1 + cdata.size()/20) < 50 ? (1 + cdata.size()/20) : 50; // was: 100
 
       whiteice::KMeans<T> kmeans;
 
