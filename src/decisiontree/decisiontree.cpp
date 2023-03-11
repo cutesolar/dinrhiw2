@@ -317,18 +317,57 @@ namespace whiteice
     float best_goodness = -1000000.0f;
     int best_outcome = -1;
 
+    std::vector<unsigned long long> rows; // rows where parent nodes are as set
+
+#pragma omp parallel
+    {
+      std::vector<unsigned long long> r;
+
+#pragma omp for nowait
+      for(unsigned long long i=0;i<inputs->size();i++){
+	if(matchData(n, (*inputs)[i])){ // checks if node's variable selection matches row
+	  r.push_back(i);
+	}
+      }
+
+#pragma omp critical
+      {
+	for(unsigned long long i=0;i<r.size();i++)
+	  rows.push_back(r[i]);
+      }
+    }
+
+    
+    if(rows.size() <= 20)
+      return false; // don't split node if there is less than 21 data points
+    
+    
+    
     for(auto& candidateSplit : n->variableSet){
 
       std::set<unsigned long long> rows0; // data rows where variable is 0 and parent nodes are as set
       std::set<unsigned long long> rows1; // data rows where variable is 1 and parent nodes are as set
+      
+#pragma omp parallel 
+      {
+	std::set<unsigned long long> r0; // data rows where variable is 0 and parent nodes are as set
+	std::set<unsigned long long> r1; // data rows where variable is 1 and parent nodes are as set
 
-      for(unsigned long long i=0;i<inputs->size();i++){
-	if(matchData(n, (*inputs)[i])){ // checks if node's variable selection matches row
-	  if((*inputs)[i][candidateSplit] == false) rows0.insert(i);
-	  else rows1.insert(i);
+#pragma omp for nowait
+	for(unsigned long long i=0;i<rows.size();i++){
+	  if((*inputs)[rows[i]][candidateSplit] == false) r0.insert(rows[i]);
+	  else r1.insert(rows[i]);
 	}
+
+#pragma omp critical
+	{
+	  rows0.insert(r0.begin(), r0.end());
+	  rows1.insert(r1.begin(), r1.end());
+	}
+	
       }
 
+      
       // calculates GINI index for the data rows
       
       const float weight0 = rows0.size() / (float)(rows0.size() + rows1.size());
@@ -406,12 +445,12 @@ namespace whiteice
       }
 
       
-      std::cout << "pfull = ";
+      //std::cout << "pfull = ";
       for(auto& p : pfull){
 	p /= (float)(rows.size());
-	std::cout << p << " ";
+	//std::cout << p << " ";
       }
-      std::cout << std::endl;
+      //std::cout << std::endl;
       
       float pbest = pfull[0];
       int pindex = 0;
@@ -437,7 +476,36 @@ namespace whiteice
   
   void DecisionTree::worker_thread_loop()
   {
-    if(running == false) return;
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      if(running == false) return;
+    }
+    
+    
+    // set thread priority (non-standard)
+    {
+      sched_param sch_params;
+      int policy = SCHED_FIFO;
+      
+      pthread_getschedparam(pthread_self(),
+			    &policy, &sch_params);
+      
+#ifdef linux
+      policy = SCHED_IDLE; // in linux we can set idle priority
+#endif	
+      sch_params.sched_priority = sched_get_priority_min(policy);
+      
+      if(pthread_setschedparam(pthread_self(),
+			       policy, &sch_params) != 0){
+	// printf("! SETTING LOW PRIORITY THREAD FAILED\n");
+      }
+      
+#ifdef WINOS
+      SetThreadPriority(GetCurrentThread(),
+			THREAD_PRIORITY_IDLE);
+#endif	
+    }
+    
 
     std::lock_guard<std::mutex> lock(tree_mutex);
     

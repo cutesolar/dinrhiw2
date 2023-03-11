@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "discretization.h"
-#include "Kmeans.h"
+#include "KMeans.h"
 
 
 #include <unistd.h>
@@ -34,7 +34,7 @@ namespace whiteice
 
     // discretization:
     // 1. detect discrete variables (N=30 different discrete cases max)
-    // 2. calculate clustering for continuous variables (K=min(numdata/2, 5) clusters)
+    // 2. calculate clustering for continuous variables (K=min(numdata/2, 50) clusters)
     // 3. discretize continuous variables based on distance to cluster center
     //    (5 discretizations per cluster/distance)
     // 4. binarize discrete (all) variables
@@ -103,9 +103,9 @@ namespace whiteice
 
 
       // calculates KMeans clustering of input data with
-      // K=min(numdata/2, 5) clusters clusters
+      // K=min(numdata/2, 50) clusters clusters
       
-      const unsigned int K = cdata.size()/2 < 5 ? (cdata.size()/2) : 5;
+      const unsigned int K = cdata.size()/2 < 50 ? (cdata.size()/2) : 50;
 
       whiteice::KMeans<T> kmeans;
 
@@ -147,16 +147,16 @@ namespace whiteice
 	unsigned int k = 0;
 	whiteice::math::convert(k, distances[i]/unit_distance); // 5 distances per cluster
 
-	if(k > 5) k = 5;
+	if(k >= K) k = K-1;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*5);
+	binarized.resize(kmeans.size()*K);
 
 	for(unsigned int i=0;i<binarized.size();i++){
 	  binarized[i] = false;
 	}
 
-	binarized[index*5 + k] = true;
+	binarized[index*K + k] = true;
 
 	icb_data.push_back(binarized);
       }
