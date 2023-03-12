@@ -339,7 +339,7 @@ namespace whiteice
   }
   
 
-  bool DecisionTree::calculateGoodnessSplit(const DTNode* n,
+  bool DecisionTree::calculateGoodnessSplit(DTNode* n,
 					    int& split_variable, int& split_variable2,
 					    float& split_goodness, int& node_outcome) const
   {
@@ -348,7 +348,7 @@ namespace whiteice
 
     int best_variable = -1;
     int best_variable2 = -1;
-    float best_goodness = -100000000.0f;
+    float best_goodness = -10e10f;
     int best_outcome = -1;
 
     std::map<float, int> GINIs;
@@ -417,7 +417,7 @@ namespace whiteice
     
 
     
-    // if(rows.size() <= 20) return false; // don't split node if there is less than 21 data points
+    if(rows.size() <= 20) return false; // don't split node if there is less than 21 data points
       
 
     
@@ -455,7 +455,8 @@ namespace whiteice
       const float weight0 = rows0.size() / (float)(rows0.size() + rows1.size());
       const float weight1 = rows1.size() / (float)(rows0.size() + rows1.size());
 
-      if(weight0 >= 1.0f || weight1 >= 1.0f) continue; // must separate some rows..
+      if(weight0 >= 1.00f || weight1 >= 1.00f) continue; // must separate some rows..
+
 
       // calculates p-values for outcomes rows
       std::vector<float> p0, p1;
@@ -498,25 +499,80 @@ namespace whiteice
       g1 = 1.0f - g1;
 
 
-      const float GINI = weight0*g0 + weight1*g1;
+      const float GINI = weight0*g0 + weight1*g1; // smaller value means low entropy, high gini means high entropy
 
       // std::cout << "GINI = " << GINI << std::endl;
 
-      if(GINI > best_goodness){
-	best_goodness = GINI;
+      // calculates entropy
+      float E0 = 0.0f;
+      
+      for(const auto& p : p0)
+	E0 += (p <= 0.0f ? 0.0f : p*whiteice::math::log(1.0f/p));
+
+      float E1 = 0.0f;
+      
+      for(const auto& p : p1)
+	E1 += (p <= 0.0f ? 0.0f : p*whiteice::math::log(1.0f/p));
+
+      const float ENTROPY = (weight0*E0 + weight1*E1);
+
+      float InfoGain = -ENTROPY; // minimize entropy..
+      
+      if(n->parent){
+	InfoGain += n->parent->goodness;
+      }
+
+      InfoGain /= whiteice::math::log(1.0f/p0.size()); // scales to -1..1 scale [0,1] - [0,1] = [-1,1]
+      InfoGain += 1.0f;
+      InfoGain /= 2.0f; // [0,1]
+      
+      // InfoGain = 1.0f - InfoGain;
+
+      // InfoGain = 1.0f;
+
+      InfoGain *= (1.0f - GINI); // [0,1] (smaller Gini is better, lower entropy p)
+
+      InfoGain = whiteice::math::sqrt(InfoGain);
+
+      // goodness = p*M + (1-p)*(1-M)
+      {
+	const float r  = ((float)rows.size()) / (float)(inputs->size()); // how close to leaf nodes we are (1 means top nodes, 0 means bottom leaves)
+
+	// when number of rows is small use InfoGain (low entropy, single peak),
+	// large rows: use 1-InfoGain (high entropy, equal distribution) 
+	const float goodness = r*(1.0f - InfoGain) + (1.0f - r)*(InfoGain); 
+
+	InfoGain = goodness;
+      }
+
+      if(rows0.size()+rows1.size() > 100){
+	if(rows0.size() < 20 || rows1.size() < 20){ // only use 10 row elements..
+	  InfoGain *= 0.10f; // 10% smaller if no rows..
+	}
+      }
+	
+
+
+      if(InfoGain > best_goodness){
+	// if(GINI > best_goodness){
+	// best_goodness = GINI;
+	best_goodness = InfoGain;
 	best_variable = candidateSplit;
-	GINIs.insert(std::pair<float, int>(GINI, candidateSplit));
+	
+	GINIs.insert(std::pair<float, int>(InfoGain, candidateSplit));
+
+	n->goodness = ENTROPY;
       }
     }
     
     
 
-#if 1 
+#if 0 
     // finds second variable which is best match together with first variable: O(26*N) computational complexity
 
     if(best_variable >= 0){
 
-      const unsigned int NUM_COMB_VARIABLES = 25;
+      const unsigned int NUM_COMB_VARIABLES = 50;
 
       for(unsigned int m=0;m<NUM_COMB_VARIABLES && m<GINIs.size();m++){
 
@@ -568,7 +624,7 @@ namespace whiteice
 	  //std::cout << "weight0 = " << weight0 << std::endl;
 	  //std::cout << "weight1 = " << weight1 << std::endl;
 
-	  if(weight0 >= 1.0f || weight1 >= 1.0f) continue; // must separate some rows..
+	  if(weight0 >= 0.99f || weight1 >= 0.99f) continue; // must separate some rows..
 	  
 	  // calculates p-values for outcomes rows
 	  std::vector<float> p0, p1;
@@ -614,11 +670,39 @@ namespace whiteice
 	  const float GINI = weight0*g0 + weight1*g1;
 
 	  // std::cout << "GINI = " << GINI << std::endl;
+
+	  // calculates entropy
+	  float E0 = 0.0f;
 	  
-	  if(GINI > best_goodness){
-	    best_goodness = GINI;
+	  for(const auto& p : p0)
+	    E0 += (p <= 0.0f ? 0.0f : p*whiteice::math::log(1.0f/p));
+	  
+	  float E1 = 0.0f;
+	  
+	  for(const auto& p : p1)
+	    E1 += (p <= 0.0f ? 0.0f : p*whiteice::math::log(1.0f/p));
+	  
+	  const float ENTROPY = (weight0*E0 + weight1*E1);
+
+	  float InfoGain = -ENTROPY;
+
+	  if(n->parent){
+	    InfoGain += n->parent->goodness;
+	  }
+
+	  InfoGain /= whiteice::math::log(1.0f/p0.size()); // scales to -1..1 scale
+	  InfoGain += 1.0f;
+	  InfoGain /= 2.0f; // [0,1]
+	  // InfoGain = 1.0f - InfoGain;
+
+	  InfoGain *= (1.0f - GINI); // GINI is [0, 1]
+	  
+	  if(InfoGain > best_goodness){
+	    best_goodness = InfoGain;
 	    best_variable = selected_variable;
 	    best_variable2 = candidateSplit;
+
+	    n->goodness = ENTROPY;
 	  }
 	}
 
@@ -679,7 +763,7 @@ namespace whiteice
     tree = new DTNode(); 
 
     DTNode* current = tree;
-    std::map<DTNode*, float> goodness;
+    std::map<float, DTNode*> goodness;
     std::set<int> initialVariableSet;
 
     for(unsigned int i=0;i<(*inputs)[0].size();i++)
@@ -696,7 +780,7 @@ namespace whiteice
       current->decisionVariable = var;
       current->decisionVariable2 = var2;
       current->outcome = outcome;
-      goodness.insert(std::pair<DTNode*,float>(current, g));
+      goodness.insert(std::pair<float, DTNode*>(g, current));
     }
 
     
@@ -710,7 +794,7 @@ namespace whiteice
       
       auto iter = goodness.end();
       iter--;
-      current = iter->first;
+      current = iter->second;
       goodness.erase(iter);
 
       current->left0 = nullptr;
@@ -752,7 +836,7 @@ namespace whiteice
 	  left0->decisionVariable2 = var2;
 	  left0->outcome = outcome;
 	  
-	  goodness.insert(std::pair<DTNode*,float>(left0, g));
+	  goodness.insert(std::pair<float, DTNode*>(g, left0));
 	}
 	else{
 	  left0->decisionVariable = var;
@@ -774,7 +858,7 @@ namespace whiteice
 	  right1->decisionVariable2 = var2;
 	  right1->outcome = outcome;
 	  
-	  goodness.insert(std::pair<DTNode*,float>(right1, g));
+	  goodness.insert(std::pair<float, DTNode*>(g, right1));
 	}
 	else{
 	  right1->decisionVariable = var;

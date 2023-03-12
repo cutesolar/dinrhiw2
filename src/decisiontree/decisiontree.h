@@ -32,6 +32,8 @@ namespace whiteice
       parent = NULL;
       left0 = NULL;
       right1 = NULL;
+
+      goodness = 0.0f;
     }
 
     // deletes tree's child nodes
@@ -140,6 +142,8 @@ namespace whiteice
     int outcome; // leaf-node's outcome
     int nodeid; // for saving the tree
 
+    float goodness;
+
     class DTNode *parent;  
     class DTNode *left0, *right1; // child nodes;
   };
@@ -179,7 +183,7 @@ namespace whiteice
 
     bool matchData(const DTNode* n, const std::vector<bool>& data) const;
     
-    bool calculateGoodnessSplit(const DTNode* n,
+    bool calculateGoodnessSplit(DTNode* n,
 				int& split_variable, int& split_variable2,
 				float& split_goodness, int& node_outcome) const;
     
