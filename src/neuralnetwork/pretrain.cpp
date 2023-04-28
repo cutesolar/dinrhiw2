@@ -199,7 +199,7 @@ namespace whiteice
     
     nnet.exportdata(weights);
     
-    T adaptive_step_length = (1e-5f);
+    T adaptive_step_length = T(1e-5f);
     
     // convergence detection
     std::list< T > errors;
@@ -230,8 +230,8 @@ namespace whiteice
 
       if((whiteice::rng.rand() % 100) == 0){
 	adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
-	if(adaptive_step_length.c[0] >= 0.45f)
-	  adaptive_step_length = 0.45f;
+	if(adaptive_step_length[0].c[0] >= 0.45f)
+	  adaptive_step_length = T(0.45f);
       }
 
 
@@ -247,8 +247,10 @@ namespace whiteice
       nnet.exportdata(w0);
 
       for(unsigned int i=0;i<w0.size();i++){
-	if(w0[i].c[0] < -0.75f) w0[i].c[0] = -0.75f;
-	if(w0[i].c[0] > +0.75f) w0[i].c[0] = +0.75f;
+	for(unsigned int k=0;k<w0[i].size();k++){
+	  if(w0[i][k].c[0] < -0.75f) w0[i][k].c[0] = -0.75f;
+	  if(w0[i][k].c[0] > +0.75f) w0[i][k].c[0] = +0.75f;
+	}
       }
 
       nnet.importdata(w0);
@@ -267,8 +269,10 @@ namespace whiteice
       nnet.exportdata(w1);
 
       for(unsigned int i=0;i<w1.size();i++){
-	if(w1[i].c[0] < -0.75f) w1[i].c[0] = -0.75f;
-	if(w1[i].c[0] > +0.75f) w1[i].c[0] = +0.75f;
+	for(unsigned int k=0;k<w1[i].size();k++){
+	  if(w1[i][k].c[0] < -0.75f) w1[i][k].c[0] = -0.75f;
+	  if(w1[i][k].c[0] > +0.75f) w1[i][k].c[0] = +0.75f;
+	}
       }
       
       nnet.importdata(w1);
@@ -277,17 +281,17 @@ namespace whiteice
       auto mse = larger_mse;
       
       if(smaller_mse < larger_mse){
-	adaptive_step_length *= (0.5f);
-	if(adaptive_step_length < 1e-10)
-	  adaptive_step_length = 1e-10;
+	adaptive_step_length *= T(0.5f);
+	if(adaptive_step_length[0] < (1e-10))
+	  adaptive_step_length = T(1e-10);
 	mse = smaller_mse;
 	
 	nnet.importdata(w0);
       }
       else{
-	adaptive_step_length *= (2.0f);
-	if(adaptive_step_length.c[0] >= 0.45f)
-	  adaptive_step_length = 0.45f;
+	adaptive_step_length *= T(2.0f);
+	if(adaptive_step_length[0].c[0] >= 0.45f)
+	  adaptive_step_length = T(0.45f);
       }
       
       
@@ -317,15 +321,15 @@ namespace whiteice
 	  stdev = stdev - mean*mean;
 	  stdev = whiteice::math::sqrt(whiteice::math::abs(stdev));
 	  
-	  auto convergence = (stdev/(whiteice::math::blas_real<double>(1e-5) + mean));
+	  auto convergence = (stdev/(T(1e-5) + mean));
 	  
 	  // std::cout << "convergence = " << convergence << std::endl;
 	  
-	  if(convergence < 0.1f){
+	  if(convergence[0] < 0.1f){
 	    // printf("LARGE ADAPTIVE STEPLENGTH\n");
 	    adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
-	    if(adaptive_step_length.c[0] >= 0.45f)
-	      adaptive_step_length = 0.45f;
+	    if(adaptive_step_length[0].c[0] >= 0.45f)
+	      adaptive_step_length = T(0.45f);
 	    
 	    errors.clear();
 	  }
@@ -350,11 +354,11 @@ namespace whiteice
 	
 	snprintf(buffer, 256,
 		 "whiteice::Pretrain: %d/%d: Neural network MSE for problem: %f %f%% %f %f%% (%e)",
-		 iterations, MAXITERS, mse.c[0],
-		 (mse/initial_mse).c[0]*100.0f,
-		 best_mse.c[0],
-		 (best_mse/initial_mse).c[0]*100.0f,
-		 adaptive_step_length.c[0]);
+		 iterations, MAXITERS, mse[0].c[0],
+		 (mse/initial_mse)[0].c[0]*100.0f,
+		 best_mse[0].c[0],
+		 (best_mse/initial_mse)[0].c[0]*100.0f,
+		 adaptive_step_length[0].c[0]);
 
 	whiteice::logging.info(buffer);
       }
@@ -376,6 +380,9 @@ namespace whiteice
 
   template class PretrainNN< math::blas_real<float> >;
   template class PretrainNN< math::blas_real<double> >;
+
+  template class PretrainNN< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >;
+  template class PretrainNN< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >;
 
   //////////////////////////////////////////////////////////////////////
   
@@ -610,18 +617,22 @@ namespace whiteice
 	for(unsigned int i=0;i<W.xsize();i++){
 
 	  // printf("W(%d,%d) = %f\n", j, i, W(j,i).c[0]);
-	  
-	  if(W(j,i).c[0] > (1e2)){ W(j,i).c[0] = (1e2); }
-	  if(W(j,i).c[0] < (-1e2)){ W(j,i).c[0] = (-1e2); }
+
+	  for(unsigned int k=0;k<W(j,i).size();k++){
+	    if(W(j,i)[k].c[0] > (1e2)){ W(j,i)[k].c[0] = (1e2); }
+	    if(W(j,i)[k].c[0] < (-1e2)){ W(j,i)[k].c[0] = (-1e2); }
+	  }
 	  
 	  A(j,i) = W(j,i);
 	}
       }
       
       for(unsigned int i=0;i<b.size();i++){
-	
-	if(b[i].c[0] > (1e2)){ b[i].c[0] = (1e2); }
-	if(b[i].c[0] < (-1e2)){ b[i].c[0] = (-1e2); }
+
+	for(unsigned int k=0;k<b[i].size();k++){
+	  if(b[i][k].c[0] > (1e2)){ b[i][k].c[0] = (1e2); }
+	  if(b[i][k].c[0] < (-1e2)){ b[i][k].c[0] = (-1e2); }
+	}
 	
 	A(i, W.xsize()) = b[i];
       }
@@ -779,15 +790,19 @@ namespace whiteice
       
       for(unsigned int j=0;j<RIGHT.ysize();j++){
 	for(unsigned int i=0;i<RIGHT.xsize();i++){
-	  if(RIGHT(j,i).c[0] > (+1.0f)) RIGHT(j,i).c[0] = (+1.0f);
-	  if(RIGHT(j,i).c[0] < (-1.0f)) RIGHT(j,i).c[0] = (-1.0f);
+	  for(unsigned int k=0;k<RIGHT(j,i).size();k++){
+	    if(RIGHT(j,i)[k].c[0] > (+1.0f)) RIGHT(j,i)[k].c[0] = (+1.0f);
+	    if(RIGHT(j,i)[k].c[0] < (-1.0f)) RIGHT(j,i)[k].c[0] = (-1.0f);
+	  }
 	}
       }
 
       for(unsigned int j=0;j<LEFT.ysize();j++){
 	for(unsigned int i=0;i<LEFT.xsize();i++){
-	  if(LEFT(j,i).c[0] > (+1.0f)) LEFT(j,i).c[0] = (+1.0f);
-	  if(LEFT(j,i).c[0] < (-1.0f)) LEFT(j,i).c[0] = (-1.0f);
+	  for(unsigned int k=0;k<LEFT(j,i).size();k++){
+	    if(LEFT(j,i)[k].c[0] > (+1.0f)) LEFT(j,i)[k].c[0] = (+1.0f);
+	    if(LEFT(j,i)[k].c[0] < (-1.0f)) LEFT(j,i)[k].c[0] = (-1.0f);
+	  }
 	}
       }
 #endif
@@ -874,12 +889,19 @@ namespace whiteice
 	  if(A.ysize() != W.ysize()+1 || W.xsize()+1 != A.xsize())
 	    return false; // extra check
 	  
-	  for(unsigned int j=0;j<W.ysize();j++)
-	    for(unsigned int i=0;i<W.xsize();i++)
-	      A(j,i) = T(0.5f) * whiteice::rng.normal();
+	  for(unsigned int j=0;j<W.ysize();j++){
+	    for(unsigned int i=0;i<W.xsize();i++){
+	      for(unsigned int k=0;k<A(j,i).size();k++){
+		A(j,i)[k] = (0.5f) * whiteice::rng.normal();
+	      }
+	    }
+	  }
 	  
-	  for(unsigned int i=0;i<b.size();i++)
-	    A(i, W.xsize()) = T(0.5f) * whiteice::rng.normal();
+	  for(unsigned int i=0;i<b.size();i++){
+	    for(unsigned int k=0;k<b[i].size();k++){
+	      A(i, W.xsize())[k] = (0.5f) * whiteice::rng.normal();
+	    }
+	  }
 
 	  operators[l] = A;
 	}
@@ -893,8 +915,10 @@ namespace whiteice
 
 	  for(unsigned int j=0;j<(W.ysize()-1);j++){
 	    for(unsigned int i=0;i<W.xsize();i++){
-	      if(W(j,i) < -1.0f) W(j,i) = -1.00f;
-	      else if(W(j,i) > 1.00f) W(j,i) = 1.00f;
+	      for(unsigned int k=0;k<W(j,i).size();k++){
+		if(W(j,i)[k] < -1.0f) W(j,i)[k] = -1.00f;
+		else if(W(j,i)[k] > 1.00f) W(j,i)[k] = 1.00f;
+	      }
 	    }
 	  }
 #endif
@@ -923,16 +947,20 @@ namespace whiteice
       for(unsigned int j=0;j<W.ysize();j++){
 	for(unsigned int i=0;i<W.xsize();i++){
 
-	  if(A(j,i).c[0] > (+1e2f)) A(j,i).c[0] = (+1e2f);
-	  if(A(j,i).c[0] < (-1e2f)) A(j,i).c[0] = (-1e2f);
+	  for(unsigned int k=0;k<A(j,i).size();k++){
+	    if(A(j,i)[k].c[0] > (+1e2f)) A(j,i)[k].c[0] = (+1e2f);
+	    if(A(j,i)[k].c[0] < (-1e2f)) A(j,i)[k].c[0] = (-1e2f);
+	  }
 	  
 	  W(j,i) = A(j,i);
 	}
       }
 
       for(unsigned int i=0;i<b.size();i++){
-	if(A(i, W.xsize()).c[0] > (+1e2)) A(i, W.xsize()).c[0] = (+1e2f);
-	if(A(i, W.xsize()).c[0] < (-1e2)) A(i, W.xsize()).c[0] = (-1e2f);
+	for(unsigned int k=0;k<A(i,W.xsize()).size();k++){
+	  if(A(i, W.xsize())[k].c[0] > (+1e2)) A(i, W.xsize())[k].c[0] = (+1e2f);
+	  if(A(i, W.xsize())[k].c[0] < (-1e2)) A(i, W.xsize())[k].c[0] = (-1e2f);
+	}
 	
 	b[i] = A(i, W.xsize());
       }
@@ -956,6 +984,7 @@ namespace whiteice
   template bool pretrain_nnetwork< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
 
+  
 
   template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
   (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data,
@@ -965,5 +994,16 @@ namespace whiteice
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data,
    const math::blas_real<double> step_length);
 
+  
+  
+  template bool pretrain_nnetwork_matrix_factorization< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& data,
+   const math::superresolution< math::blas_real<float>, math::modular<unsigned int> > step_length);
+  
+  template bool pretrain_nnetwork_matrix_factorization< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& data,
+   const math::superresolution< math::blas_real<double>, math::modular<unsigned int> > step_length);
   
 };

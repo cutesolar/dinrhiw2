@@ -94,6 +94,9 @@ namespace whiteice
   extern template class PretrainNN< math::blas_real<float> >;
   extern template class PretrainNN< math::blas_real<double> >;
 
+  extern template class PretrainNN< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >;
+  extern template class PretrainNN< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >;
+
   
   //////////////////////////////////////////////////////////////////////
   
@@ -122,6 +125,7 @@ namespace whiteice
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
 
 
+  
   extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<float> >
   (nnetwork< math::blas_real<float> >& nnet, const dataset< math::blas_real<float> >& data,
    const math::blas_real<float> step_length);
@@ -129,6 +133,17 @@ namespace whiteice
   extern template bool pretrain_nnetwork_matrix_factorization< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data,
    const math::blas_real<double> step_length);
+
+  
+  extern template bool pretrain_nnetwork_matrix_factorization< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& data,
+   const math::superresolution< math::blas_real<float>, math::modular<unsigned int> > step_length);
+  
+  extern template bool pretrain_nnetwork_matrix_factorization< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& data,
+   const math::superresolution< math::blas_real<double>, math::modular<unsigned int> > step_length);
 
   
 };
