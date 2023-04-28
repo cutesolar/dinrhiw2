@@ -46,6 +46,10 @@ namespace whiteice
   // later actual optimization/training should switch to rectifier non-linearity for quite close to
   // linear operation where found parameter weights using linear pretrainer are still quite good
   // starting points.
+  //
+  // NOTE: It seems you get only 2% better results (N=20, nearly statistically significant) when
+  // optimizing neural network with this pretrainer algorithm..
+  // 
   template <typename T>
   class PretrainNN
   {

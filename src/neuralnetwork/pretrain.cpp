@@ -159,13 +159,17 @@ namespace whiteice
     std::lock_guard<std::mutex> lock(solution_mutex);
 
     if(iterations > 0){
-      nnet = this->nnet;
+      math::vertex<T> weights;
+      
+      if(this->nnet.exportdata(weights) == false) return false;
+      if(nnet.importdata(weights) == false) return false;
+      
       return true;
     }
 
     return false;
   }
-
+  
   
   template <typename T>
   void PretrainNN<T>::worker_loop()
@@ -345,7 +349,7 @@ namespace whiteice
 	char buffer[256]; 
 	
 	snprintf(buffer, 256,
-		 "whiteice::Pretrain: %d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
+		 "whiteice::Pretrain: %d/%d: Neural network MSE for problem: %f %f%% %f %f%% (%e)",
 		 iterations, MAXITERS, mse.c[0],
 		 (mse/initial_mse).c[0]*100.0f,
 		 best_mse.c[0],
