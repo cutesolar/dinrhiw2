@@ -393,7 +393,36 @@ int main()
   }
   
   //////////////////////////////////////////////////////////////////////
-  
+
+  // pretrainer for superresolution code
+  {
+    whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
+						 math::modular<unsigned int> > > pretrainer;
+
+    if(pretrainer.startTrain(snet, data) == false){
+      printf("PRETRAINER FAILED\n");
+      return -1;
+    }
+    else{
+      printf("PretrainNN started..\n");
+    }
+
+    while(pretrainer.isRunning()){
+      sleep(1);
+      unsigned int iters = 0;
+      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error;
+
+      pretrainer.getStatistics(iters, error);
+
+      std::cout << "iter " << iters << " : " << error[0] << std::endl;
+    }
+
+    pretrainer.stopTrain();
+    printf("PretrainNN stop.\n");
+    
+    pretrainer.getResults(snet);
+  }
+    
 
   // gradient descent code
   {
@@ -607,7 +636,7 @@ int main()
 	    (gradients.size());
 	  
 
-	  if(fastpca(gradients, dimensions, PCA, eigenvalues)){ // fast PCA is successful
+	  if(fastpca(gradients, dimensions, PCA, eigenvalues, false)){ // fast PCA is successful
 
 	    // sample from N(0,I) [what is superresolutional normal distribution???] 
 	    math::vertex< math::superresolution<math::blas_real<double>,
