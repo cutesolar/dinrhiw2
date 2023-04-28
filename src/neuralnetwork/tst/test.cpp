@@ -178,6 +178,8 @@ int main()
   // seed = 0x5f54fc68;
   printf("seed = 0x%x\n", seed);
   srand(seed);
+
+  whiteice::logging.setOutputFile("testsuite1.log");
   
   try{
     // nnetwork_entropy_test();
@@ -374,7 +376,7 @@ void pretrain_test() // good pretraining, optimization idea test
 
   nnet.setArchitecture(layers);
   nnet.setResidual(false);
-  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::pureLinear);
+  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
 
   nnet.randomize(2, 0.01);
 
@@ -444,7 +446,11 @@ void pretrain_test() // good pretraining, optimization idea test
   
   nnet.setBatchNorm(false);
 
-#if 1
+  math::vertex< math::blas_real<double> > initial_weights;
+
+  nnet.exportdata(initial_weights);
+
+#if 0
   // trains similar network using pretrain and reports error in 20 first iterations
 
   PretrainNN< math::blas_real<double> > pretrainer;
@@ -666,34 +672,74 @@ void pretrain_test() // good pretraining, optimization idea test
   auto mse = nnet.mse(data);
   printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
 
-  
-  // trains neural network using SGD
 
-  whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
+  {
+    // trains neural network using SGD
+    
+    whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
+    
+    grad.setUseMinibatch(true);
+    grad.setOverfit(true);
 
-  grad.setUseMinibatch(true);
-  grad.setOverfit(true);
-
-  grad.startOptimize(data, nnet, 3, 5000);
-
-  while(grad.isRunning()){
-    math::blas_real<double> error = 0.0f;
-    unsigned int iters = 0;
-
-    if(grad.getSolutionStatistics(error, iters)){
-      std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
-		<< " ITERS: " << iters << "/5000" << std::endl;
+    grad.setMatrixFactorizationPretrainer(true);
+    
+    grad.startOptimize(data, nnet, 3, 2500);
+    
+    while(grad.isRunning()){
+      math::blas_real<double> error = 0.0f;
+      unsigned int iters = 0;
+      
+      if(grad.getSolutionStatistics(error, iters)){
+	std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
+		  << " ITERS: " << iters << "/5000" << std::endl;
+      }
+      
+      sleep(1);
     }
     
-    sleep(1);
+    grad.stopComputation();
   }
 
-  grad.stopComputation();
+
+  //////////////////////////////////////////////////////////////////////
+
+  printf("Optimizing neural network without pretrainer..\n");
+  
+  nnet.importdata(initial_weights);
+
+  
+  {
+    // trains neural network using SGD
+    
+    whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
+    
+    grad.setUseMinibatch(true);
+    grad.setOverfit(true);
+    
+    grad.startOptimize(data, nnet, 3, 2500);
+    
+    while(grad.isRunning()){
+      math::blas_real<double> error = 0.0f;
+      unsigned int iters = 0;
+      
+      if(grad.getSolutionStatistics(error, iters)){
+	std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
+		  << " ITERS: " << iters << "/5000" << std::endl;
+      }
+      
+      sleep(1);
+    }
+    
+    grad.stopComputation();
+  }
+  
 
   printf("pretrain_nnetwork() tests OK (?)\n");
 }
 
+
 /************************************************************/
+
 
 void nnetwork_kl_divergence_test()
 {
