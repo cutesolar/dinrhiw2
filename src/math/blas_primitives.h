@@ -34,10 +34,10 @@ namespace whiteice
     inline void blas_safebox(const T& value)
     {
 #ifdef _GLIBCXX_DEBUG
-#if 0 // LARGE VALUE DECTECTION IS DISABLED FOR NOW!
+#if 1 // LARGE VALUE DECTECTION IS DISABLED FOR NOW!
       // in debugging mode we stop if data large (algorithms should work with smallish numbers)
-      if(abs(value) > T(1e5) && abs(value) != INFINITY){
-	printf("BLAS VALUE TOO LARGE (larger than 10^5): %f\n", value);
+      if(abs(value) > T(1e20) && abs(value) != INFINITY){ // was: 1e20
+	printf("BLAS VALUE TOO LARGE (larger than 10^20): %f\n", value);
 	assert(0);
       }
 #endif
@@ -100,7 +100,7 @@ namespace whiteice
 	{ return blas_real<T>(this->c[0] - t.c[0]); }
 	
 	inline blas_real<T> operator*(const blas_real<T>& t) const 
-	{ return blas_real<T>(this->c[0] * t.c[0]); }
+	{ return blas_real<T>((this->c[0]) * (t.c[0])); }
 	     
 	inline blas_real<T> operator/(const blas_real<T>& t) const 
 	{ return blas_real<T>(this->c[0] / t.c[0]); } // no division by zero checks

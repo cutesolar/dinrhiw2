@@ -74,7 +74,7 @@ namespace whiteice
       bool solvegg(matrix<T>& C, vertex<T>& x) ;
     
     /*
-     * solves symmetric matrix inverse problem through cholesky factorization
+     * solves symmetric matrix inverse problem using cholesky factorization
      */
     template <typename T>
       bool symmetric_inverse(matrix<T>& A) ;
