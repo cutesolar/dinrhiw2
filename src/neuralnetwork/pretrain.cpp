@@ -272,7 +272,7 @@ namespace whiteice
       auto smaller_mse = nnet.mae(data);
       
       nnet.importdata(w1);
-
+      
       if(matrixFactorizationMode){
 	if(whiteice::pretrain_nnetwork_matrix_factorization
 	   (nnet, data,
