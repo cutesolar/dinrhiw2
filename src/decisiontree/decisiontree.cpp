@@ -708,6 +708,24 @@ namespace whiteice
 
       }
 
+      //std::cout << "pfull = ";
+      for(auto& p : pfull){
+	p /= (float)(rows.size());
+	//std::cout << p << " ";
+      }
+      //std::cout << std::endl;
+      
+      float pbest = pfull[0];
+      int pindex = 0;
+      
+      for(unsigned int i=0;i<pfull.size();i++){
+	if(pbest < pfull[i]){
+	  pbest = pfull[i];
+	  pindex = i;
+	}
+      }
+      
+      best_outcome = pindex;
     }
       
 #endif

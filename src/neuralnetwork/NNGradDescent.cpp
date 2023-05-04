@@ -847,8 +847,11 @@ namespace whiteice
 	  std::ostringstream ss;
 	  ss << std::this_thread::get_id();
 	  std::string str_id = ss.str();
+
+	  whiteice::math::vertex<T> w;
+	  nn->exportdata(w);
 	  
-	  snprintf(buffer, 256, "NNGradDescent: %d/%d (%s) reset/fresh neural network", iterations, MAXITERS, str_id.c_str());
+	  snprintf(buffer, 256, "NNGradDescent: %d/%d (%s) reset/fresh neural network. param norm %f.", iterations, MAXITERS, str_id.c_str(), w.norm()[0].c[0]);
 	  whiteice::logging.info(buffer);
 	}
 
