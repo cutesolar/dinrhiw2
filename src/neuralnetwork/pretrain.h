@@ -58,9 +58,19 @@ namespace whiteice
     PretrainNN();
     virtual ~PretrainNN();
 
+    void setMatrixFactorization(bool enabled = true){
+      std::lock_guard<std::mutex> lock(solution_mutex);
+      matrixFactorizationMode = enabled;
+    }
+
+    bool getMatrixFactorization(){
+      std::lock_guard<std::mutex> lock(solution_mutex);
+      return matrixFactorizationMode;
+    }
+
     bool startTrain(const whiteice::nnetwork<T>& nnet,
 		    const whiteice::dataset<T>& data,
-		    const unsigned int NUMITERATIONS = 2000);
+		    const unsigned int NUMITERATIONS = 100);
 
     bool isRunning() const;
 
@@ -73,6 +83,8 @@ namespace whiteice
   private:
 
     void worker_loop();
+
+    bool matrixFactorizationMode = false;
 
     mutable std::mutex solution_mutex;
     whiteice::nnetwork<T> nnet;
@@ -129,6 +141,15 @@ namespace whiteice
   
   extern template bool pretrain_nnetwork< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+
+
+  extern template bool pretrain_nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& data);
+  
+  extern template bool pretrain_nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& data);
 
 
   
