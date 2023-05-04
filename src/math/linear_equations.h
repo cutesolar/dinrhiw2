@@ -126,6 +126,11 @@ namespace whiteice
     (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
     extern template bool cholesky_factorization< superresolution< blas_real<double>, modular<unsigned int> > >
     (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
+
+    extern template bool cholesky_factorization< superresolution< blas_complex<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_complex<float>, modular<unsigned int> > >& A) ;
+    extern template bool cholesky_factorization< superresolution< blas_complex<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_complex<double>, modular<unsigned int> > >& A) ;
     
     
     extern template bool solvegg< blas_real<float> >
@@ -154,6 +159,11 @@ namespace whiteice
     (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
     extern template bool symmetric_inverse< superresolution< blas_real<double>, modular<unsigned int> > >
     (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
+
+    extern template bool symmetric_inverse< superresolution< blas_complex<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_complex<float>, modular<unsigned int> > >& A) ;
+    extern template bool symmetric_inverse< superresolution< blas_complex<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_complex<double>, modular<unsigned int> > >& A) ;
     
     
     extern template void solve_sylvester< blas_real<float> >

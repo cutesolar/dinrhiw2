@@ -381,8 +381,14 @@ namespace whiteice
   template class PretrainNN< math::blas_real<float> >;
   template class PretrainNN< math::blas_real<double> >;
 
+  template class PretrainNN< math::blas_complex<float> >;
+  template class PretrainNN< math::blas_complex<double> >;
+
   template class PretrainNN< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >;
   template class PretrainNN< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >;
+
+  template class PretrainNN< math::superresolution< math::blas_complex<float>, math::modular<unsigned int> > >;
+  template class PretrainNN< math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > >;
 
   //////////////////////////////////////////////////////////////////////
   
@@ -892,14 +898,14 @@ namespace whiteice
 	  for(unsigned int j=0;j<W.ysize();j++){
 	    for(unsigned int i=0;i<W.xsize();i++){
 	      for(unsigned int k=0;k<A(j,i).size();k++){
-		A(j,i)[k] = (0.5f) * whiteice::rng.normal();
+		A(j,i)[k] = (0.5f) * whiteice::rng.normalf();
 	      }
 	    }
 	  }
 	  
 	  for(unsigned int i=0;i<b.size();i++){
 	    for(unsigned int k=0;k<b[i].size();k++){
-	      A(i, W.xsize())[k] = (0.5f) * whiteice::rng.normal();
+	      A(i, W.xsize())[k] = (0.5f) * whiteice::rng.normalf();
 	    }
 	  }
 

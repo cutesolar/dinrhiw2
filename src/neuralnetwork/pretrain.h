@@ -94,8 +94,14 @@ namespace whiteice
   extern template class PretrainNN< math::blas_real<float> >;
   extern template class PretrainNN< math::blas_real<double> >;
 
+  extern template class PretrainNN< math::blas_complex<float> >;
+  extern template class PretrainNN< math::blas_complex<double> >;
+
   extern template class PretrainNN< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >;
   extern template class PretrainNN< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >;
+
+  extern template class PretrainNN< math::superresolution< math::blas_complex<float>, math::modular<unsigned int> > >;
+  extern template class PretrainNN< math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > >;
 
   
   //////////////////////////////////////////////////////////////////////
