@@ -193,8 +193,9 @@ namespace whiteice
     data.getData(0, vdata);
 
     
-    auto initial_mse = nnet.mse(data);
+    auto initial_mse = nnet.mae(data);
     auto best_mse = initial_mse;
+    this->current_error = initial_mse;
     math::vertex<T> weights, w0, w1;
     
     nnet.exportdata(weights);
@@ -236,51 +237,79 @@ namespace whiteice
 
 
       nnet.exportdata(w1);
-      
-      if(whiteice::pretrain_nnetwork_matrix_factorization
-	 (nnet, data,
-	  T(0.5f)*adaptive_step_length) == false){
 
-	break;
+      if(matrixFactorizationMode){
+	if(whiteice::pretrain_nnetwork_matrix_factorization
+	   (nnet, data,
+	    T(0.5f)*adaptive_step_length) == false){
+	  //printf("ERROR!\n");
+	  continue;
+	  break;
+	}
+      }
+      else{
+	if(whiteice::pretrain_nnetwork
+	   (nnet, data) == false){
+	  printf("ERROR!\n");
+	  
+	  break;
+	}
       }
 
       nnet.exportdata(w0);
 
-      for(unsigned int i=0;i<w0.size();i++){
-	for(unsigned int k=0;k<w0[i].size();k++){
-	  if(w0[i][k].c[0] < -0.75f) w0[i][k].c[0] = -0.75f;
-	  if(w0[i][k].c[0] > +0.75f) w0[i][k].c[0] = +0.75f;
+      if(matrixFactorizationMode){
+	for(unsigned int i=0;i<w0.size();i++){
+	  for(unsigned int k=0;k<w0[i].size();k++){
+	    if(w0[i][k].c[0] < -0.75f) w0[i][k].c[0] = -0.75f;
+	    if(w0[i][k].c[0] > +0.75f) w0[i][k].c[0] = +0.75f;
+	  }
 	}
       }
 
       nnet.importdata(w0);
       
-      auto smaller_mse = nnet.mse(data);
+      auto smaller_mse = nnet.mae(data);
       
       nnet.importdata(w1);
-      
-      if(whiteice::pretrain_nnetwork_matrix_factorization
-	 (nnet, data,
-	  T(2.0f)*adaptive_step_length) == false){
-	
-	break;
-      }
 
+      if(matrixFactorizationMode){
+	if(whiteice::pretrain_nnetwork_matrix_factorization
+	   (nnet, data,
+	    T(2.0f)*adaptive_step_length) == false){
+	  continue;
+	  //printf("ERROR!\n");
+	  
+	  break;
+	}
+      }
+      else{
+	if(whiteice::pretrain_nnetwork
+	   (nnet, data) == false){
+	  printf("ERROR!\n");
+	  
+	  break;
+	}
+      }
+      
       nnet.exportdata(w1);
 
-      for(unsigned int i=0;i<w1.size();i++){
-	for(unsigned int k=0;k<w1[i].size();k++){
-	  if(w1[i][k].c[0] < -0.75f) w1[i][k].c[0] = -0.75f;
-	  if(w1[i][k].c[0] > +0.75f) w1[i][k].c[0] = +0.75f;
+      
+      if(matrixFactorizationMode){
+	for(unsigned int i=0;i<w1.size();i++){
+	  for(unsigned int k=0;k<w1[i].size();k++){
+	    if(w1[i][k].c[0] < -0.75f) w1[i][k].c[0] = -0.75f;
+	    if(w1[i][k].c[0] > +0.75f) w1[i][k].c[0] = +0.75f;
+	  }
 	}
       }
       
       nnet.importdata(w1);
       
-      auto larger_mse = nnet.mse(data);
+      auto larger_mse = nnet.mae(data);
       auto mse = larger_mse;
       
-      if(smaller_mse < larger_mse){
+      if(smaller_mse[0] <= larger_mse[0]){
 	adaptive_step_length *= T(0.5f);
 	if(adaptive_step_length[0] < (1e-10))
 	  adaptive_step_length = T(1e-10);
@@ -295,8 +324,20 @@ namespace whiteice
       }
       
       
+      for(unsigned int k=1;k<mse.size();k++)
+	mse[k] = 0.0f;
+      
+      std::cout << "MAE = " << mse << std::endl;
+      
+      if(best_mse[0] > mse[0]){
+	best_mse = mse;
+	this->current_error = best_mse;
+	nnet.exportdata(weights);
+      }
+      
+      
       {
-	errors.push_back(mse);
+	errors.push_back(best_mse);
 	
 	while(errors.size() > ERROR_HISTORY_SIZE)
 	  errors.pop_front();
@@ -335,13 +376,6 @@ namespace whiteice
 	  }
 	  
 	}
-      }
-      
-      
-      if(best_mse > mse){
-	best_mse = mse;
-	this->current_error = best_mse;
-	nnet.exportdata(weights);
       }
 
       // adaptive_step_length = 1e-5;
@@ -540,11 +574,17 @@ namespace whiteice
 	  math::matrix<T> A(W);
 	  math::vertex<T> c(b);
 
-	  for(unsigned int i=0;i<A.size();i++)
-	    A[i] = whiteice::rng.normal();
+	  for(unsigned int i=0;i<A.size();i++){
+	    for(unsigned int k=0;k<A[i].size();k++){
+	      A[i][k] = whiteice::rng.normal();
+	    }
+	  }
 
-	  for(unsigned int i=0;i<c.size();i++)
-	    c[i] = whiteice::rng.normal();
+	  for(unsigned int i=0;i<c.size();i++){
+	    for(unsigned int k=0;k<c[i].size();k++){
+	      c[i][k] = whiteice::rng.normal();
+	    }
+	  }
 
 	  W = T(0.250f)*W + T(0.750f)*A;
 	  b = T(0.250f)*b + T(0.750f)*c;
@@ -983,6 +1023,15 @@ namespace whiteice
   
   template bool pretrain_nnetwork< math::blas_real<double> >
   (nnetwork< math::blas_real<double> >& nnet, const dataset< math::blas_real<double> >& data);
+
+  
+  template bool pretrain_nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >& data);
+  
+  template bool pretrain_nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >
+  (nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& nnet,
+   const dataset< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >& data);
 
   
 
