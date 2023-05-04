@@ -708,8 +708,6 @@ namespace whiteice
 
       }
 
-<<<<<<< HEAD
-      
       //std::cout << "pfull = ";
       for(auto& p : pfull){
 	p /= (float)(rows.size());
@@ -728,8 +726,6 @@ namespace whiteice
       }
       
       best_outcome = pindex;
-=======
->>>>>>> c0957b4d768f103629b374b66f2fa343aa4a40cd
     }
       
 #endif
