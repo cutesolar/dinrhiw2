@@ -113,6 +113,9 @@ namespace whiteice
       // maintains pairing between cluster A and cluster B, 
       // if i:th element of A is bad, removes also i:th element of B
       bool removeBadData();
+
+      // DEBUG: returns maximum absolute value in cluster index
+      T max(unsigned int index) const;
       
       // returns data in cluster "index"
       bool getData(unsigned int index, std::vector< math::vertex<T> >& data) const ;
