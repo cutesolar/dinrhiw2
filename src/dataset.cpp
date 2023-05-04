@@ -619,6 +619,30 @@ namespace whiteice
     
     return true;
   }
+
+
+  template <typename T>
+  T dataset<T>::max(unsigned int index) const
+  {
+    if(index >= clusters.size()) return T(0.0f);
+
+    T maxvalue = T(0.0f);
+
+    const unsigned int N = clusters[index].data.size();
+
+    for(unsigned int n=0;n<N;n++){
+      const auto& v = clusters[index].data[n];
+      
+      for(unsigned int d=0;d<v.size();d++){
+	auto a = whiteice::math::abs(v[d]);
+	if(a > maxvalue) maxvalue = a;
+      }
+      
+    }
+
+    return maxvalue;
+  }
+  
   
   
   template <typename T>
