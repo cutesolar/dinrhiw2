@@ -16,6 +16,7 @@ EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../neuralnetwork/nnetwork.o ../neuralnetwork/bayesian_nnetwork.o \
 	../conffile.o ../neuralnetwork/NNGradDescent.o \
 	../math/SGD.o ../neuralnetwork/SGD_recurrent_nnetwork.o \
+	../neuralnetwork/pretrain.o \
 	../math/superresolution.o ../math/modular.o \
 	../neuralnetwork/deep_ica_network_priming.o ../math/linear_equations.o \
 	../Log.o ../math/norms.o ../neuralnetwork/stackedRBM_pretraining.o \
