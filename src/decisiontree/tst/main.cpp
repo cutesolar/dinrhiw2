@@ -23,19 +23,33 @@ int main(void)
 
     printf("DECISION TREE TESTING CODE 0: CONTINUOUS DATA\n");
 
+    fflush(stdout);
+
     std::vector< whiteice::math::vertex<> > cinput, coutput;
+    
+    std::vector< whiteice::math::vertex<> > cinput2, coutput2;
     
     std::vector< std::vector<bool> > input;
     std::vector< std::vector<bool> > output;
+
+    std::vector< std::vector<bool> > input2;
+    std::vector< std::vector<bool> > output2;
+
+    std::vector< whiteice::math::vertex<> > conversion;
     
     whiteice::math::vertex<> in, out;
     whiteice::math::matrix<> A;
     whiteice::math::vertex<> b;
 
-    in.resize(10);
+    const unsigned int DIM = 2; // was: 1, 2, 4, 10
+    // const unsigned int SAMPLES = whiteice::math::pow(2.0f,(float)DIM)*1000; // was: 2000
+    const unsigned int SAMPLES = 2000;
+
+
+    in.resize(DIM);
     out.resize(1);
 
-    A.resize(1, 10);
+    A.resize(1, DIM);
     b.resize(1);
 
     for(unsigned int y=0;y<A.ysize();y++)
@@ -45,21 +59,63 @@ int main(void)
     for(unsigned int i=0;i<b.size();i++)
       b[i]= whiteice::rng.normal();
 
-    for(unsigned int i=0;i<2000;i++){
+    for(unsigned int i=0;i<SAMPLES;i++){
       whiteice::rng.normal(in);
       out = A*in + b;
 
       cinput.push_back(in);
       coutput.push_back(out);
     }
+
+    std::cout << "INPUT  DATA SIZE: " << cinput.size() << std::endl;
+    std::cout << "OUTPUT DATA SIZE: " << coutput.size() << std::endl;
+    
+    std::cout << "Discretization.. start." << std::endl;
+
+    fflush(stdout);
     
     discretization(cinput, coutput,
-		   input, output);
+		   input, output,
+		   conversion);
 
-    std::cout << "INPUT DATA SIZE: " << input.size() << std::endl;
+    std::cout << "Discretization.. DONE." << std::endl;
+
+    while(input.size() > SAMPLES/2){
+      auto iter1 = input.end();
+      auto iter2 = output.end();
+
+      iter1--;
+      iter2--;
+
+      input2.push_back(*iter1);
+      output2.push_back(*iter2);
+
+      input.erase(iter1);
+      output.erase(iter2);
+    }
+
+    while(cinput.size() > SAMPLES/2){
+      auto iter1 = cinput.end();
+      auto iter2 = coutput.end();
+
+      iter1--;
+      iter2--;
+
+      cinput2.push_back(*iter1);
+      coutput2.push_back(*iter2);
+
+      cinput.erase(iter1);
+      coutput.erase(iter2);
+    }
+
+    
+    std::cout << "INPUT  DATA SIZE: " << input.size() << std::endl;
     std::cout << "OUTPUT DATA SIZE: " << output.size() << std::endl;
 
+    std::cout << "INPUT  DIM: " << input[0].size() << std::endl;
     std::cout << "OUTPUT DIM: " << output[0].size() << std::endl;
+
+    fflush(stdout);
 
     
     if(dt.startTrain(input, output) == false){
@@ -78,33 +134,42 @@ int main(void)
     // print outcomes
     {
       std::vector<int> outcomes;
+
+      whiteice::math::blas_real<float> error = 0.0f;
       
       unsigned int correct=0, wrong=0;
       
-      for(unsigned int i=0;i<input.size();i++){
+      for(unsigned int i=0;i<input2.size();i++){
 	
-	const int outcome = dt.classify(input[i]);
+	const int outcome = dt.classify(input2[i]);
 
 	if(outcome < 0){
 	  printf("wrong outcome!\n");
 	}
 	else{
 	
-	  if(output[i][outcome]){
+	  if(output2[i][outcome]){
 	    correct++;
 	  }
 	  else{
 	    wrong++;
 	  }
+
+	  auto nrm = (conversion[outcome]-coutput2[i]).norm();
+	  error += nrm*nrm;
 	  
 	}
 	
 	outcomes.push_back(outcome);
       }
+
+      error /= outcomes.size();
       
       printf("OUTCOME IS %d. FOR FIRST INPUT DATA ELEMENT.\n", outcomes[0]);
       
       printf("PERCENT CLASSIFICATIONS CORRECT: %f\n", (float)correct/((float)(correct+wrong)));
+
+      std::cout << "Classification MSE error: " << error << std::endl;
     }
     
   }

@@ -74,7 +74,7 @@ namespace whiteice
       bool solvegg(matrix<T>& C, vertex<T>& x) ;
     
     /*
-     * solves symmetric matrix inverse problem through cholesky factorization
+     * solves symmetric matrix inverse problem using cholesky factorization
      */
     template <typename T>
       bool symmetric_inverse(matrix<T>& A) ;
@@ -121,6 +121,11 @@ namespace whiteice
       (matrix<float>& A) ;
     extern template bool cholesky_factorization<double>
       (matrix<double>& A) ;
+
+    extern template bool cholesky_factorization< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
+    extern template bool cholesky_factorization< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
     
     
     extern template bool solvegg< blas_real<float> >
@@ -131,11 +136,24 @@ namespace whiteice
       (matrix<float>& C, vertex<float>& x) ;
     extern template bool solvegg<double>
       (matrix<double>& C, vertex<double>& x) ;
+
+    extern template bool solvegg< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& C,
+     vertex< superresolution< blas_real<float>, modular<unsigned int> >  >& x) ;
+    
+    extern template bool solvegg< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& C,
+     vertex< superresolution< blas_real<double>, modular<unsigned int> > >& x) ;
     
     extern template bool symmetric_inverse< blas_real<float> >(matrix< blas_real<float> >& A) ;
     extern template bool symmetric_inverse< blas_real<double> >(matrix< blas_real<double> >& A) ;
     extern template bool symmetric_inverse< float >(matrix< float >& A) ;
     extern template bool symmetric_inverse< double >(matrix< double >& A) ;
+
+    extern template bool symmetric_inverse< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
+    extern template bool symmetric_inverse< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
     
     
     extern template void solve_sylvester< blas_real<float> >

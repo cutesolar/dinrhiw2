@@ -386,12 +386,12 @@ namespace whiteice
 	  // handle small values causing floating point exception
 	  if(typeid(T) == typeid(blas_real<float>) ||
 	     typeid(T) == typeid(float)){
-	    if(whiteice::math::abs(beta) < T(1e-30f))
+	    if(whiteice::math::abs(beta) < T(1e-20f))
 	      return false;
 	  }
 	  else if(typeid(T) == typeid(blas_real<double>) ||
 		  typeid(T) == typeid(double)){
-	    if(whiteice::math::abs(beta) < T(1e-300))
+	    if(whiteice::math::abs(beta) < T(1e-200))
 	      return false;
 	  }
 #else
@@ -399,7 +399,7 @@ namespace whiteice
 	  // we increase value to be large enough
 	  if(typeid(T) == typeid(blas_real<float>) ||
 	     typeid(T) == typeid(float)){
-	    if(whiteice::math::abs(beta) < 1e-30f){
+	    if(whiteice::math::abs(beta) < 1e-20f){
 	      if(beta >= T(0.0f)){
 		beta = T(1e-30f);
 	      }
@@ -410,7 +410,7 @@ namespace whiteice
 	  }
 	  else if(typeid(T) == typeid(blas_real<double>) ||
 		  typeid(T) == typeid(double)){
-	    if(whiteice::math::abs(beta) < 1e-300){
+	    if(whiteice::math::abs(beta) < 1e-200){
 	      if(beta >= T(0.0f)){
 		beta = T(1e-300);
 	      }

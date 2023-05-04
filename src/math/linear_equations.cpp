@@ -65,13 +65,18 @@ namespace whiteice
     
     
     template bool cholesky_factorization< blas_real<float> >
-      (matrix< blas_real<float> >& A) ;
+    (matrix< blas_real<float> >& A) ;
     template bool cholesky_factorization< blas_real<double> >
-      (matrix< blas_real<double> >& A) ;
+    (matrix< blas_real<double> >& A) ;
     template bool cholesky_factorization<float>
-      (matrix<float>& A) ;
+    (matrix<float>& A) ;
     template bool cholesky_factorization<double>
-      (matrix<double>& A) ;    
+    (matrix<double>& A) ;
+
+    template bool cholesky_factorization< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
+    template bool cholesky_factorization< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
     
     
     template bool solvegg< blas_real<float> >
@@ -83,15 +88,29 @@ namespace whiteice
      vertex< blas_real<double> >& x) ;
     
     template bool solvegg<float>
-      (matrix<float>& C, vertex<float>& x) ;
+    (matrix<float>& C, vertex<float>& x) ;
     template bool solvegg<double>
-      (matrix<double>& C, vertex<double>& x) ;
+    (matrix<double>& C, vertex<double>& x) ;
+
+    template bool solvegg< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& C,
+     vertex< superresolution< blas_real<float>, modular<unsigned int> >  >& x) ;
+    
+    template bool solvegg< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& C,
+     vertex< superresolution< blas_real<double>, modular<unsigned int> > >& x) ;
+
 
     
     template bool symmetric_inverse< blas_real<float> >(matrix< blas_real<float> >& A) ;
     template bool symmetric_inverse< blas_real<double> >(matrix< blas_real<double> >& A) ;
     template bool symmetric_inverse< float >(matrix< float >& A) ;
     template bool symmetric_inverse< double >(matrix< double >& A) ;
+
+    template bool symmetric_inverse< superresolution< blas_real<float>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<float>, modular<unsigned int> > >& A) ;
+    template bool symmetric_inverse< superresolution< blas_real<double>, modular<unsigned int> > >
+    (matrix< superresolution< blas_real<double>, modular<unsigned int> > >& A) ;
     
     
     template void solve_sylvester< blas_real<float> >
@@ -346,13 +365,13 @@ namespace whiteice
 	  // for this row and subtracts it
 	  // from the other side -> left side variables
 	  // are 'virtually' zeroed
-	  sum = 0.0f;
+	  sum = T(0.0f);
 	  for(unsigned int j=0;j<i;j++)
 	    sum += C(i,j)*x[j];
 	  
 	  x[i] -= sum;
 	  
-	  if(C(i,i) <= 0) return false;
+	  if(C(i,i) <= T(0.0f)) return false;
 	  else x[i] /= C(i,i);
 	}
 	
@@ -365,14 +384,14 @@ namespace whiteice
 	  // for this row and subtracts it
 	  // from the other side -> left side variables
 	  // are 'virtually' zeroed
-	  sum = 0.0f;
+	  sum = T(0.0f);
 	  for(unsigned int j=i;j<N;j++)
 	    // C[i][j].transpose() * x[j] (because need to get values from lower triangular part)
 	    sum += C(j,i - 1)*x[j];
 	  
 	  x[i - 1] -= sum;
 	  
-	  if(C(i - 1, i - 1) <= 0) return false;
+	  if(C(i - 1, i - 1) <= T(0.0f)) return false;
 	  else x[i - 1] /= C(i - 1, i - 1);
 	}	
 	

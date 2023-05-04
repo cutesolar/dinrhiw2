@@ -39,6 +39,8 @@
 #include "GBRBM.h"
 #include "stackedRBM_pretraining.h"
 
+#include "pretrain.h"
+
 #include "VAE.h"
 #include "TSNE.h"
 

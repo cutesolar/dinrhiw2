@@ -1203,7 +1203,7 @@ namespace whiteice
 	// memcpy(data, R.data, numRows*numCols*sizeof(T));
 	
 	this->numCols = M.numCols;
-	free(data);
+	if(data) delete[] data;
 	data = R.data;
 	R.data = nullptr;
 	

@@ -25,6 +25,8 @@
 #include "HMC_gaussian.h"
 #include "deep_ica_network_priming.h"
 
+#include "pretrain.h"
+
 #include "RBM.h"
 #include "GBRBM.h"
 #include "HMCGBRBM.h"
@@ -74,7 +76,7 @@
 
 #include <fenv.h>
 
-#if 0
+#if 1
 
 extern "C" {
 
@@ -84,7 +86,7 @@ extern "C" {
 #include <fenv.h>
   static void __attribute__ ((constructor))
   trapfpe(){
-    feenableexcept(FE_INVALID|FE_DIVBYZERO|FE_OVERFLOW);
+    feenableexcept(FE_INVALID); // |FE_DIVBYZERO); // |FE_OVERFLOW);
   }
 #endif
   
@@ -154,6 +156,8 @@ void simple_global_optimum_test();
 
 void kmeans_test();
 
+void pretrain_test(); // good pretraining, optimization idea test
+
 void compressed_neuralnetwork_test();
 
 
@@ -174,11 +178,15 @@ int main()
   // seed = 0x5f54fc68;
   printf("seed = 0x%x\n", seed);
   srand(seed);
+
+  whiteice::logging.setOutputFile("testsuite1.log");
   
   try{
     // nnetwork_entropy_test();
 
     // nnetwork_kl_divergence_test();
+
+    pretrain_test();
 
     bayesian_nnetwork_test();    
     
@@ -340,6 +348,398 @@ private:
 };
 
 /************************************************************/
+
+void pretrain_test() // good pretraining, optimization idea test
+{
+  std::cout << "smart neural network pretraining test." << std::endl;
+
+
+  // generates test data, 10-layer 10->10 dimensional neural nnetwork
+  // (residual rectifier neural network)
+
+  const unsigned int LAYERS = 3; // was: 10, 100
+  const unsigned int INPUT_DIM = 4;
+  const unsigned int HIDDEN_DIM = 50; // was: 100
+  const unsigned int OUTPUT_DIM = INPUT_DIM;
+  
+  whiteice::nnetwork< math::blas_real<double> > nnet;
+  whiteice::RNG< math::blas_real<double> > rng;
+
+  std::vector<unsigned int> layers;
+
+  layers.push_back(INPUT_DIM);
+  
+  for(unsigned int i=0;i<(LAYERS-1);i++) 
+    layers.push_back(HIDDEN_DIM);
+  
+  layers.push_back(OUTPUT_DIM);
+
+  nnet.setArchitecture(layers);
+  nnet.setResidual(false);
+  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
+
+  nnet.randomize(2, 0.01);
+
+
+  whiteice::nnetwork< math::blas_real<double> > gennet; // for generating dataset example problem
+
+  layers.clear();
+  layers.push_back(INPUT_DIM);
+  layers.push_back(HIDDEN_DIM);
+  layers.push_back(HIDDEN_DIM);
+  layers.push_back(OUTPUT_DIM);
+
+  gennet.setArchitecture(layers);
+  gennet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
+
+  gennet.randomize();
+
+  
+  whiteice::dataset< math::blas_real<double> > data;
+  
+  data.createCluster("input", INPUT_DIM);
+  data.createCluster("output", OUTPUT_DIM);
+
+  for(unsigned int i=0;i<2000;i++){ // only 2000 elements for faster results..
+    math::vertex< math::blas_real<double> > datum(INPUT_DIM), output;
+    datum.resize(INPUT_DIM);
+    output.resize(OUTPUT_DIM);
+    rng.normal(datum);
+
+    math::blas_real<double> sigma = 4.0;
+    math::blas_real<double> f = 10.0, a = 1.10, w = 10.0, one = 1.0;
+
+    datum = sigma*datum;
+
+    data.add(0, datum);
+
+    auto& x = datum;
+    auto& y = output;
+
+    
+    y[0] = math::sin((f*x[0]*x[1]*x[2]*x[3]));
+    if(x[3].c[0] >= 0.0f)
+      y[1] =  math::pow(a, (x[0]/(math::abs(x[2])+one)) );
+    else
+      y[1] = -math::pow(a, (x[0]/(math::abs(x[2])+one)) );
+
+    y[2] = 0.0f;
+    if(x[1].c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    if(x[3].c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    auto temp = math::cos(w*x[0]);
+    if(temp.c[0] > 0.0f) y[2] += one;
+    else y[2] -= one;
+    
+    y[3] = x[1]/(math::abs(x[0])+one) + x[2]*math::sqrt(math::abs(x[3])) + math::abs(x[3] - x[0]);
+    
+    // gennet.calculate(datum, output);
+
+    data.add(1, output);
+  }
+
+  data.preprocess(0);
+  data.preprocess(1);
+
+  printf("DATA GENERATED %d\n", data.size(0));
+  
+  nnet.setBatchNorm(false);
+
+  math::vertex< math::blas_real<double> > initial_weights;
+
+  nnet.exportdata(initial_weights);
+
+#if 0
+  // trains similar network using pretrain and reports error in 20 first iterations
+
+  PretrainNN< math::blas_real<double> > pretrainer;
+  const unsigned int MAXITERS = 2000;
+
+  if(pretrainer.startTrain(nnet, data, MAXITERS) == false){
+    printf("ERROR: starting pretrainer FAILED.\n");
+    return;
+  }
+
+  while(pretrainer.isRunning()){
+    sleep(1);
+    math::blas_real<double> error;
+    unsigned int iters = 0;
+
+    pretrainer.getStatistics(iters, error);
+
+    std::cout << "Pretrainer " << iters << "/" << MAXITERS << " : " << error << std::endl;
+  }
+
+  pretrainer.stopTrain();
+
+  if(pretrainer.getResults(nnet) == false){
+    printf("ERROR: getting results from pretrainer FAILED.\n");
+    return;
+  }
+#endif
+  
+
+#if 0
+  
+  std::vector< math::vertex< math::blas_real<double> > > vdata;
+
+  data.getData(0, vdata);
+  
+  
+  const unsigned int ITERS = 0; // was: 100,20, 5000 
+
+  auto initial_mse = nnet.mse(data);
+  auto best_mse = math::blas_real<double>(1e5);
+  math::vertex< math::blas_real<double> > weights, w0, w1;
+  nnet.exportdata(weights);
+
+  math::blas_real<double> adaptive_step_length = (1e-5f);
+
+
+  // convergence detection
+  std::list< math::blas_real<double> > errors;
+  const unsigned int ERROR_HISTORY_SIZE = 30;
+  
+
+  
+  //for(unsigned int k=0;k<ITERS;k++){
+  unsigned int k = 0;
+  while(k<ITERS){
+
+    nnet.setBatchNorm(false);
+    // nnet.calculateBatchNorm(vdata);
+
+#if 1
+    if((whiteice::rng.rand() % 100) == 0){
+      printf("LARGE ADAPTIVE STEPLENGTH\n");
+      adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+      if(adaptive_step_length.c[0] >= 0.45f)
+	adaptive_step_length = 0.45f;
+    }
+#endif
+
+
+#if 0
+    if((whiteice::rng.rand() % 200) == 0)
+      whiten1d_nnetwork(nnet, data);
+#endif
+
+    nnet.exportdata(w1);
+    
+    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data,
+							math::blas_real<double>(0.5f)*adaptive_step_length) == false)
+    {
+      printf("pretrain_nnetwork() FAILED!\n");
+      return; 
+    }
+
+    nnet.exportdata(w0);
+#if 1
+    for(unsigned int i=0;i<w0.size();i++){
+      
+      if(w0[i].c[0] < -0.75f) w0[i].c[0] = -0.75f;
+      if(w0[i].c[0] > +0.75f) w0[i].c[0] = +0.75f;
+
+      // printf("w0[%d] = %f\n", i, w0[i].c[0]);
+    }
+#endif
+    
+    
+    nnet.importdata(w0);
+
+    auto smaller_mse = nnet.mse(data);
+
+    nnet.importdata(w1);
+
+    if(whiteice::pretrain_nnetwork_matrix_factorization(nnet, data,
+							math::blas_real<double>(2.0f)*adaptive_step_length) == false)
+    {
+      printf("pretrain_nnetwork() FAILED!\n");
+      return; 
+    }
+
+    nnet.exportdata(w1);
+
+#if 1
+    for(unsigned int i=0;i<w1.size();i++){
+      if(w1[i].c[0] < -0.75f) w1[i].c[0] = -0.75f;
+      if(w1[i].c[0] > +0.75f) w1[i].c[0] = +0.75f;
+
+      // printf("w1[%d] = %f\n", i, w1[i].c[0]);
+    }
+#endif
+    
+    nnet.importdata(w1);
+
+    auto larger_mse = nnet.mse(data);
+    auto mse = larger_mse;
+
+    if(smaller_mse < larger_mse){
+      adaptive_step_length *= (0.5f);
+      if(adaptive_step_length < 1e-10)
+	adaptive_step_length = 1e-10;
+      mse = smaller_mse;
+
+      nnet.importdata(w0);
+    }
+    else{
+      adaptive_step_length *= (2.0f);
+      if(adaptive_step_length.c[0] >= 0.45f)
+	adaptive_step_length = 0.45f;
+    }
+
+
+    {
+      errors.push_back(mse);
+      
+      while(errors.size() > ERROR_HISTORY_SIZE)
+	errors.pop_front();
+
+      if(errors.size() >= ERROR_HISTORY_SIZE){
+
+	auto iter = errors.begin();
+	
+	auto mean = *iter;
+	auto stdev  = (*iter)*(*iter);
+
+	iter++;
+
+	for(unsigned int i=1;i<errors.size();i++,iter++){
+	  mean += *iter;
+	  stdev += (*iter)*(*iter);
+	};
+
+	mean /= errors.size();
+	stdev /= errors.size();
+
+	stdev = stdev - mean*mean;
+	stdev = whiteice::math::sqrt(whiteice::math::abs(stdev));
+
+	auto convergence = (stdev/(whiteice::math::blas_real<double>(1e-5) + mean));
+	
+	std::cout << "convergence = " << convergence << std::endl;
+
+	if(convergence < 0.1f){
+	  printf("LARGE ADAPTIVE STEPLENGTH\n");
+	  adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
+	  if(adaptive_step_length.c[0] >= 0.45f)
+	    adaptive_step_length = 0.45f;
+
+	  errors.clear();
+	}
+	
+      }
+    }
+    
+    
+    if(best_mse > mse){
+      best_mse = mse;
+      nnet.exportdata(weights);
+    }
+
+    // adaptive_step_length = 1e-5;
+
+    //if(mse > 10000.0f){
+    //  nnet.randomize(2, 0.01);
+    //  printf("RANDOMIZE NEURAL NETWORK\n");
+    //}
+
+    printf("%d/%d: Neural network MSE for this problem: %f %f%% %f %f%% (%e)\n",
+	   k, ITERS, mse.c[0],
+	   (mse/initial_mse).c[0]*100.0f,
+	   best_mse.c[0],
+	   (best_mse/initial_mse).c[0]*100.0f,
+	   adaptive_step_length.c[0]);
+    
+    
+    
+
+    k++;
+  }
+
+
+  nnet.importdata(weights);
+
+#endif
+  
+  nnet.setBatchNorm(false);
+  // nnet.calculateBatchNorm(vdata);
+  
+  nnet.setNonlinearity(whiteice::nnetwork< math::blas_real<double> >::rectifier);
+  nnet.setResidual(true);
+  
+  auto mse = nnet.mse(data);
+  printf("Neural network MSE for this problem: %f (per dimension)\n", mse.c[0]);
+
+
+  {
+    // trains neural network using SGD
+    
+    whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
+    
+    grad.setUseMinibatch(true);
+    grad.setOverfit(true);
+
+    grad.setMatrixFactorizationPretrainer(true);
+    
+    grad.startOptimize(data, nnet, 3, 2500);
+    
+    while(grad.isRunning()){
+      math::blas_real<double> error = 0.0f;
+      unsigned int iters = 0;
+      
+      if(grad.getSolutionStatistics(error, iters)){
+	std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
+		  << " ITERS: " << iters << "/5000" << std::endl;
+      }
+      
+      sleep(1);
+    }
+    
+    grad.stopComputation();
+  }
+
+
+  //////////////////////////////////////////////////////////////////////
+
+  printf("Optimizing neural network without pretrainer..\n");
+  
+  nnet.importdata(initial_weights);
+
+  
+  {
+    // trains neural network using SGD
+    
+    whiteice::math::NNGradDescent<  math::blas_real<double> > grad;
+    
+    grad.setUseMinibatch(true);
+    grad.setOverfit(true);
+    
+    grad.startOptimize(data, nnet, 3, 2500);
+    
+    while(grad.isRunning()){
+      math::blas_real<double> error = 0.0f;
+      unsigned int iters = 0;
+      
+      if(grad.getSolutionStatistics(error, iters)){
+	std::cout << "MSE ERROR OF GRADIENT DESCENT: " << error
+		  << " ITERS: " << iters << "/5000" << std::endl;
+      }
+      
+      sleep(1);
+    }
+    
+    grad.stopComputation();
+  }
+  
+
+  printf("pretrain_nnetwork() tests OK (?)\n");
+}
+
+
+/************************************************************/
+
 
 void nnetwork_kl_divergence_test()
 {

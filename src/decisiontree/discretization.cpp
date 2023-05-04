@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "discretization.h"
-#include "Kmeans.h"
+#include "KMeans.h"
 
 
 #include <unistd.h>
@@ -22,7 +22,8 @@ namespace whiteice
   bool discretization(const std::vector< math::vertex<T> >& input,
 		      const std::vector< math::vertex<T> >& output,
 		      std::vector< std::vector<bool> >& inputResults,
-		      std::vector< std::vector<bool> >& outputResults)
+		      std::vector< std::vector<bool> >& outputResults,
+		      std::vector< math::vertex<T> >& conversion)
   {
     if(input.size() == 0 || output.size() == 0) return false;
     if(input.size() != output.size()) return false;
@@ -34,7 +35,7 @@ namespace whiteice
 
     // discretization:
     // 1. detect discrete variables (N=30 different discrete cases max)
-    // 2. calculate clustering for continuous variables (K=min(numdata/2, 5) clusters)
+    // 2. calculate clustering for continuous variables (K=min(numdata/20, 100) clusters)
     // 3. discretize continuous variables based on distance to cluster center
     //    (5 discretizations per cluster/distance)
     // 4. binarize discrete (all) variables
@@ -103,9 +104,9 @@ namespace whiteice
 
 
       // calculates KMeans clustering of input data with
-      // K=min(numdata/2, 5) clusters clusters
+      // K=min(numdata/20, 100) clusters clusters
       
-      const unsigned int K = cdata.size()/2 < 5 ? (cdata.size()/2) : 5;
+      const unsigned int K = whiteice::math::pow(1.75f, (float)icont.size())*((1 + cdata.size()/20) < 100 ? (1 + cdata.size()/20) : 100); // was: 100
 
       whiteice::KMeans<T> kmeans;
 
@@ -139,24 +140,26 @@ namespace whiteice
       
       distance_stdev = math::sqrt(distance_stdev);
 
+      const unsigned int L = 5;
+
       // now we have st.dev., divide st.dev. by 2.5 to find discretization unit distance
-      T unit_distance = distance_stdev / T(2.5f);
+      T unit_distance = distance_stdev / T(L / 2.0f);
 
       for(unsigned long long i=0;i<cdata.size();i++){
 	const unsigned int index = kmeans.getClusterIndex(cdata[i]); // cluster*5
 	unsigned int k = 0;
 	whiteice::math::convert(k, distances[i]/unit_distance); // 5 distances per cluster
 
-	if(k > 5) k = 5;
+	if(k >= L) k = L-1;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*5);
+	binarized.resize(kmeans.size()*L);
 
 	for(unsigned int i=0;i<binarized.size();i++){
 	  binarized[i] = false;
 	}
 
-	binarized[index*5 + k] = true;
+	binarized[index*L + k] = true;
 
 	icb_data.push_back(binarized);
       }
@@ -292,8 +295,11 @@ namespace whiteice
       
       distance_stdev = math::sqrt(distance_stdev);
 
+
+      const int KL = 5;
+
       // now we have st.dev., divide st.dev. by 2.5 to find discretization unit distance
-      T unit_distance = distance_stdev / T(2.5f);
+      T unit_distance = distance_stdev / T(KL/2.0f);
 
       for(unsigned long long i=0;i<cdata.size();i++){
 	const unsigned int index = kmeans.getClusterIndex(cdata[i]); // cluster*5
@@ -303,21 +309,32 @@ namespace whiteice
 
 	k = (int)dk.c[0];
 
-	if(k >  5) k = 5;
-	if(k < -5) k = -5;
+	if(k >=  KL) k =  KL;
+	if(k <= -KL) k = -KL;
 
-	k += 5;
+	k += KL;
 
 	std::vector<bool> binarized;
-	binarized.resize(kmeans.size()*10);
+	binarized.resize(kmeans.size()*(KL*2+1));
 
 	for(unsigned int i=0;i<binarized.size();i++)
 	  binarized[i] = false;
 
-	binarized[index*10 + k] = true;
+	binarized[index*(KL*2+1) + k] = true;
 
 	ocb_data.push_back(binarized);
       }
+
+
+      // conversion table! (for continuous data)
+      conversion.resize(kmeans.size()*(KL*2+1));
+      
+      for(unsigned long long i=0;i<kmeans.size();i++){
+	for(unsigned int j=0;j<(KL*2+1);j++){
+	  conversion[i*(KL*2+1)+j] = kmeans[i];
+	}
+      }
+      
     }
 
 
@@ -361,6 +378,19 @@ namespace whiteice
 
 	odb_data.push_back(binarized);
       }
+
+      auto index = conversion.size();
+      conversion.resize(conversion.size()+BINSIZE);
+
+      // std::map<int, std::set<T> > odisc; // discretized variables and their set of discrete variables
+      for(const auto& m : odisc){
+
+	for(const auto& l : m.second){
+	  conversion[index] = l;
+	    
+	  index++;
+	}
+      }
       
     }
 
@@ -379,11 +409,14 @@ namespace whiteice
 
       unsigned int index = 0;
 
-      for(;index<odb_data[i].size();index++)
-	bvector[index] = odb_data[i][index];
+      for(;index<ocb_data[i].size();index++)
+	bvector[index] = ocb_data[i][index];
 
-      for(;(index-odb_data[0].size())<ocb_data[i].size();index++)
-	bvector[index] = ocb_data[i][index-odb_data[0].size()];
+      
+      for(;(index-ocb_data[0].size())<odb_data[i].size();index++)
+	bvector[index] = odb_data[i][index-ocb_data[0].size()];
+
+
 
       outputResults.push_back(bvector);
     }
@@ -399,12 +432,14 @@ namespace whiteice
   (const std::vector< math::vertex< math::blas_real<float> > >& input,
    const std::vector< math::vertex< math::blas_real<float> > >& output,
    std::vector< std::vector<bool> >& inputResults,
-   std::vector< std::vector<bool> >& outputResults);
+   std::vector< std::vector<bool> >& outputResults,
+   std::vector< math::vertex< math::blas_real<float> > >& conversion);
 
   template bool discretization< math::blas_real<double> >
   (const std::vector< math::vertex< math::blas_real<double> > >& input,
    const std::vector< math::vertex< math::blas_real<double> > >& output,
    std::vector< std::vector<bool> >& inputResults,
-   std::vector< std::vector<bool> >& outputResults);
+   std::vector< std::vector<bool> >& outputResults,
+   std::vector< math::vertex< math::blas_real<double> > >& conversion);
   
 };

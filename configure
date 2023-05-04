@@ -4062,11 +4062,19 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++11 features" >&5
 printf %s "checking for $CXX option to enable C++11 features... " >&6; }
+<<<<<<< HEAD
 if test ${ac_cv_prog_cxx_11+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
   ac_cv_prog_cxx_11=no
+=======
+if test ${ac_cv_prog_cxx_cxx11+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_cv_prog_cxx_cxx11=no
+>>>>>>> c0957b4d768f103629b374b66f2fa343aa4a40cd
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -4108,11 +4116,19 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++98 features" >&5
 printf %s "checking for $CXX option to enable C++98 features... " >&6; }
+<<<<<<< HEAD
 if test ${ac_cv_prog_cxx_98+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
   ac_cv_prog_cxx_98=no
+=======
+if test ${ac_cv_prog_cxx_cxx98+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  ac_cv_prog_cxx_cxx98=no
+>>>>>>> c0957b4d768f103629b374b66f2fa343aa4a40cd
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -5459,7 +5475,7 @@ fi
 if test "x$enable_cppdebug" = "xyes"
 then :
 
-  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address"
+  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG"
   conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address"
 
 fi

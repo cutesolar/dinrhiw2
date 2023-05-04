@@ -13,13 +13,15 @@
 
 namespace whiteice
 {
+  
 
   // discretizes real-valued or discrete data to binary data
   template <typename T=math::blas_real<float> >
     bool discretization(const std::vector< math::vertex<T> >& input,
 			const std::vector< math::vertex<T> >& output,
 			std::vector< std::vector<bool> >& inputResults,
-			std::vector< std::vector<bool> >& outputResults);
+			std::vector< std::vector<bool> >& outputResults,
+			std::vector< math::vertex<T> >& conversion);
 
   
   
@@ -28,13 +30,15 @@ namespace whiteice
     (const std::vector< math::vertex< math::blas_real<float> > >& input,
      const std::vector< math::vertex< math::blas_real<float> > >& output,
      std::vector< std::vector<bool> >& inputResults,
-     std::vector< std::vector<bool> >& outputResults);
+     std::vector< std::vector<bool> >& outputResults,
+     std::vector< math::vertex< math::blas_real<float> > >& conversion);
 
   extern template bool discretization< math::blas_real<double> >
     (const std::vector< math::vertex< math::blas_real<double> > >& input,
      const std::vector< math::vertex< math::blas_real<double> > >& output,
      std::vector< std::vector<bool> >& inputResults,
-     std::vector< std::vector<bool> >& outputResults);
+     std::vector< std::vector<bool> >& outputResults,
+     std::vector< math::vertex< math::blas_real<double> > >& conversion);
   
 };
 

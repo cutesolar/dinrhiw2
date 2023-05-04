@@ -40,6 +40,9 @@ namespace whiteice
       NNGradDescent(const NNGradDescent<T>& grad);
       ~NNGradDescent();
 
+      void setMatrixFactorizationPretrainer(bool pretrain = true);
+      bool getMatrixFactorizationPretrainer() const;
+	
       // sets and gets minibatch settings for estimating gradient
       void setUseMinibatch(bool minibatch = true);
       bool getUseMinibatch() const;
@@ -164,6 +167,8 @@ namespace whiteice
       std::mutex first_time_lock;
       
       bool deep_pretraining;
+
+      bool matrix_factorization_pretraining;	
       
       unsigned int NTHREADS;
       unsigned int MAXITERS;

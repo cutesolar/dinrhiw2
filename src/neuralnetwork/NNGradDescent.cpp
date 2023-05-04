@@ -15,6 +15,10 @@
 #include <sstream>
 #include <memory>
 
+
+#include "pretrain.h"
+
+
 // instead of INFINITY
 #define LARGE_INF_VALUE INFINITY
 
@@ -37,6 +41,7 @@ namespace whiteice
       this->heuristics = heuristics;
       this->deep_pretraining = deep_pretraining;
       this->use_minibatch = false;
+      this->matrix_factorization_pretraining = false;	
 
       dropout = false;
       overfit = false;
@@ -71,6 +76,7 @@ namespace whiteice
       this->heuristics = grad.heuristics;
       this->deep_pretraining = grad.deep_pretraining;
       this->use_minibatch = grad.use_minibatch;
+      this->matrix_factorization_pretraining = grad.matrix_factorization_pretraining;
 
       this->use_SGD = grad.use_SGD;
       this->sgd_lrate = grad.sgd_lrate;
@@ -122,6 +128,19 @@ namespace whiteice
     }
 
 
+    template <typename T>
+    void NNGradDescent<T>::setMatrixFactorizationPretrainer(bool pretrain)
+    {
+      this->matrix_factorization_pretraining = pretrain;	
+    }
+    
+    template <typename T>
+    bool NNGradDescent<T>::getMatrixFactorizationPretrainer() const
+    {
+      return this->matrix_factorization_pretraining;
+    }
+
+    
     template <typename T>
     void NNGradDescent<T>::setUseMinibatch(bool minibatch)
     {
@@ -848,6 +867,46 @@ namespace whiteice
 	    nn->randomize();
 
 	    whiteice::logging.info("NNGradDescent: resets neural network (nn::randomize() called)");
+
+
+	    if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	       typeid(T) == typeid(whiteice::math::blas_real<double>)){
+
+	      if(this->matrix_factorization_pretraining){
+
+#if 0
+		bool residual = nn->getResidual();
+		std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
+		nn->getNonlinearity(nonlins);
+		
+		nn->setResidual(false);
+		nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
+#endif
+
+		
+		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
+		
+		whiteice::PretrainNN<T> pretrainer;
+		
+		if(pretrainer.startTrain(*nn, dtrain, 500)){
+		  
+		  while(pretrainer.isRunning()){
+		    sleep(1);
+		  }
+		  
+		  pretrainer.stopTrain();
+		  
+		  pretrainer.getResults(*nn);
+		}
+
+#if 0
+		nn->setResidual(residual);
+		nn->setNonlinearity(nonlins);
+#endif
+	     }
+
+	    }
+	    
 	    
 #if 0
 	    // disable deep pretraining and normalize weights to unity as they
@@ -884,6 +943,46 @@ namespace whiteice
 	  }
 	  else{
 	    first_time = false;
+
+	    
+	    if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	       typeid(T) == typeid(whiteice::math::blas_real<double>)){
+	      
+	      if(this->matrix_factorization_pretraining){
+
+#if 0
+		bool residual = nn->getResidual();
+		std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
+		
+		nn->getNonlinearity(nonlins);
+		
+		nn->setResidual(false);
+		nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
+#endif
+		
+		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
+		
+		whiteice::PretrainNN<T> pretrainer;
+		
+		if(pretrainer.startTrain(*nn, dtrain, 500)){
+		  
+		  while(pretrainer.isRunning()){
+		    sleep(1);
+		  }
+		  
+		  pretrainer.stopTrain();
+		  
+		  pretrainer.getResults(*nn);
+		}
+
+#if 0
+		nn->setResidual(residual);
+		nn->setNonlinearity(nonlins);
+#endif
+		
+	      }
+	    }
+	    
 	  }
 
 	}

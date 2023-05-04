@@ -35,7 +35,7 @@ TARGET  = dtest
 ######################################################################
 
 all: $(OBJECTS) $(EXTRA_OBJECTS) $(TST_OBJ)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(TST_OBJ) $(OBJECTS) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(TST_OBJ) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
 
 clean:
 	$(RM) $(OBJECTS) $(TST_OBJ) $(TARGET)
