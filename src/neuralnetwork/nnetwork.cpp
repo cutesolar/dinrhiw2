@@ -770,7 +770,7 @@ namespace whiteice
   {
     // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
     // 0.25 was used as default for 2 layers! (no problem)
-    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
+    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.75f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
     
     if(type == 0){
       const whiteice::math::blas_complex<double> ar(2.0f,0.0f), br(1.0f, 0.0f);
@@ -1167,6 +1167,48 @@ namespace whiteice
     
     return error;
   }
+
+
+
+  // calculates MAE error of the dataset or negative in case of error
+  template <typename T>
+  T nnetwork<T>::mae(const whiteice::dataset<T>& data) const
+  {
+    T error = T(0.0f);
+
+    if(data.getNumberOfClusters() < 2) return T(-1.0f);
+    
+    if(data.dimension(0) != input_size() || data.dimension(1) != output_size())
+      return T(-1.0f);
+
+    if(data.size(0) != data.size(1))
+      return T(-1.0f);
+
+    // TODO OpenMP parallelize me (easy) 
+    for(unsigned int i=0;i<data.size(0);i++){
+      const auto& input = data.access(0, i);
+      math::vertex<T> output;
+
+      if(this->calculate(input, output) == false)
+	return T(-1.0);
+
+      output -= data.access(1, i);
+
+      T n = output.norm();
+
+      error += n;
+    }
+
+    if(data.size(0)) error /= data.size(0);
+
+    // error = T(0.5)*error; // E{ 0.5*||error||^2 }
+
+    // normalizes per dimension
+    error /= data.dimension(1);
+    
+    return error;
+  }
+  
   
   
   // calculates gradient of [ 1/2*(network(last_input|w) - last_output)^2 ]

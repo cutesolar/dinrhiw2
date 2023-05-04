@@ -142,6 +142,9 @@ namespace whiteice
 
     // calculates MSE error of the dataset or returns negative value in case of error 
     T mse(const whiteice::dataset<T>& data) const;
+
+    // calculates MAE error of the dataset or returns negative value in case of error 
+    T mae(const whiteice::dataset<T>& data) const;
     
 
     // calculates gradient of parameter weights w f(v|w) when using squared error: 
