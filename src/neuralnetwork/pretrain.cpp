@@ -240,7 +240,7 @@ namespace whiteice
       if(whiteice::pretrain_nnetwork_matrix_factorization
 	 (nnet, data,
 	  T(0.5f)*adaptive_step_length) == false){
-
+	continue;
 	break;
       }
 
@@ -262,7 +262,7 @@ namespace whiteice
       if(whiteice::pretrain_nnetwork_matrix_factorization
 	 (nnet, data,
 	  T(2.0f)*adaptive_step_length) == false){
-	
+	continue;
 	break;
       }
 
