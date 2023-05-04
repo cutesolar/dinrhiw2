@@ -406,12 +406,12 @@ namespace whiteice
       }
 
       
-      std::cout << "pfull = ";
+      //std::cout << "pfull = ";
       for(auto& p : pfull){
 	p /= (float)(rows.size());
-	std::cout << p << " ";
+	//std::cout << p << " ";
       }
-      std::cout << std::endl;
+      //std::cout << std::endl;
       
       float pbest = pfull[0];
       int pindex = 0;
