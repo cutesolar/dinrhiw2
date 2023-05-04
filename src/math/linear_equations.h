@@ -117,6 +117,12 @@ namespace whiteice
       (matrix< blas_real<float> >& A) ;
     extern template bool cholesky_factorization< blas_real<double> >
       (matrix< blas_real<double> >& A) ;
+    
+    extern template bool cholesky_factorization< blas_complex<float> >
+      (matrix< blas_complex<float> >& A) ;
+    extern template bool cholesky_factorization< blas_complex<double> >
+      (matrix< blas_complex<double> >& A) ;
+    
     extern template bool cholesky_factorization<float>
       (matrix<float>& A) ;
     extern template bool cholesky_factorization<double>
@@ -152,6 +158,10 @@ namespace whiteice
     
     extern template bool symmetric_inverse< blas_real<float> >(matrix< blas_real<float> >& A) ;
     extern template bool symmetric_inverse< blas_real<double> >(matrix< blas_real<double> >& A) ;
+    
+    extern template bool symmetric_inverse< blas_complex<float> >(matrix< blas_complex<float> >& A) ;
+    extern template bool symmetric_inverse< blas_complex<double> >(matrix< blas_complex<double> >& A) ;
+    
     extern template bool symmetric_inverse< float >(matrix< float >& A) ;
     extern template bool symmetric_inverse< double >(matrix< double >& A) ;
 

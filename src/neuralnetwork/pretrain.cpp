@@ -582,13 +582,13 @@ namespace whiteice
 
 	  for(unsigned int i=0;i<A.size();i++){
 	    for(unsigned int k=0;k<A[i].size();k++){
-	      A[i][k] = whiteice::rng.normal();
+	      A[i][k] = whiteice::rng.normalf();
 	    }
 	  }
 
 	  for(unsigned int i=0;i<c.size();i++){
 	    for(unsigned int k=0;k<c[i].size();k++){
-	      c[i][k] = whiteice::rng.normal();
+	      c[i][k] = whiteice::rng.normalf();
 	    }
 	  }
 

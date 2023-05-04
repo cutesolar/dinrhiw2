@@ -887,6 +887,8 @@ namespace whiteice
 		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
 		
 		whiteice::PretrainNN<T> pretrainer;
+
+		pretrainer.setMatrixFactorization(true);
 		
 		if(pretrainer.startTrain(*nn, dtrain, 500)){
 		  
@@ -963,6 +965,8 @@ namespace whiteice
 		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
 		
 		whiteice::PretrainNN<T> pretrainer;
+
+		pretrainer.setMatrixFactorization(true);
 		
 		if(pretrainer.startTrain(*nn, dtrain, 500)){
 		  
