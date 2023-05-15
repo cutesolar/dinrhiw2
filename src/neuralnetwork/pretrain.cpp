@@ -229,12 +229,7 @@ namespace whiteice
 	nnet.calculateBatchNorm(vdata);
       }
 
-      if((whiteice::rng.rand() % 100) == 0){
-	adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
-	if(adaptive_step_length[0].c[0] >= 0.45f)
-	  adaptive_step_length = T(0.45f);
-      }
-
+      std::cout << "step length = " << adaptive_step_length << std::endl; 
 
       nnet.exportdata(w1);
 
@@ -243,7 +238,7 @@ namespace whiteice
 	   (nnet, data,
 	    T(0.5f)*adaptive_step_length) == false){
 	  //printf("ERROR!\n");
-	  continue;
+	  //continue;
 	  break;
 	}
       }
@@ -277,7 +272,7 @@ namespace whiteice
 	if(whiteice::pretrain_nnetwork_matrix_factorization
 	   (nnet, data,
 	    T(2.0f)*adaptive_step_length) == false){
-	  continue;
+	  // continue;
 	  //printf("ERROR!\n");
 	  
 	  break;
@@ -311,16 +306,16 @@ namespace whiteice
       
       if(smaller_mse[0] <= larger_mse[0]){
 	adaptive_step_length *= T(0.5f);
-	if(adaptive_step_length[0] < (1e-10))
-	  adaptive_step_length = T(1e-10);
+	if(adaptive_step_length[0] < (1e-20))
+	  adaptive_step_length = T(1e-20);
 	mse = smaller_mse;
 	
 	nnet.importdata(w0);
       }
       else{
 	adaptive_step_length *= T(2.0f);
-	if(adaptive_step_length[0].c[0] >= 0.45f)
-	  adaptive_step_length = T(0.45f);
+	if(adaptive_step_length[0].c[0] >= 1e-5f)
+	  adaptive_step_length = T(1e-5f);
       }
       
       
@@ -369,8 +364,8 @@ namespace whiteice
 	  if(convergence[0] < 0.1f){
 	    // printf("LARGE ADAPTIVE STEPLENGTH\n");
 	    adaptive_step_length = whiteice::math::sqrt(whiteice::math::sqrt(adaptive_step_length));
-	    if(adaptive_step_length[0].c[0] >= 0.45f)
-	      adaptive_step_length = T(0.45f);
+	    if(adaptive_step_length[0].c[0] >= 1e-5f)
+	      adaptive_step_length = T(1e-5f);
 	    
 	    errors.clear();
 	  }
@@ -913,12 +908,13 @@ namespace whiteice
       auto DELTA = LEFT*M*RIGHT;
 
       deltas.push_back(DELTA);
+    }
 
-      // does Ployak averaging/moving average and keeps only 10% of matrix weight changes
-      
-      //for(unsigned int l=0;l<nnet.getLayers();l++)
+    // does Ployak averaging/moving average and keeps only 10% of matrix weight changes
+    
+    for(unsigned int l=0;l<nnet.getLayers();l++)
       {
-#if 1
+#if 0
 	if((whiteice::rng.rand()%(31*nnet.getLayers()))==0){ // was 1000, which means 31 for two runs which must both happen..
 
 	  // printf("RANDOM MATRIX\n");
@@ -954,6 +950,7 @@ namespace whiteice
 	else
 #endif
 	{
+	  //std::cout << "l = " << l << " op.size = " << operators.size() << " : delta.size = " << deltas.size() << std::endl;
 	  operators[l] = (T(1.0)-step_length)*operators[l] + step_length*deltas[l];
 
 #if 1
@@ -971,14 +968,12 @@ namespace whiteice
 
 	}
       }
-
-    }
-
-
-
-
+    
+    
+    
+    
     // finally solve parameters for W*x+b linear equation each per layer
-
+    
     for(unsigned int l=0;l<nnet.getLayers();l++){
       nnet.getWeights(W, l);
       nnet.getBias(b, l);
