@@ -229,7 +229,7 @@ namespace whiteice
 	nnet.calculateBatchNorm(vdata);
       }
 
-      std::cout << "step length = " << adaptive_step_length << std::endl; 
+      // std::cout << "step length = " << adaptive_step_length << std::endl; 
 
       nnet.exportdata(w1);
 
@@ -322,7 +322,7 @@ namespace whiteice
       for(unsigned int k=1;k<mse.size();k++)
 	mse[k] = 0.0f;
       
-      std::cout << "MAE = " << mse << std::endl;
+      // std::cout << "MAE = " << mse << std::endl;
       
       if(best_mse[0] > mse[0]){
 	best_mse = mse;
@@ -382,7 +382,7 @@ namespace whiteice
 	char buffer[256]; 
 	
 	snprintf(buffer, 256,
-		 "whiteice::Pretrain: %d/%d: Neural network MSE for problem: %f %f%% %f %f%% (%e)",
+		 "whiteice::Pretrain: %d/%d: Neural network MAE for problem: %f %f%% %f %f%% (%e)",
 		 iterations, MAXITERS, mse[0].c[0],
 		 (mse/initial_mse)[0].c[0]*100.0f,
 		 best_mse[0].c[0],

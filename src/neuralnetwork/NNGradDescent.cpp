@@ -890,7 +890,7 @@ namespace whiteice
 
 		pretrainer.setMatrixFactorization(true);
 		
-		if(pretrainer.startTrain(*nn, dtrain, 500)){
+		if(pretrainer.startTrain(*nn, dtrain, 50)){
 		  
 		  while(pretrainer.isRunning()){
 		    sleep(1);
@@ -905,6 +905,9 @@ namespace whiteice
 		nn->setResidual(residual);
 		nn->setNonlinearity(nonlins);
 #endif
+		
+		whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
+		
 	     }
 
 	    }
@@ -968,7 +971,7 @@ namespace whiteice
 
 		pretrainer.setMatrixFactorization(true);
 		
-		if(pretrainer.startTrain(*nn, dtrain, 500)){
+		if(pretrainer.startTrain(*nn, dtrain, 50)){
 		  
 		  while(pretrainer.isRunning()){
 		    sleep(1);
@@ -983,6 +986,7 @@ namespace whiteice
 		nn->setResidual(residual);
 		nn->setNonlinearity(nonlins);
 #endif
+		whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
 		
 	      }
 	    }
