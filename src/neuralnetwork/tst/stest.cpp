@@ -399,6 +399,8 @@ int main()
     whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
 						 math::modular<unsigned int> > > pretrainer;
 
+    pretrainer.setMatrixFactorization(true);
+
     if(pretrainer.startTrain(snet, data) == false){
       printf("PRETRAINER FAILED\n");
       return -1;
