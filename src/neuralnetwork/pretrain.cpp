@@ -803,28 +803,28 @@ namespace whiteice
 
       math::matrix<T> LEFT, RIGHT;
       
-      LEFT.resize(operators[0].xsize(), operators[0].xsize());
-      RIGHT.resize(operators[operators.size()-1].ysize(), operators[operators.size()-1].ysize());
+      RIGHT.resize(operators[0].xsize(), operators[0].xsize());
+      LEFT.resize(operators[operators.size()-1].ysize(), operators[operators.size()-1].ysize());
       
       LEFT.identity(); // I matrix
       RIGHT.identity(); // I matrix
 
       //std::cout << "LAYER: " << l << std::endl;
-      //std::cout << LEFT.ysize() << "x" << LEFT.xsize() << std::endl;
       //std::cout << M.ysize() << "x" << M.xsize() << std::endl;
-      //std::cout << RIGHT.ysize() << "x" << RIGHT.xsize() << std::endl;
 
 
       for(unsigned int k=0;k<l;k++){
-	//std::cout << "LAYER: " << k << std::endl;
+	//std::cout << "RIGHT LAYER: " << k << std::endl;
+	//std::cout << RIGHT.ysize() << "x" << RIGHT.xsize() << std::endl;
 	//std::cout << operators[k].ysize() << "x" << operators[k].xsize() << std::endl;
 	RIGHT = operators[k]*RIGHT;
       }
 
       for(unsigned int k=nnet.getLayers()-1;k>l;k--){
-	//std::cout << "LAYER: " << k << std::endl;
+	//std::cout << "LEFT LAYER: " << k << std::endl;
+	//std::cout << LEFT.ysize() << "x" << LEFT.xsize() << std::endl;
 	//std::cout << operators[k].ysize() << "x" << operators[k].xsize() << std::endl;
-	LEFT *= operators[k];
+	LEFT = LEFT*operators[k];
       }
 
 #if 1
