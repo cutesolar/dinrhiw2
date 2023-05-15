@@ -91,8 +91,8 @@ int main()
   const unsigned int LAYERS = 2; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
   
   for(unsigned int l=0;l<LAYERS;l++)
-    arch.push_back(20);
-  
+    arch.push_back(50); // was: 50, 30, 1000
+
   arch.push_back(10);
 
   
@@ -308,8 +308,8 @@ int main()
     }
     
     
-    data.downsampleAll(50); // should be at least 1000
-    data2.downsampleAll(50); // should be at least 1000
+    data.downsampleAll(1000); // should be at least 1000, was: 50
+    data2.downsampleAll(1000); // should be at least 1000, was: 50
   }
 #endif
 
@@ -391,39 +391,223 @@ int main()
       std::cout << "iter: " << iters << " error: " << error << std::endl;
     }
   }
+
+
+  //////////////////////////////////////////////////////////////////////
+  // report linear fitting absolute error
+  
+  {
+    std::vector< math::vertex< math::superresolution<
+      math::blas_real<double>, math::modular<unsigned int> > > > xsamples;
+
+    std::vector< math::vertex< math::superresolution<
+      math::blas_real<double>, math::modular<unsigned int> > > > ysamples;
+
+    data.getData(0, xsamples);
+    data.getData(1, ysamples);
+
+    const unsigned int SAMPLES = xsamples.size();
+
+#if 0
+    // autoconvolve input data x
+
+    for(unsigned int i=0;i<SAMPLES;i++){
+      auto x = xsamples[i];
+      auto cx = xsamples[i];
+
+      for(unsigned int k=0;k<x.size();k++){
+	whiteice::math::convert(cx[k], x[k]);
+	
+	for(unsigned int l=0;l<cx[k].size();l++){
+	  const unsigned int index = (k + l) % x.size();
+	  cx[k][l] = x[index][0];
+	}
+      }
+
+      xsamples[i] = cx;
+    }
+#endif
+    
+
+    math::matrix< math::superresolution< math::blas_real<double>,
+		  math::modular<unsigned int> > > Cxx, Cxy;
+    math::vertex< math::superresolution< math::blas_real<double>,
+		  math::modular<unsigned int> > > mx, my;
+
+    const auto& input = xsamples;
+    const auto& output = ysamples;
+    
+    Cxx.resize(input[0].size(),input[0].size());
+    Cxy.resize(input[0].size(),output[0].size());
+    mx.resize(input[0].size());
+    my.resize(output[0].size());
+    
+    Cxx.zero();
+    Cxy.zero();
+    mx.zero();
+    my.zero();
+
+    std::cout << "Calculate Matrixes Cxx, Cxy." << std::endl << std::flush;
+    
+    for(unsigned int i=0;i<SAMPLES;i++){
+      Cxx += input[i].outerproduct();
+      Cxy += input[i].outerproduct(output[i]);
+      mx  += input[i];
+      my  += output[i];
+    }
+    
+    Cxx /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    Cxy /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    mx  /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    my  /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    
+    Cxx -= mx.outerproduct();
+    Cxy -= mx.outerproduct(my);
+
+    math::matrix< math::superresolution< math::blas_real<double>,
+					 math::modular<unsigned int> > > INV;
+    
+    math::superresolution< math::blas_real<double>, math::modular<unsigned int> > l =
+      math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(10e-20);
+
+    std::cout << "Calculate Matrix Inverse." << std::endl << std::flush;
+    
+    do{
+      INV = Cxx;
+      
+      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > trace =
+	math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
+      
+      for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
+	trace += Cxx(i,i);
+	INV(i,i) += l; // regularizes Cxx (if needed)
+      }
+      
+      if(Cxx.xsize() < Cxx.ysize())	  
+	trace /= Cxx.xsize();
+      else
+	trace /= Cxx.ysize();
+      
+      l += (math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.1)*trace +
+	    math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(2.0f)*l); // keeps "scale" of the matrix same
+    }
+    while(whiteice::math::symmetric_inverse(INV) == false);
+
+    std::cout << "Calculate Matrix Inverse DONE." << std::endl << std::flush;
+
+    math::matrix< math::superresolution< math::blas_real<double>,
+					 math::modular<unsigned int> > > W;
+    math::vertex< math::superresolution< math::blas_real<double>,
+					 math::modular<unsigned int> > > b;
+    
+    W = (Cxy.transpose() * INV);
+    b = (my - W*mx);
+
+    // y = W*x + b
+
+    math::superresolution< math::blas_real<double>, math::modular<unsigned int> > err, e;
+    err.zero();
+
+    for(unsigned int i=0;i<SAMPLES;i++){
+      auto delta = W*input[i] + b - output[i];
+
+      e.zero();
+
+      for(unsigned int d=0;d<delta.size();d++)
+	e += delta[d][0].abs();
+
+      e /= delta.size();
+      err += e;
+    }
+
+    err /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+
+    std::cout << "Linear Fit Absolute Error: " << err[0] << std::endl;
+  }
   
   //////////////////////////////////////////////////////////////////////
 
+#if 1
   // pretrainer for superresolution code
   {
-    whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
-						 math::modular<unsigned int> > > pretrainer;
-
-    pretrainer.setMatrixFactorization(true);
-
-    if(pretrainer.startTrain(snet, data) == false){
-      printf("PRETRAINER FAILED\n");
-      return -1;
-    }
-    else{
-      printf("PretrainNN started..\n");
-    }
-
-    while(pretrainer.isRunning()){
-      sleep(1);
+    {
+      whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
+						   math::modular<unsigned int> > > pretrainer;
+      pretrainer.setMatrixFactorization(true);
+      
+      if(pretrainer.startTrain(snet, data, 100) == false){
+	printf("PRETRAINER FAILED\n");
+	return -1;
+      }
+      else{
+	printf("PretrainNN started (matrix factorization)..\n");
+      }
+      
       unsigned int iters = 0;
       math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error;
-
+      
+      int updated_iter = -1;
+      
+      
+      while(pretrainer.isRunning()){
+	sleep(1);
+	
+	pretrainer.getStatistics(iters, error);
+	if(((int)iters) > updated_iter){  
+	  std::cout << "iter " << iters << " : " << error[0] << std::endl;
+	  updated_iter = ((int)iters);
+	}
+      }
+      
       pretrainer.getStatistics(iters, error);
-
       std::cout << "iter " << iters << " : " << error[0] << std::endl;
+      
+      pretrainer.stopTrain();
+      printf("PretrainNN stop.\n");
+      
+      pretrainer.getResults(snet);
     }
 
-    pretrainer.stopTrain();
-    printf("PretrainNN stop.\n");
+    {
+      whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
+						   math::modular<unsigned int> > > pretrainer;
+      pretrainer.setMatrixFactorization(false);
+      
+      if(pretrainer.startTrain(snet, data) == false){
+	printf("PRETRAINER FAILED\n");
+	return -1;
+      }
+      else{
+	printf("PretrainNN started (linear partial fitting)..\n");
+      }
+      
+      unsigned int iters = 0;
+      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error;
+      
+      int updated_iter = -1;
+      
+      
+      while(pretrainer.isRunning()){
+	sleep(1);
+	
+	pretrainer.getStatistics(iters, error);
+	if(((int)iters) > updated_iter){  
+	  std::cout << "iter " << iters << " : " << error[0] << std::endl;
+	  updated_iter = ((int)iters);
+	}
+      }
+      
+      pretrainer.getStatistics(iters, error);
+      std::cout << "iter " << iters << " : " << error[0] << std::endl;
+      
+      pretrainer.stopTrain();
+      printf("PretrainNN stop.\n");
+      
+      pretrainer.getResults(snet);
+    }
     
-    pretrainer.getResults(snet);
   }
+#endif
     
 
   // gradient descent code
@@ -454,8 +638,8 @@ int main()
 	  grad_search_counter < 300 &&
 	  lratef > 1e-100 && counter < 100000)
     {
-      auto batchdata = data;
-      //batchdata.downsampleAll(200);
+      auto batchsdata = data;
+      // batchsdata.downsampleAll(200);
       
       error = math::superresolution<math::blas_real<double>,
 				    math::modular<unsigned int> >(0.0f);
@@ -469,7 +653,7 @@ int main()
 			    math::modular<unsigned int> > ninv =
 	math::superresolution<math::blas_real<double>,
 			      math::modular<unsigned int> >
-	(1.0f/(batchdata.size(0)*batchdata.access(1,0).size()));
+	(1.0f/(batchsdata.size(0)*batchsdata.access(1,0).size()));
 
       math::superresolution<math::blas_real<double>,
 			    math::modular<unsigned int> > h, s0(1.0), epsilon(1e-30);
@@ -483,7 +667,7 @@ int main()
 
       if(BN){ // batch normalization code..
 	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > datav;
-	batchdata.getData(0, datav);
+	batchsdata.getData(0, datav);
 
 	assert(snet.calculateBatchNorm(datav) == true);
       }
@@ -508,14 +692,14 @@ int main()
 	//const auto& batchdata = batchdata; // marks batchdata to be const so there are no changes
 	
 #pragma omp for nowait
-	for(unsigned int i=0;i<batchdata.size(0);i++){
+	for(unsigned int i=0;i<batchsdata.size(0);i++){
 	  
 	  // selects K:th dimension in number and adjust weights according to it.
 	  //const unsigned int K = prng.rand() % weights[0].size();
 	  
 	  {
-	    const auto x = batchdata.access(0,i);
-	    const auto y = batchdata.access(1,i);
+	    const auto x = batchsdata.access(0,i);
+	    const auto y = batchsdata.access(1,i);
 	    
 	    snet.calculate(x, err);
 	    err -= y;
@@ -697,7 +881,7 @@ int main()
 
       grad_search_counter = 0;
       
-      while(grad_search_counter < 300){ // until error becomes smaller
+      while(grad_search_counter < 100){ // until error becomes smaller
 
 	auto delta_grad = sumgrad;
 	
@@ -724,10 +908,10 @@ int main()
 					      math::modular<unsigned int> > > err;
 	  
 #pragma omp for nowait
-	  for(unsigned int i=0;i<batchdata.size(0);i++){
+	  for(unsigned int i=0;i<batchsdata.size(0);i++){
 	    
-	    snet.calculate(batchdata.access(0,i), err);
-	    err -= batchdata.access(1, i);
+	    snet.calculate(batchsdata.access(0,i), err);
+	    err -= batchsdata.access(1, i);
 	    
 	    for(unsigned int j=0;j<err.size();j++){
 	      const auto& ej = err[j];
@@ -806,7 +990,7 @@ int main()
 		<< " (lrate: " << lratef << ")" 
 		<< std::endl;
 
-      snet.save("inverse_hash_snet.dat");
+      // snet.save("inverse_hash_snet.dat");
 
       //if(lratef < 0.01) lratef = sqrt(lratef);
       //if(lratef < 0.01) lratef = 0.01f;
