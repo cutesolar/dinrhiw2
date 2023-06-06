@@ -550,14 +550,18 @@ namespace whiteice
 	T d = (A(M-2,M-2) - A(M-1,M-1))/T(2.0);
 	
 	const auto zero = abs(T(0.0f));
+
+	const auto div0 = (d + whiteice::math::sqrt(whiteice::math::abs(d*d + A(M-1,M-2)*A(M-1,M-2))));
 	
-	if(abs(d) > zero){
-	  s = A(M-1,M-1) - (A(M-1,M-2)*A(M-1,M-2)) / 
-	    (d + whiteice::math::sqrt(whiteice::math::abs(d*d + A(M-1,M-2)*A(M-1,M-2))));
+	if(whiteice::math::abs(div0) > zero){
+	  s = A(M-1,M-1) - (A(M-1,M-2)*A(M-1,M-2)) / div0;
 	}
 	else{
-	  s = A(M-1,M-1) - (A(M-1,M-2)*A(M-1,M-2)) /
-	    (d - whiteice::math::sqrt(whiteice::math::abs(d*d + A(M-1,M-2)*A(M-1,M-2))));
+	  auto div = (d - whiteice::math::sqrt(whiteice::math::abs(d*d + A(M-1,M-2)*A(M-1,M-2))));
+
+	  // std::cout << div << std::endl;
+	  
+	  s = A(M-1,M-1) - (A(M-1,M-2)*A(M-1,M-2)) / div;
 	}
 	
 	T x = A(m,m) - s;
