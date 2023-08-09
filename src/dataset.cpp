@@ -423,14 +423,14 @@ namespace whiteice
     if(index >= clusters.size()) // slow.. (internal calls)
       return false;
     
-    if(clusters[index].data_dimension != input.length())
-      return false;
-    
     try{
       math::vertex<T> vec;
       vec.resize(clusters[index].data_dimension);
+
+      for(unsigned int i=0;i<vec.size();i++)
+	vec[i] = T(0.0f);
       
-      for(unsigned int i=0;i<input.length();i++)
+      for(unsigned int i=0;i<input.length()&&i<vec.size();i++)
 	vec[i] = T(input[i]);
       
       return add(index, vec);
