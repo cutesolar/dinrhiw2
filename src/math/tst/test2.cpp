@@ -591,10 +591,13 @@ void test_pca_tests()
     // tests that X diagonalizes Cxx matrix
     auto eigD = Xt*Cxx*X;
     // std::cout << "D = " << eigD << std::endl;
-    blas_real<float> eig_error = 0.0f;
+    blas_real<float> eig_error = 0.0f, eig_diagonal = 0.0f;
     for(unsigned int j=0;j<eigD.ysize();j++)
       for(unsigned int i=0;i<eigD.xsize();i++)
 	if(i != j) eig_error += math::abs(eigD(j,i));
+	else eig_diagonal += math::abs(eigD(j,i));
+
+    std::cout << "diagonal = " << eig_diagonal/eigD.size() << std::endl;
     std::cout << "error = " << eig_error/eigD.size() << std::endl;
     
     std::cout << "FASTPCA" << std::endl;
@@ -615,10 +618,13 @@ void test_pca_tests()
     
     auto pcaD = PCA*Cxx*PCAt;
     // std::cout << "D = " << pcaD << std::endl;
-    blas_real<float> pca_error = 0.0f;
+    blas_real<float> pca_error = 0.0f, pca_diagonal = 0.0f;
     for(unsigned int j=0;j<pcaD.ysize();j++)
       for(unsigned int i=0;i<pcaD.xsize();i++)
 	if(i != j) pca_error += math::abs(pcaD(j,i));
+	else pca_diagonal += math::abs(pcaD(j,i));
+
+    std::cout << "diagonal = " << pca_diagonal/pcaD.size() << std::endl; 
     std::cout << "error = " << pca_error/(pcaD.size()) << std::endl;
     
     
@@ -668,6 +674,9 @@ void test_pca_tests()
 	// std::cout << "PCA = " << PCA << std::endl;
     
 	std::cout << "Results should be the same." << std::endl;
+      }
+      else{
+	std::cout << "FASTPCA vs EVD eigenvalue is same!" << std::endl;
       }
     }
     
@@ -734,6 +743,7 @@ void test_pca_tests()
     }
     else{
       printf("ERROR: superresolutional fastpca() algorithm FAILED.\n");
+
       return;
     }
 

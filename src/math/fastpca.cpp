@@ -80,6 +80,14 @@ namespace whiteice
 	T convergence = T(1.0);
 	T epsilon = T(1e-3);
 	
+	if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
+	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	{
+	  for(unsigned int i=1;i<epsilon.size();i++){
+	    epsilon[i] = epsilon[0];
+	  }
+	}
+	
 	unsigned int iters = 0;
 
 	while(1){
@@ -113,21 +121,40 @@ namespace whiteice
 	    
 	    g.normalize();
 	  }
+
+	  auto dot = (g*gprev)[0];
+
+	  if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	  {
+	    // need to still take vector inner product of the superresolution number elements
+	    // this is equal to 1 in convergence!! (so inner product space makes sense too with
+	    // superresolutional numbers!)
+	    auto p = dot;
+	    p.zero();
+	    
+	    for(unsigned int i=0;i<dot.size();i++){
+	      p[0] += dot[i]*dot[i];
+	    }
+
+	    p[0] = whiteice::math::sqrt(p[0]);
+	    dot = p;
+	  }
 	  
-	  convergence = whiteice::math::abs(T(1.0f) - (g*gprev)[0]);
+	  convergence = whiteice::math::abs(T(1.0f) - dot);
 	  
 	  gprev = g;
 	  
 	  iters++;
 
 	  if(iters > 50){
-	    if(convergence > epsilon || iters >= 200)
+	    if(convergence < epsilon || iters >= 2000)
 	      break;
 	  }
 	}
 
 	
-	if(iters >= 200)
+	if(iters >= 2000)
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 	
 	pca.push_back(g);
@@ -285,6 +312,14 @@ namespace whiteice
 	T convergence = T(1.0);
 	T epsilon = T(1e-3);
 	
+	if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
+	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	{
+	  for(unsigned int i=1;i<epsilon.size();i++){
+	    epsilon[i] = epsilon[0];
+	  }
+	}
+	
 	unsigned int iters = 0;
 	
 
@@ -320,21 +355,40 @@ namespace whiteice
 	    
 	    g.normalize();
 	  }
+
+	  auto dot = (g*gprev)[0];
+
+	  if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	  {
+	    // need to still take vector inner product of the superresolution number elements
+	    // this is equal to 1 in convergence!! (so inner product space makes sense too with
+	    // superresolutional numbers!)
+	    auto p = dot;
+	    p.zero();
+	    
+	    for(unsigned int i=0;i<dot.size();i++){
+	      p[0] += dot[i]*dot[i];
+	    }
+
+	    p[0] = whiteice::math::sqrt(p[0]);
+	    dot = p;
+	  }
 	  
-	  convergence = whiteice::math::abs(T(1.0f) - (g*gprev)[0]);
+	  convergence = whiteice::math::abs(T(1.0f) - dot);
 	  
 	  gprev = g;
 	  
 	  iters++;
 
 	  if(iters > 50){
-	    if(convergence > epsilon || iters >= 200)
+	    if(convergence < epsilon || iters >= 2000)
 	      break;
 	  }
 	}
 	
 	
-	if(iters >= 200)
+	if(iters >= 2000)
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 
 	// calculate variance of the found component
