@@ -91,6 +91,11 @@ namespace whiteice
       superresolution<T,U>  operator/ (const T& s) const ;
       superresolution<T,U>& operator*=(const T& s) ;
       superresolution<T,U>& operator/=(const T& s) ;
+
+      // inner product between elements of superresolutional numbers make sometimes sense!!
+      // (this means we can also define inner product vector space of the numbers..)
+      superresolution<T,U>& innerproduct();
+      superresolution<T,U>  innerproduct(const superresolution<T,U>& s) const;
       
       superresolution<T,U>& operator=(const T value) ;
       

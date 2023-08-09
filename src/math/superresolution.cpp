@@ -460,6 +460,34 @@ namespace whiteice
 
       return (*this);
     }
+
+    
+    // inner product between elements of superresolutional numbers make sometimes sense!!
+
+    template <typename T, typename U>
+    superresolution<T,U>& superresolution<T,U>::innerproduct()
+    {
+      T dot = T(0.0f);
+      for(unsigned int i=0;i<size();i++){
+	dot += (this->basis[i])*(this->basis[i]);
+	this->basis[i] = T(0.0f);
+      }
+
+      this->basis[0] = dot;
+
+      return (*this);
+    }
+
+    template <typename T, typename U>
+    superresolution<T,U>  superresolution<T,U>::innerproduct(const superresolution<T,U>& s) const
+    {
+      T dot = T(0.0f);
+      
+      for(unsigned int i=0;i<size();i++)
+	dot += (this->basis[i])*(s.basis[i]);
+      
+      return superresolution<T,U>(dot);
+    }
     
     
     template <typename T, typename U>
