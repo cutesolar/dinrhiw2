@@ -149,7 +149,7 @@ namespace whiteice
     
     template <typename T>
     bool ica(const matrix<T>& D, matrix<T>& W, bool verbose) 
-    {
+   {
       try{
 	
 	const unsigned int num = D.ysize();
@@ -294,9 +294,14 @@ namespace whiteice
 	      
 	    }
 	    else{
-	      
-	      
-	      if(0/*(iter % 2) == 0*/){ // g(u) = u^3 non-linearity
+
+	      // auto w_orig = w;
+
+	      // calculates mean E[w] over different ICA non-linearities [seem to work better]
+	      //const float p = 1.0f; // whiteice::rng.uniform().real();
+
+	      if((iter % 2) == 0)
+	      { // g(u) = u^3 non-linearity
 		
 		for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0f);
 		dgy = T(0.0f);
@@ -304,22 +309,14 @@ namespace whiteice
 		for(unsigned int i=0;i<num;i++){
 		  X.rowcopyto(x, i);
 		  
-#if 1
 		  xgy += scaling * (y[i]*y[i]*y[i])*x;
 		  dgy += scaling * T(3.0f)*y[i]*y[i];
-#endif
-		  
-#if 0
-		  for(unsigned int k=0;k<y[i].size();k++){
-		    for(unsigned int d=0;d<dim;d++)
-		      xgy[d][k] += scaling[0] * (y[i][k]*y[i][k]*y[i][k])*x[d][k];
-		    
-		    dgy[k] += scaling[0] * T(3.0f)[0]*y[i][k]*y[i][k];
-		  }
-#endif
 		}
+
+		// w += (xgy - dgy*w_orig)*T(p);
 	      }
-	      else{ // g(u) u*exp(-u**2/2) non-linearity	    
+	      else
+	      { // g(u) u*exp(-u**2/2) non-linearity	    
 		
 		for(unsigned int i=0;i<dim;i++) xgy[i] = T(0.0);
 		dgy = T(0.0);
@@ -327,24 +324,13 @@ namespace whiteice
 		for(unsigned int i=0;i<num;i++){
 		  X.rowcopyto(x, i);
 		  
-#if 0
-		  for(unsigned int k=0;k<y[i].size();k++){
-		    auto temp = whiteice::math::exp(-(y[i][k]*y[i][k])/(2.0));
-		    
-		    for(unsigned int d=0;d<dim;d++)
-		      xgy[d][k] += scaling[0] * ((y[i][k] * temp) * x[d][k]);
-		    
-		    dgy[k] += scaling[0] * (temp - (y[i][k]*y[i][k])*temp);
-		  }
-#endif
-		  
-#if 1
 		  T temp = whiteice::math::exp(-(y[i]*y[i])/T(2.0));
 		  
 		  xgy += scaling * ((y[i] * temp) * x);
 		  dgy += scaling * (temp - (y[i]*y[i])*temp);
-#endif
 		}
+
+		// w += (xgy - dgy*w_orig)*T(1-p);
 	      }
 
 	      // update w
@@ -354,6 +340,8 @@ namespace whiteice
 
 	    
 	    w.normalize();
+
+	    // std::cout << "ica w = " << w << std::endl;
 	    
 	    __ica_project(w, nn, W); // projection
 	    
@@ -401,7 +389,7 @@ namespace whiteice
 	      //if((T(1.0) - dotprod) < TOLERANCE && iter > 10){
 	      //convergence = true;
 	    }
-	    else if(iter >= MAXITERS){
+	    if(iter >= MAXITERS){
 	      break;
 	    }
 
