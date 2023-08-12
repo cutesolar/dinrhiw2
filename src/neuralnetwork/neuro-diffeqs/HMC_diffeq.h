@@ -24,8 +24,8 @@ template <typename T = math::blas_real<float> >
 	     const whiteice::dataset<T>& ds,
 	     const math::vertex<T>& start_point,
 	     const std::vector<T>& times, // time-steps for datapoints we use
-	     bool adaptive=false, T alpha = T(0.5), bool store = true)
-  : HMC<T>(net, ds, adaptive, store)
+	     bool adaptive=false, T alpha = T(0.5), bool store = true, bool restart_sampling = true)
+    : HMC<T>(net, ds, adaptive, store, restart_sampling)
   {
     this->times = times;
     this->start_point = start_point;

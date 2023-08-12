@@ -186,6 +186,10 @@ int main()
 
     // nnetwork_kl_divergence_test();
 
+    hmc_test();
+
+    return 0;
+
     pretrain_test();
 
     bayesian_nnetwork_test();    
@@ -3291,8 +3295,7 @@ void dbn_test()
 
 void hmc_test()
 {
-  std::cout << "HMC SAMPLING TEST (Normal distribution)" << std::endl;
-  
+
 #ifdef __linux__
   // LINUX
   {
@@ -3313,6 +3316,74 @@ void hmc_test()
 #endif
 
 
+
+  std::cout << "HMC SAMPLING TEST (Neural network)" << std::endl;
+
+  {
+    // simple dummy test problem
+
+    nnetwork<> example;
+    dataset<>  ds;
+
+    ds.createCluster("input (x)", 10);
+    ds.createCluster("output (y)", 5);
+    
+    std::vector<unsigned int> arch;
+    arch.push_back(ds.dimension(0));
+    arch.push_back(10);
+    arch.push_back(ds.dimension(1));
+    
+    example.setArchitecture(arch);
+    example.randomize();
+
+    for(unsigned int n=0;n<10000;n++){
+      whiteice::math::vertex<> x, y;
+      x.resize(ds.dimension(0));
+      y.resize(ds.dimension(1));
+
+      rng.uniform(x);
+      
+      example.calculate(x, y);
+
+      ds.add(0, x);
+      ds.add(1, y);
+    }
+    
+    ds.preprocess(0);
+    ds.preprocess(1);
+
+    std::cout << "sizes: " << ds.size(0) << ", " << ds.size(1) << std::endl;
+
+    example.randomize();
+
+    HMC<> sampler(example, ds, true);
+
+    sampler.startSampler();
+
+    unsigned int counter = 0;
+
+    while(/*counter < 1000*/1){
+      std::cout << "sampling.. samples = "
+		<< sampler.getNumberOfSamples()
+		<< " error = "
+		<< sampler.getMeanError(1000)
+		<< std::endl;
+
+      
+      fflush(stdout);
+
+      sleep(1);
+
+      counter++;
+    }
+
+    
+  }
+
+
+#if 0
+  std::cout << "HMC SAMPLING TEST (Normal distribution)" << std::endl;
+  
   {
     HMC_gaussian<> sampler(2);
     
@@ -3357,6 +3428,7 @@ void hmc_test()
     fclose(out);
     
   }
+#endif
 
   std::cout << "HMC sampling test DONE." << std::endl;
   

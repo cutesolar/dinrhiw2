@@ -14,18 +14,24 @@ namespace whiteice
 {
 	template <typename T>
 	HMC<T>::HMC(const whiteice::nnetwork<T>& net,
-			const whiteice::dataset<T>& ds,
-			bool adaptive, T alpha, bool store) : nnet(net), data(ds)
+		    const whiteice::dataset<T>& ds,
+		    bool adaptive, T alpha, bool store,
+		    bool restart_sampler) : nnet(net), data(ds)
 	{
 		this->adaptive = adaptive;
 		this->alpha = alpha;
 		this->temperature = T(1.0);
 		this->store = store;
 		this->sigma2 = T(1.0);
+		this->restart_sampler = restart_sampler;
 
 		sum_N = 0;
 		sum_mean.zero();
 		// sum_covariance.zero();
+
+		current_sum_N = 0;
+		current_sum_mean.zero();
+		current_sum_squared.zero();
 
 		running = false;
 		paused = false;
@@ -486,6 +492,10 @@ namespace whiteice
 
 		sum_N = 0;
 		sum_mean.zero();
+
+		current_sum_N = 0;
+		current_sum_mean.zero();
+		current_sum_squared.zero();
 		
 		sigma2 = T(1.0);
 
@@ -618,10 +628,57 @@ namespace whiteice
 		}
 		else{
 		  std::vector< math::vertex<T> > temp;
-		  
-		  for(unsigned int i=samples.size()-latestN;i<samples.size();i++)
-		    temp.push_back(samples[i]);
 
+		  if(restart_sampler == false){
+		  
+		    for(unsigned int i=samples.size()-latestN;i<samples.size();i++)
+		      temp.push_back(samples[i]);
+
+		  }
+		  else{ // we take N samples from restart positions (convergence points)
+		    const unsigned int N = latestN/(1 + restart_positions.size());
+
+		    if(N == 0){
+		      temp = samples;
+		    }
+		    else{
+		      unsigned int index = 0;
+		      while(index <= restart_positions.size()){
+
+			int start;
+
+			if(index == 0 && restart_positions.size() == 0)
+			  start = samples.size()-N;
+			else{
+			  start = (int)restart_positions[index]-((int)N);
+
+			  if(index == 0){
+			    if(start < 0) start = 0;
+			  }
+			  else{
+			    if(start < (int)restart_positions[index-1])
+			      start = restart_positions[index-1];
+			  }
+			}
+
+			int end = samples.size();
+
+			if(index+1 == restart_positions.size()){
+			  end = samples.size();
+			}
+			else{
+			  end = restart_positions[index+1];
+			}
+
+			for(unsigned int n=(unsigned)start;n<(unsigned)end;n++){
+			  temp.push_back(samples[n]);
+			}
+			
+			index++;
+		      }
+		    }
+		  }
+		    
 		  if(bnn.importSamples(nnet, temp) == false)
 		    return false;
 		}
@@ -690,9 +747,39 @@ namespace whiteice
 	    
 	if(!latestN) latestN = samples.size();
 	if(latestN > samples.size()) latestN = samples.size();
+
+	const unsigned N_per_restarts = latestN/(restart_positions.size()+1);
+
+	if(restart_positions.size() == 0 || N_per_restarts == 0){
 	
-	for(unsigned int i=samples.size()-latestN;i<samples.size();i++){
-	  sample.push_back(samples[i]);
+	  for(unsigned int i=samples.size()-latestN;i<samples.size();i++){
+	    sample.push_back(samples[i]);
+	  }
+
+	}
+	else{
+
+	  for(unsigned int index=0;index<=restart_positions.size();index++){
+
+	    int start = (int)restart_positions[index]-(int)N_per_restarts;
+	    if(start < 0) start = 0;
+	    if(index > 0){
+	      if(start < (int)restart_positions[index-1])
+		start = restart_positions[index-1];
+	    }
+
+	    unsigned int end = samples.size();
+
+	    if(index == restart_positions.size())
+	      end = samples.size();
+	    else
+	      end = restart_positions[index];
+
+	    for(unsigned int i=start;i<end;i++){
+	      sample.push_back(samples[i]);
+	    }
+	  }
+	  
 	}
       }
       
@@ -926,8 +1013,23 @@ namespace whiteice
 			    sum_N++;
 			  }
 			  
-			  if(store)
+			  if(store || restart_sampler){
 			    samples.push_back(q);
+
+			    if(current_sum_N == 0){
+			      current_sum_mean.resize(q.size());
+			      current_sum_squared.resize(q.size());
+
+			      current_sum_mean.zero();
+			      current_sum_squared.zero();
+			    }
+			    
+			    current_sum_mean += q;
+			    for(unsigned int i=0;i<q.size();i++)
+			      current_sum_squared[i] += q[i]*q[i];
+
+			    current_sum_N++;
+			  }
 			  
 			  solution_lock.unlock();
 			  
@@ -962,8 +1064,23 @@ namespace whiteice
 			    sum_N++;
 			  }
 			  
-			  if(store)
+			  if(store || restart_sampler){
 			    samples.push_back(q);
+
+			    if(current_sum_N == 0){
+			      current_sum_mean.resize(q.size());
+			      current_sum_squared.resize(q.size());
+			      
+			      current_sum_mean.zero();
+			      current_sum_squared.zero();
+			    }
+			    
+			    current_sum_mean += q;
+			    for(unsigned int i=0;i<q.size();i++)
+			      current_sum_squared[i] += q[i]*q[i];
+
+			    current_sum_N++;
+			  }
 			  
 			  solution_lock.unlock();
 			}
@@ -973,6 +1090,76 @@ namespace whiteice
     				accept_rate_samples++;
     			}
     		}
+
+		if(restart_sampler && current_sum_N >= 100){
+		  // calculates sampling variance of the current mean
+
+		  math::vertex<T> current_mean;
+		  math::vertex<T> current_mean_var;
+
+		  current_mean = current_sum_mean / current_sum_N;
+		  current_mean_var = current_sum_squared / current_sum_N;
+
+		  // std::cout << "mean = " << current_mean << std::endl;
+
+		  // current_mean -= sum_mean/sum_N;
+		  
+		  for(unsigned int i=0;i<current_mean_var.size();i++){
+		    current_mean_var[i] =
+		      whiteice::math::abs(current_mean_var[i] - current_mean[i]*current_mean[i]);
+		    current_mean_var[i] /= current_sum_N; // variance of mean must be divided by N..
+		  }
+
+
+		  // estimates converence = StDev[x]/|E[x]|=Sqrt[Var[x]]/|E[x]|
+		  // E[x] zeros are handled vy adding noise term 0.001.
+
+		  math::vertex<T> convergence;
+		  convergence.resize(current_mean.size());
+
+		  for(unsigned int i=0;i<convergence.size();i++){
+		    convergence[i] =
+		      whiteice::math::sqrt(current_mean_var[i]) /
+		      (whiteice::math::abs(current_mean[i]) + T(1e-3));
+		  }
+
+		  // std::cout << "conv_values = " << convergence << std::endl;
+		  
+		  T conv_value = T(0.0f);
+
+		  for(unsigned int i=0;i<convergence.size();i++){
+		    conv_value += convergence[i];
+		  }
+
+		  conv_value /= convergence.size();
+
+		  //std::cout << "HMC convergence: " << conv_value << std::endl;
+		  //fflush(stdout);
+		  // std::cout << "N = " << current_sum_N << std::endl;
+
+		  if(conv_value < T(0.0125)){
+		    //printf("CONVERGENCE, RESTART SAMPLER!!!\n");
+
+		    current_sum_mean.zero();
+		    current_sum_squared.zero();
+		    current_sum_N = 0;
+
+		    restart_positions.push_back(sum_N);
+
+		    // RESETS SAMPLING TO START FRESH SAMPLING
+		    // q = location, p = momentum, H(q,p) = hamiltonian
+		    
+		    {
+		      nnet.randomize();
+		      nnet.exportdata(q); // initial position q is RANDOM
+		      // (from the input nnetwork weights)
+		    }
+		    
+		    p.resize(q.size()); // momentum is initially zero
+		    p.zero();
+		  }
+
+		}
 
     		updating_sample.unlock();
 
