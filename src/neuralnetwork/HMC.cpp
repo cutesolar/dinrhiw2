@@ -645,16 +645,17 @@ namespace whiteice
 		      unsigned int index = 0;
 		      while(index <= restart_positions.size()){
 
-			int start;
+			int start = 0;
 
-			if(index == 0 && restart_positions.size() == 0)
-			  start = samples.size()-N;
+			if(index == 0 && restart_positions.size() == 0){
+			  start = (int)samples.size()-(int)N;
+			  if(start < 0) start = 0;
+			}
 			else{
 			  start = (int)restart_positions[index]-((int)N);
+			  if(start < 0) start = 0;
 
-			  if(index == 0){
-			    if(start < 0) start = 0;
-			  }
+			  if(index == 0){ }
 			  else{
 			    if(start < (int)restart_positions[index-1])
 			      start = restart_positions[index-1];
@@ -663,11 +664,16 @@ namespace whiteice
 
 			int end = samples.size();
 
-			if(index+1 == restart_positions.size()){
+			if(index+1 <= restart_positions.size()){
 			  end = samples.size();
 			}
 			else{
-			  end = restart_positions[index+1];
+			  if(index+1 < restart_positions.size()){
+			    end = restart_positions[index+1];
+			  }
+			  else{
+			    end = samples.size();
+			  }
 			}
 
 			for(unsigned int n=(unsigned)start;n<(unsigned)end;n++){
@@ -770,7 +776,7 @@ namespace whiteice
 
 	    unsigned int end = samples.size();
 
-	    if(index == restart_positions.size())
+	    if(index >= restart_positions.size())
 	      end = samples.size();
 	    else
 	      end = restart_positions[index];
