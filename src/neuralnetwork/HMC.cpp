@@ -1137,13 +1137,13 @@ namespace whiteice
 		  //fflush(stdout);
 		  // std::cout << "N = " << current_sum_N << std::endl;
 
-		  if(conv_value < T(0.0125)){
+		  if(conv_value < T(0.0100)){ //sampling st.dev. is 1% of the mean value [=> convergence]
 		    //printf("CONVERGENCE, RESTART SAMPLER!!!\n");
-
+		    
 		    current_sum_mean.zero();
 		    current_sum_squared.zero();
 		    current_sum_N = 0;
-
+		    
 		    restart_positions.push_back(sum_N);
 
 		    // RESETS SAMPLING TO START FRESH SAMPLING
