@@ -1135,10 +1135,9 @@ namespace whiteice
 
 		  //std::cout << "HMC convergence: " << conv_value << std::endl;
 		  //fflush(stdout);
-		  // std::cout << "N = " << current_sum_N << std::endl;
 
-		  if(conv_value < T(0.0100)){ //sampling st.dev. is 1% of the mean value [=> convergence]
-		    //printf("CONVERGENCE, RESTART SAMPLER!!!\n");
+		  if(conv_value < T(0.0350)){ //sampling st.dev. is 3.5% of the mean value [=> convergence based on tests]
+		    printf("CONVERGENCE, RESTART SAMPLER!!!\n");
 		    
 		    current_sum_mean.zero();
 		    current_sum_squared.zero();
