@@ -1137,7 +1137,7 @@ namespace whiteice
 		  //fflush(stdout);
 
 		  if(conv_value < T(0.0350)){ //sampling st.dev. is 3.5% of the mean value [=> convergence based on tests]
-		    printf("CONVERGENCE, RESTART SAMPLER!!!\n");
+		    // printf("CONVERGENCE, RESTART SAMPLER!!!\n");
 		    
 		    current_sum_mean.zero();
 		    current_sum_squared.zero();
