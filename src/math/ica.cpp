@@ -280,10 +280,28 @@ namespace whiteice
 #endif
 	      }
 
-
 #if 1
-	      assert(H.inv() == true); // TODO: regularize if matrix is singular
-	      //assert(H.pseudoinverse() == true); // TODO: regularize if matrix is singular
+	      auto INV = H;
+	      const float epsilon = (1e-9f);
+	      unsigned int tries = 0;
+
+	      // regularize matrix by adding to diagonal and try to invert matrix..
+	      while(INV.inv() == false && tries < 60){
+		INV = H;
+
+		for(unsigned int i=0;i<H.xsize()&&i<H.ysize();i++){
+		  INV(i,i) += T( epsilon * math::pow(2.0f, (float)tries) );
+		}
+
+		tries++;
+	      }
+
+	      assert(tries < 60); // success
+
+	      H = INV;
+	      
+	      // assert(H.inv() == true); // TODO: regularize if matrix is singular
+	      // assert(H.pseudoinverse() == true); // TODO: regularize if matrix is singular
 
 	      T alpha = T(1.0); // was: 1.0
 
