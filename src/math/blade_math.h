@@ -154,29 +154,29 @@ namespace whiteice
     
     bool convert(blas_real<float>& B, const blas_complex<float> A);
     bool convert(blas_real<float>& B, const blas_complex<double> A);
-    bool convert(blas_real<float>& B, const complex<float> A);
-    bool convert(blas_real<float>& B, const complex<double> A);
+    bool convert(blas_real<float>& B, const std::complex<float> A);
+    bool convert(blas_real<float>& B, const std::complex<double> A);
     bool convert(blas_complex<float>& B, const blas_real<float> A);
     bool convert(blas_complex<double>& B, const blas_real<float> A);
-    bool convert(complex<float>& B, const blas_real<float> A);
-    bool convert(complex<float>& B, const blas_real<double> A);
-    bool convert(complex<double>& B, const blas_real<float> A);
-    bool convert(complex<double>& B, const blas_real<double> A);    
-    bool convert(complex<float>& B, const blas_complex<float> A);
-    bool convert(complex<float>& B, const blas_complex<double> A);
-    bool convert(complex<double>& B, const blas_complex<float> A);
-    bool convert(complex<double>& B, const blas_complex<double> A);    
+    bool convert(std::complex<float>& B, const blas_real<float> A);
+    bool convert(std::complex<float>& B, const blas_real<double> A);
+    bool convert(std::complex<double>& B, const blas_real<float> A);
+    bool convert(std::complex<double>& B, const blas_real<double> A);    
+    bool convert(std::complex<float>& B, const blas_complex<float> A);
+    bool convert(std::complex<float>& B, const blas_complex<double> A);
+    bool convert(std::complex<double>& B, const blas_complex<float> A);
+    bool convert(std::complex<double>& B, const blas_complex<double> A);    
     bool convert(blas_real<double>& B, const blas_real<float> A);
     bool convert(blas_real<float>& B, const blas_real<double> A);
 
-    bool convert(blas_real<float>& B, const complex< blas_real<float> > A);
-    bool convert(blas_real<double>& B, const complex< blas_real<double> > A);
+    bool convert(blas_real<float>& B, const std::complex< blas_real<float> > A);
+    bool convert(blas_real<double>& B, const std::complex< blas_real<double> > A);
 
-    bool convert(blas_complex<float>& B, const complex< blas_real<float> > A);
-    bool convert(blas_complex<double>& B, const complex< blas_real<double> > A);
+    bool convert(blas_complex<float>& B, const std::complex< blas_real<float> > A);
+    bool convert(blas_complex<double>& B, const std::complex< blas_real<double> > A);
 
-    bool convert(complex<blas_real<float> >& B, const blas_complex<float> A);
-    bool convert(complex<blas_real<double> >& B, const blas_complex<double> A);
+    bool convert(std::complex<blas_real<float> >& B, const blas_complex<float> A);
+    bool convert(std::complex<blas_real<double> >& B, const blas_complex<double> A);
 
 
     
@@ -218,29 +218,29 @@ namespace whiteice
     bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
 		 const double A);
     
-    bool convert(complex<float>& B,
+    bool convert(std::complex<float>& B,
 		 const superresolution< blas_real<float>, modular<unsigned int> > A);
 
-    bool convert(complex<double>& B,
+    bool convert(std::complex<double>& B,
 		 const superresolution< blas_real<float>, modular<unsigned int> > A);
 
-    bool convert(complex<float>& B,
+    bool convert(std::complex<float>& B,
 		 const superresolution< blas_real<double>, modular<unsigned int> > A);
     
-    bool convert(complex<double>& B,
+    bool convert(std::complex<double>& B,
 		 const superresolution< blas_real<double>, modular<unsigned int> > A);
 
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
-		 const complex<float> A);
+		 const std::complex<float> A);
 
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
-		 const complex<double> A);
+		 const std::complex<double> A);
 
     bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
-		 const complex<float> A);
+		 const std::complex<float> A);
 
     bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
-		 const complex<double> A);
+		 const std::complex<double> A);
 		 
     
     

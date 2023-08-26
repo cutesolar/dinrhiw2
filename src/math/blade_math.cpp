@@ -463,59 +463,59 @@ namespace whiteice
     bool convert(double& B, const blas_complex<double> A) { B = (double)A.real(); return false; }
 
 
-    bool convert(blas_real<float>& B, const blas_complex<float> A)  { B = (float)A.real(); return true; }
-    bool convert(blas_real<float>& B, const blas_complex<double> A) { B = (float)A.real(); return true; }
-    bool convert(blas_real<float>& B, const complex<float> A)       { B = (float)A.real(); return true; }
-    bool convert(blas_real<float>& B, const complex<double> A)      { B = (float)A.real(); return true; }
-    bool convert(blas_complex<float>& B, const blas_real<float> A)  { B = (float)A.c[0]; return true; }
-    bool convert(blas_complex<double>& B, const blas_real<float> A) { B = (double)A.c[0]; return true; }
+    bool convert(blas_real<float>& B, const blas_complex<float> A)  { B.c[0] = (float)A.c[0]; return true; }
+    bool convert(blas_real<float>& B, const blas_complex<double> A) { B.c[0] = (float)A.c[0]; return true; }
+    bool convert(blas_real<float>& B, const std::complex<float> A)       { B = (float)A.real(); return true; }
+    bool convert(blas_real<float>& B, const std::complex<double> A)      { B = (float)A.real(); return true; }
+    bool convert(blas_complex<float>& B, const blas_real<float> A)  { B.c[0] = (float)A.c[0]; B.c[1] = 0.0f; return true; }
+    bool convert(blas_complex<double>& B, const blas_real<float> A) { B.c[0] = (double)A.c[0]; B.c[1] = 0.0f; return true; }
     //bool convert(blas_complex<float>& B, const blas_real<double> A)  { B = (float)A.c[0]; return true; }
     //bool convert(blas_complex<double>& B, const blas_real<double> A) { B = (double)A.c[0]; return true; }
-    bool convert(complex<float>& B, const blas_real<float> A)       { B = (float)A.c[0]; return true; }
-    bool convert(complex<float>& B, const blas_real<double> A)      { B = (float)A.c[0]; return true; }
-    bool convert(complex<double>& B, const blas_real<float> A)       { B = (double)A.c[0]; return true; }
-    bool convert(complex<double>& B, const blas_real<double> A)      { B = (double)A.c[0]; return true; }
+    bool convert(std::complex<float>& B, const blas_real<float> A)       { B = (float)A.c[0]; return true; }
+    bool convert(std::complex<float>& B, const blas_real<double> A)      { B = (float)A.c[0]; return true; }
+    bool convert(std::complex<double>& B, const blas_real<float> A)       { B = (double)A.c[0]; return true; }
+    bool convert(std::complex<double>& B, const blas_real<double> A)      { B = (double)A.c[0]; return true; }
 
-    bool convert(complex<float>& B, const blas_complex<float> A){
-      B = complex<float>(A.c[0], A.c[1]);
+    bool convert(std::complex<float>& B, const blas_complex<float> A){
+      B = std::complex<float>(A.c[0], A.c[1]);
       return true;
     }
 								 
-    bool convert(complex<float>& B, const blas_complex<double> A){
-      B = complex<float>(A.c[0], A.c[1]);
+    bool convert(std::complex<float>& B, const blas_complex<double> A){
+      B = std::complex<float>(A.c[0], A.c[1]);
       return true;
     }
 
-    bool convert(complex<double>& B, const blas_complex<float> A){
-      B = complex<double>(A.c[0], A.c[1]);
+    bool convert(std::complex<double>& B, const blas_complex<float> A){
+      B = std::complex<double>(A.c[0], A.c[1]);
       return true;
     }
 								 
-    bool convert(complex<double>& B, const blas_complex<double> A){
-      B = complex<double>(A.c[0], A.c[1]);
+    bool convert(std::complex<double>& B, const blas_complex<double> A){
+      B = std::complex<double>(A.c[0], A.c[1]);
       return true;
     }
     
-    bool convert(blas_real<float>& B, const complex< blas_real<float> > A)
+    bool convert(blas_real<float>& B, const std::complex< blas_real<float> > A)
     {
       B = A.real();
       return true;
     }
     
-    bool convert(blas_real<double>& B, const complex< blas_real<double> > A)
+    bool convert(blas_real<double>& B, const std::complex< blas_real<double> > A)
     {
       B = A.real();
       return true;
     }
 
-    bool convert(blas_complex<float>& B, const complex< blas_real<float> > A)
+    bool convert(blas_complex<float>& B, const std::complex< blas_real<float> > A)
     {
       B.c[0] = A.real().c[0];
       B.c[1] = A.imag().c[0];
       return true;
     }
     
-    bool convert(blas_complex<double>& B, const complex< blas_real<double> > A)
+    bool convert(blas_complex<double>& B, const std::complex< blas_real<double> > A)
     {
       B.c[0] = A.real().c[0];
       B.c[1] = A.imag().c[0];
@@ -657,28 +657,28 @@ namespace whiteice
     
 
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
-		 const complex<float> A)
+		 const std::complex<float> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_real<float>, modular<unsigned int> >& B,
-		 const complex<double> A)
+		 const std::complex<double> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
-		 const complex<float> A)
+		 const std::complex<float> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_real<double>, modular<unsigned int> >& B,
-		 const complex<double> A)
+		 const std::complex<double> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
@@ -844,25 +844,25 @@ namespace whiteice
     }
 
     
-    bool convert(complex<float>& B,
+    bool convert(std::complex<float>& B,
 		 const superresolution< blas_complex<float>, modular<unsigned int> > A)
     {
       return whiteice::math::convert(B, A[0]);
     }    
 
-    bool convert(complex<double>& B,
+    bool convert(std::complex<double>& B,
 		 const superresolution< blas_complex<float>, modular<unsigned int> > A)
     {
       return whiteice::math::convert(B, A[0]);
     }
 
-    bool convert(complex<float>& B,
+    bool convert(std::complex<float>& B,
 		 const superresolution< blas_complex<double>, modular<unsigned int> > A)
     {
       return whiteice::math::convert(B, A[0]);
     }
 
-    bool convert(complex<double>& B,
+    bool convert(std::complex<double>& B,
 		 const superresolution< blas_complex<double>, modular<unsigned int> > A)
     {
       return whiteice::math::convert(B, A[0]);
@@ -871,28 +871,28 @@ namespace whiteice
     
 
     bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
-		 const complex<float> A)
+		 const std::complex<float> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
-		 const complex<double> A)
+		 const std::complex<double> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_complex<double>, modular<unsigned int> >& B,
-		 const complex<float> A)
+		 const std::complex<float> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
     }
 
     bool convert(superresolution< blas_complex<double>, modular<unsigned int> >& B,
-		 const complex<double> A)
+		 const std::complex<double> A)
     {
       B.zero();
       return whiteice::math::convert(B[0], A);
@@ -1329,18 +1329,36 @@ namespace whiteice
       shape_t shape { LEN };
       stride_t stride(1);
 
-      stride[0] = sizeof(T)*2;
-      size_t tmp = sizeof(T)*2;
+      //stride[0] = sizeof(T)*2;
+      //size_t tmp = sizeof(T)*2;
+      stride[0]  = sizeof(std::complex<T>);
+      size_t tmp = sizeof(whiteice::math::blas_complex<T>);
       tmp *= shape[0];
 
       shape_t axes;
       for(unsigned int i=0;i<shape.size();++i)
 	axes.push_back(i);
 
+      std::vector< std::complex<T> > data(LEN);
+
+      for(unsigned int i=0;i<LEN;i++){
+	//const auto value = v[i];
+	//auto output = data[i];
+	whiteice::math::convert(data[i], v[i]);
+	//data[i] = output;
+      }
+
+      auto res = data;
+      
+
       c2c(shape, stride, stride, axes, FORWARD,
-	  (std::complex<T>*)&(v[0]),
-	  (std::complex<T>*)&(v[0]),
+	  data.data(), res.data(),
+	  //(std::complex<T>*)&(v[0]),  (std::complex<T>*)&(v[0]),
 	  T(1.0));
+
+      
+      for(unsigned int i=0;i<LEN;i++)
+	whiteice::math::convert(v[i], res[i]);
 
       return true;
     }

@@ -77,11 +77,11 @@ namespace whiteice
 	inline blas_real(const blas_complex<double>& t); // takes real part
 
 	inline blas_real(const blas_real<float>& t){
-	  c[0] = t.c[0];
+	  c[0] = T(t.c[0]);
 	  blas_safebox(c[0]);
 	}
 	inline blas_real(const blas_real<double>& t){
-	  c[0] = t.c[0];
+	  c[0] = T(t.c[0]);
 	  blas_safebox(c[0]);
 	}
 	
@@ -774,7 +774,7 @@ namespace whiteice
     template <typename T, typename S>
     inline bool convert(blas_real<T>& B, const blas_real<S>& A) 
     {
-      try{ B.c[0] = static_cast<T>(A.c[0]); return true; }
+      try{ B.c[0] = T(A.c[0]); return true; }
       catch(std::exception& e){ return false; }
     }
     

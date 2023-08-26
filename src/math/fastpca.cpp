@@ -99,13 +99,30 @@ namespace whiteice
 	    // calculates product without calculating Cxx matrix
 
 	    const auto tmp = g;
-	    auto delta = m;
 	    g.zero();
 
-	    for(const auto& di : data){
-	      delta = (di - m);
-	      g += delta*(delta*tmp);
+	    // parallel threaded code for calculating matrix product with large amount of data
+#pragma omp parallel shared(g)
+	    {
+	      auto delta = m;
+	      auto gcopy = g;
+
+#pragma omp for nowait schedule(auto)
+	      for(unsigned int i=0;i<data.size();i++){
+		delta = (data[i]-m);
+		gcopy += delta*(delta*tmp);
+	      }
+
+#pragma omp critical (fast_pca_fhwuifhwu)
+	      {
+		g += gcopy;
+	      }
 	    }
+	    
+	    //for(const auto& di : data){
+	    //  delta = (di - m);
+	    //  g += delta*(delta*tmp);
+	    //}
 
 	    g /= T(data.size());
 	  }
