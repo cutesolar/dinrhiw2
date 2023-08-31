@@ -388,7 +388,7 @@ namespace whiteice
 	gprev.normalize();
 	
 	T convergence = T(1.0);
-	T epsilon = T(1e-3);
+	T epsilon = T(1e-2);
 	
 	if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
 	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
