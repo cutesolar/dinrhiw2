@@ -341,8 +341,9 @@ namespace whiteice
 	
 	// processes first column
 	
-	if(A(0,0) <= T(0.0))
+	if(A(0,0) == T(0.0))
 	  return false;
+
 	
 	scale = T(1.0) / sqrt(A(0,0));
 	for(unsigned int k=0;k<N;k++)
@@ -355,7 +356,7 @@ namespace whiteice
 	    }
 	  }
 	  
-	  if(A(i,i) <= T(0.0))
+	  if(A(i,i) == T(0.0))
 	    return false;
 	  
 	  // normalizes then length of A[j..N][j]

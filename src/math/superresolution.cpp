@@ -125,7 +125,7 @@ namespace whiteice
     superresolution<T,U> superresolution<T,U>::operator*(const superresolution<T,U>& s) const
       
     {
-#if 1
+#if 0
       // for small number lengths direct convolution is faster than FFT. This is O(N^2) thought.
       // with N=31, N^2 = 1000 and 3*N*log(N) + N = 31*5 = 500 multiplications. So FFT is faster??
 
@@ -142,7 +142,7 @@ namespace whiteice
     return result;
 #endif
     
-#if 0
+#if 1
       // z = convolution(x, y)
       // z = InvFFT(FFT(x)*FFT(y))
       
@@ -469,7 +469,7 @@ namespace whiteice
     {
       T dot = T(0.0f);
       for(unsigned int i=0;i<size();i++){
-	dot += (this->basis[i])*(this->basis[i]);
+	dot += (this->basis[i])*whiteice::math::conj(this->basis[i]);
 	this->basis[i] = T(0.0f);
       }
 
@@ -484,7 +484,7 @@ namespace whiteice
       T dot = T(0.0f);
       
       for(unsigned int i=0;i<size();i++)
-	dot += (this->basis[i])*(s.basis[i]);
+	dot += (this->basis[i])*whiteice::math::conj(s.basis[i]);
       
       return superresolution<T,U>(dot);
     }
@@ -800,7 +800,7 @@ namespace whiteice
       
       // zc.conj;
 
-      z *= zc;
+      z *= zc; // should we use inner product here??? (FIXME)
       z = whiteice::math::sqrt(z);
 	
       return z;

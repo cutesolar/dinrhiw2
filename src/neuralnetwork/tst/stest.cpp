@@ -52,10 +52,10 @@ int main()
   std::cout << "Creating training dataset.." << std::endl;
   
   dataset<
-    math::superresolution< math::blas_real<double>,
+    math::superresolution< math::blas_complex<double>,
 			   math::modular<unsigned int> > > data;
 
-  dataset< math::blas_real<double> > data2;
+  dataset< math::blas_complex<double> > data2;
 
   data.createCluster("input", 4);
   data.createCluster("output", 4);
@@ -63,24 +63,24 @@ int main()
   data2.createCluster("output", 4);  
     
   std::vector< math::vertex<
-    math::superresolution< math::blas_real<double>,
+    math::superresolution< math::blas_complex<double>,
 			   math::modular<unsigned int> > > > inputs;
 
   std::vector< math::vertex<
-    math::superresolution< math::blas_real<double>,
+    math::superresolution< math::blas_complex<double>,
 			   math::modular<unsigned int> > > > outputs;
 
-  std::vector< math::vertex<math::blas_real<double> > > inputs2;
-  std::vector< math::vertex<math::blas_real<double> > > outputs2;
+  std::vector< math::vertex<math::blas_complex<double> > > inputs2;
+  std::vector< math::vertex<math::blas_complex<double> > > outputs2;
 
-  RNG< math::blas_real<double> > prng;
+  RNG< math::blas_complex<double> > prng;
 
-  nnetwork< math::blas_real<double> > net;
-  nnetwork< math::superresolution< math::blas_real<double>,
+  nnetwork< math::blas_complex<double> > net;
+  nnetwork< math::superresolution< math::blas_complex<double>,
 				   math::modular<unsigned int> > > snet;
 
-  math::vertex< math::blas_real<double> > weights;
-  math::vertex< math::superresolution< math::blas_real<double>,
+  math::vertex< math::blas_complex<double> > weights;
+  math::vertex< math::superresolution< math::blas_complex<double>,
 				       math::modular<unsigned int> > > sweights;
 
   // was: 4-10-10-10-4 network
@@ -116,9 +116,9 @@ int main()
 #endif
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
-  net.setArchitecture(arch, nnetwork< math::blas_real<double> >::rectifier); // rectifier, hermite 
+  net.setArchitecture(arch, nnetwork< math::blas_complex<double> >::rectifier); // rectifier, hermite 
   snet.setArchitecture(arch, nnetwork< math::superresolution<
-		       math::blas_real<double>,
+		       math::blas_complex<double>,
 		       math::modular<unsigned int> > >::rectifier); // rectifier, hermite
 
   net.randomize();
@@ -155,18 +155,18 @@ int main()
   //std::cout << "sweights = " << sweights << std::endl;
 
   math::vertex<
-    math::superresolution< math::blas_real<double>,
+    math::superresolution< math::blas_complex<double>,
 			   math::modular<unsigned int> > > sx, sy;
   
-  math::vertex< math::blas_real<double> > x, y;
+  math::vertex< math::blas_complex<double> > x, y;
   
   
   const unsigned int NUMDATAPOINTS = 1000; // was: 1000, 100 for testing purposes
 
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
 
-    math::blas_real<double> sigma = 4.0;
-    math::blas_real<double> f = 10.0, a = 1.10, w = 10.0, one = 1.0;
+    math::blas_complex<double> sigma = 4.0;
+    math::blas_complex<double> f = 10.0, a = 1.10, w = 10.0, one = 1.0;
 
     x.resize(4);
     prng.normal(x);
@@ -280,8 +280,9 @@ int main()
       //y = y/255.0; // convert to [-2,2]/255 valued data! [with preprocess] (small values work better!)
 
       // scales [0,1] data to [-0.5,0.5] data
-      for(unsigned int i=0;i<y.size();i++)
-	y[i] -= 0.50;
+      for(unsigned int i=0;i<y.size();i++){
+	y[i] -= math::blas_complex<double>(0.50);
+      }
       
       whiteice::math::convert(sx, x);
       whiteice::math::convert(sy, y);
@@ -329,12 +330,12 @@ int main()
     const bool overfit = true;
     const bool use_minibatch = false;
     
-    whiteice::SGD_snet< math::blas_real<double> > sgd(snet, data2, overfit, use_minibatch);
+    whiteice::SGD_snet< math::blas_complex<double> > sgd(snet, data2, overfit, use_minibatch);
 
-    math::superresolution<math::blas_real<double>,
+    math::superresolution<math::blas_complex<double>,
 			  math::modular<unsigned int> > lrate(0.0001f); // WAS: 0.0001, 0.01
 
-    math::vertex< math::superresolution<math::blas_real<double>,
+    math::vertex< math::superresolution<math::blas_complex<double>,
 					math::modular<unsigned int> > > w0;
 
     snet.exportdata(w0);
@@ -354,7 +355,7 @@ int main()
 
       unsigned int iters = 0;
 
-      math::superresolution<math::blas_real<double>,
+      math::superresolution<math::blas_complex<double>,
 			    math::modular<unsigned int> > error;
 
       sgd.getSolutionStatistics(error, iters);
@@ -376,7 +377,7 @@ int main()
   // next DO NNGradDescent<> && nnetwork<> to actually learn the data.
   if(0)
   {
-    whiteice::math::NNGradDescent<math::blas_real<double>> grad;
+    whiteice::math::NNGradDescent<math::blas_complex<double>> grad;
 
     grad.startOptimize(data2, net, 1);
 
@@ -384,7 +385,7 @@ int main()
       sleep(1);
       
       unsigned int iters = 0;
-      whiteice::math::blas_real<double> error;
+      whiteice::math::blas_complex<double> error;
       
       grad.getSolutionStatistics(error, iters);
       
@@ -398,10 +399,10 @@ int main()
   
   {
     std::vector< math::vertex< math::superresolution<
-      math::blas_real<double>, math::modular<unsigned int> > > > xsamples;
+      math::blas_complex<double>, math::modular<unsigned int> > > > xsamples;
 
     std::vector< math::vertex< math::superresolution<
-      math::blas_real<double>, math::modular<unsigned int> > > > ysamples;
+      math::blas_complex<double>, math::modular<unsigned int> > > > ysamples;
 
     data.getData(0, xsamples);
     data.getData(1, ysamples);
@@ -429,9 +430,9 @@ int main()
 #endif
     
 
-    math::matrix< math::superresolution< math::blas_real<double>,
+    math::matrix< math::superresolution< math::blas_complex<double>,
 		  math::modular<unsigned int> > > Cxx, Cxy;
-    math::vertex< math::superresolution< math::blas_real<double>,
+    math::vertex< math::superresolution< math::blas_complex<double>,
 		  math::modular<unsigned int> > > mx, my;
 
     const auto& input = xsamples;
@@ -456,27 +457,27 @@ int main()
       my  += output[i];
     }
     
-    Cxx /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
-    Cxy /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
-    mx  /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
-    my  /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    Cxx /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >((float)SAMPLES);
+    Cxy /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >((float)SAMPLES);
+    mx  /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >((float)SAMPLES);
+    my  /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >((float)SAMPLES);
     
     Cxx -= mx.outerproduct();
     Cxy -= mx.outerproduct(my);
 
-    math::matrix< math::superresolution< math::blas_real<double>,
+    math::matrix< math::superresolution< math::blas_complex<double>,
 					 math::modular<unsigned int> > > INV;
     
-    math::superresolution< math::blas_real<double>, math::modular<unsigned int> > l =
-      math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(10e-20);
+    math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > l =
+      math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >(10e-20);
 
     std::cout << "Calculate Matrix Inverse." << std::endl << std::flush;
     
     do{
       INV = Cxx;
       
-      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > trace =
-	math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.0f);
+      math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > trace =
+	math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >(0.0f);
       
       for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
 	trace += Cxx(i,i);
@@ -488,16 +489,16 @@ int main()
       else
 	trace /= Cxx.ysize();
       
-      l += (math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(0.1)*trace +
-	    math::superresolution< math::blas_real<double>, math::modular<unsigned int> >(2.0f)*l); // keeps "scale" of the matrix same
+      l += (math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >(0.1)*trace +
+	    math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >(2.0f)*l); // keeps "scale" of the matrix same
     }
     while(whiteice::math::symmetric_inverse(INV) == false);
 
     std::cout << "Calculate Matrix Inverse DONE." << std::endl << std::flush;
 
-    math::matrix< math::superresolution< math::blas_real<double>,
+    math::matrix< math::superresolution< math::blas_complex<double>,
 					 math::modular<unsigned int> > > W;
-    math::vertex< math::superresolution< math::blas_real<double>,
+    math::vertex< math::superresolution< math::blas_complex<double>,
 					 math::modular<unsigned int> > > b;
     
     W = (Cxy.transpose() * INV);
@@ -505,7 +506,7 @@ int main()
 
     // y = W*x + b
 
-    math::superresolution< math::blas_real<double>, math::modular<unsigned int> > err, e;
+    math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > err, e;
     err.zero();
 
     for(unsigned int i=0;i<SAMPLES;i++){
@@ -514,24 +515,25 @@ int main()
       e.zero();
 
       for(unsigned int d=0;d<delta.size();d++)
-	e += delta[d][0].abs();
+	e += math::superresolution< math::blas_complex<double>,
+				    math:: modular<unsigned int> > (delta[d][0].abs());
 
       e /= delta.size();
       err += e;
     }
 
-    err /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >((float)SAMPLES);
+    err /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >((float)SAMPLES);
 
     std::cout << "Linear Fit Absolute Error: " << err[0] << std::endl;
   }
   
   //////////////////////////////////////////////////////////////////////
 
-#if 1
+#if 0 // WAS ENABLED: 1
   // pretrainer for superresolution code
   {
     {
-      whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
+      whiteice::PretrainNN< math::superresolution< math::blas_complex<double>,
 						   math::modular<unsigned int> > > pretrainer;
       pretrainer.setMatrixFactorization(true);
       
@@ -544,7 +546,7 @@ int main()
       }
       
       unsigned int iters = 0;
-      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error;
+      math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > error;
       
       int updated_iter = -1;
       
@@ -569,7 +571,7 @@ int main()
     }
 
     {
-      whiteice::PretrainNN< math::superresolution< math::blas_real<double>,
+      whiteice::PretrainNN< math::superresolution< math::blas_complex<double>,
 						   math::modular<unsigned int> > > pretrainer;
       pretrainer.setMatrixFactorization(false);
       
@@ -582,7 +584,7 @@ int main()
       }
       
       unsigned int iters = 0;
-      math::superresolution< math::blas_real<double>, math::modular<unsigned int> > error;
+      math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > error;
       
       int updated_iter = -1;
       
@@ -612,19 +614,19 @@ int main()
 
   // gradient descent code
   {
-    math::vertex< math::superresolution<math::blas_real<double>,
+    math::vertex< math::superresolution<math::blas_complex<double>,
 					math::modular<unsigned int> > > weights, w0;
     
-    math::vertex< math::superresolution<math::blas_real<double>,
+    math::vertex< math::superresolution<math::blas_complex<double>,
 					math::modular<unsigned int> > > sumgrad;
 
-    std::vector< math::vertex< math::superresolution<math::blas_real<double>,
+    std::vector< math::vertex< math::superresolution<math::blas_complex<double>,
 						     math::modular<unsigned int> > > > gradients;
     
     unsigned int counter = 0;
-    math::superresolution<math::blas_real<double>,
+    math::superresolution<math::blas_complex<double>,
 			  math::modular<unsigned int> > error(1000.0f), min_error(1000.0f), latest_error(1000.0f);
-    math::superresolution<math::blas_real<double>,
+    math::superresolution<math::blas_complex<double>,
 			  math::modular<unsigned int> > lrate(0.01f); // WAS: 0.05
     
     double lratef = 0.01;
@@ -634,14 +636,14 @@ int main()
     std::vector<double> errors; // history of errors (10 last errors)
     
     
-    while(abs(error)[0].real() > math::blas_real<double>(0.001f) &&
+    while(abs(error)[0].real() > math::blas_complex<double>(0.001f).real() &&
 	  grad_search_counter < 300 &&
 	  lratef > 1e-100 && counter < 100000)
     {
       auto batchsdata = data;
       // batchsdata.downsampleAll(200);
       
-      error = math::superresolution<math::blas_real<double>,
+      error = math::superresolution<math::blas_complex<double>,
 				    math::modular<unsigned int> >(0.0f);
       sumgrad.zero();
       
@@ -649,13 +651,13 @@ int main()
       // exports weights, weights -= 0.01*gradient
       // imports weights back
 
-      math::superresolution<math::blas_real<double>,
+      math::superresolution<math::blas_complex<double>,
 			    math::modular<unsigned int> > ninv =
-	math::superresolution<math::blas_real<double>,
+	math::superresolution<math::blas_complex<double>,
 			      math::modular<unsigned int> >
 	(1.0f/(batchsdata.size(0)*batchsdata.access(1,0).size()));
 
-      math::superresolution<math::blas_real<double>,
+      math::superresolution<math::blas_complex<double>,
 			    math::modular<unsigned int> > h, s0(1.0), epsilon(1e-30);
 
       h.ones(); // differential operation difference
@@ -666,7 +668,7 @@ int main()
 
 
       if(BN){ // batch normalization code..
-	std::vector< math::vertex< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > > > datav;
+	std::vector< math::vertex< math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > > > datav;
 	batchsdata.getData(0, datav);
 
 	assert(snet.calculateBatchNorm(datav) == true);
@@ -677,10 +679,10 @@ int main()
 
 #pragma omp parallel
       {
-	math::vertex< math::superresolution<math::blas_real<double>,
+	math::vertex< math::superresolution<math::blas_complex<double>,
 					    math::modular<unsigned int> > > grad, err, threaded_grad;
 
-	math::superresolution<math::blas_real<double>,
+	math::superresolution<math::blas_complex<double>,
 			      math::modular<unsigned int> > threaded_error(0.0f);
 
 	threaded_grad.resize(snet.exportdatasize());
@@ -714,7 +716,7 @@ int main()
 	    }
 	    
 	    // this works with pureLinear non-linearity
-	    math::matrix< math::superresolution<math::blas_real<double>,
+	    math::matrix< math::superresolution<math::blas_complex<double>,
 						math::modular<unsigned int> > > DF;
 	    
 	    math::matrix< math::superresolution<math::blas_complex<double>,
@@ -806,10 +808,10 @@ int main()
 
 	  const unsigned int dimensions = gradients.size()-1;
 	  
-	  math::matrix< math::superresolution<math::blas_real<double>,
+	  math::matrix< math::superresolution<math::blas_complex<double>,
 					      math::modular<unsigned int> > > PCA;
 
-	  std::vector< math::superresolution<math::blas_real<double>,
+	  std::vector< math::superresolution<math::blas_complex<double>,
 					      math::modular<unsigned int> > > eigenvalues;
 
 	  auto mg = gradients[0];
@@ -818,14 +820,14 @@ int main()
 	  for(const auto & g : gradients)
 	    mg += g;
 
-	  mg /= math::superresolution< math::blas_real<double>, math::modular<unsigned int> >
+	  mg /= math::superresolution< math::blas_complex<double>, math::modular<unsigned int> >
 	    (gradients.size());
 	  
 
 	  if(fastpca(gradients, dimensions, PCA, eigenvalues, false)){ // fast PCA is successful
 
 	    // sample from N(0,I) [what is superresolutional normal distribution???] 
-	    math::vertex< math::superresolution<math::blas_real<double>,
+	    math::vertex< math::superresolution<math::blas_complex<double>,
 						math::modular<unsigned int> > > u, w;
 
 	    u.resize(gradients[0].size());
@@ -839,7 +841,7 @@ int main()
 
 	    for(unsigned int j=0;j<PCA.ysize();j++){
 
-	      math::vertex< math::superresolution<math::blas_real<double>,
+	      math::vertex< math::superresolution<math::blas_complex<double>,
 						  math::modular<unsigned int> > > v;
 
 	      v.resize(PCA.xsize());
@@ -872,7 +874,7 @@ int main()
       
       for(unsigned int i=1;i<abserror.size();i++){
 	abserror[0] += abs(abserror[i]);
-	//abserror[i] = math::blas_real<double>(0.0f);
+	//abserror[i] = math::blas_complex<double>(0.0f);
 	abserror[i] = 0.0f;
       }
 
@@ -901,10 +903,10 @@ int main()
 
 #pragma omp parallel
 	{
-	  math::superresolution<math::blas_real<double>,
+	  math::superresolution<math::blas_complex<double>,
 				math::modular<unsigned int> > thread_error(0.0f);
 
-	  math::vertex< math::superresolution<math::blas_real<double>,
+	  math::vertex< math::superresolution<math::blas_complex<double>,
 					      math::modular<unsigned int> > > err;
 	  
 #pragma omp for nowait
@@ -933,7 +935,7 @@ int main()
 	
 	for(unsigned int i=1;i<abserror2.size();i++){
 	  abserror2[0] += abs(abserror2[i]);
-	  //abserror2[i] = math::blas_real<double>(0.0f);
+	  //abserror2[i] = math::blas_complex<double>(0.0f);
 	  abserror2[i] = 0.0f;
 	} 
 
@@ -1004,7 +1006,7 @@ int main()
     
     std::cout << counter << " : " << abs(error) << std::endl;
 
-    math::vertex< math::superresolution<math::blas_real<double>,
+    math::vertex< math::superresolution<math::blas_complex<double>,
 					math::modular<unsigned int> > > params;
     snet.exportdata(params);
     //std::cout << "nn solution weights = " << params << std::endl;

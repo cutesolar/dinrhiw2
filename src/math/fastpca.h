@@ -88,6 +88,21 @@ namespace whiteice
      const bool verbose);
 
 
+    extern template bool fastpca< superresolution< blas_complex<float>, modular<unsigned int> > >
+    (const std::vector< vertex< superresolution< blas_complex<float>, modular<unsigned int> > > >& data, 
+     const unsigned int dimensions,
+     math::matrix< superresolution< blas_complex<float>, modular<unsigned int> > >& PCA,
+     std::vector< superresolution< blas_complex<float>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
+    
+    extern template bool fastpca< superresolution< blas_complex<double>, modular<unsigned int> > >
+    (const std::vector< vertex< superresolution< blas_complex<double>, modular<unsigned int> > > >& data, 
+     const unsigned int dimensions,
+     math::matrix< superresolution< blas_complex<double>, modular<unsigned int> > >& PCA,
+     std::vector< superresolution< blas_complex<double>, modular<unsigned int> > >& eigenvalues,
+     const bool verbose);
+
+
     
     
     extern template bool fastpca_p< blas_real<float> >

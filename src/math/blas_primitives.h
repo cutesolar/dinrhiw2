@@ -266,6 +266,9 @@ namespace whiteice
 
 	inline void zero(){ this->c[0] = T(0.0f); }
 	inline void ones(){ this->c[0] = T(1.0f); }
+
+	inline blas_real<T>& fft(){ return *this; }
+	inline blas_real<T>& inverse_fft(){ return *this; }
 	
 	
 	template <typename A>
@@ -486,6 +489,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -494,6 +498,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -502,6 +507,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -510,6 +516,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -524,6 +531,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -532,6 +540,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -540,6 +549,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -548,6 +558,7 @@ namespace whiteice
 	{
 	  const std::string error = "complex numbers cannot be compared";
 	  printf("%s\n", error.c_str());
+	  assert(0);
 	  exit(-1);
 	  throw uncomparable(error);
 	}
@@ -631,6 +642,9 @@ namespace whiteice
 
 	inline void zero(){ this->c[0] = T(0.0f); this->c[1] = T(0.0f); }
 	inline void ones(){ this->c[0] = T(1.0f); this->c[1] = T(1.0f); }
+
+	inline blas_complex<T>& fft(){ return *this; }
+	inline blas_complex<T>& inverse_fft(){ return *this; }
 	
 	template <typename A>
 	friend blas_complex<A> operator*(const A& s, const blas_complex<A>& r) ;
@@ -708,6 +722,7 @@ namespace whiteice
       {
 	const std::string error = "complex numbers cannot be compared";
 	printf("%s\n", error.c_str());
+	assert(0);
 	exit(-1);
 	throw uncomparable(error);
       }
@@ -718,6 +733,7 @@ namespace whiteice
       {
 	const std::string error = "complex numbers cannot be compared";
 	printf("%s\n", error.c_str());
+	assert(0);
 	exit(-1);
 	throw uncomparable(error);
       }
@@ -728,6 +744,7 @@ namespace whiteice
       {
 	const std::string error = "complex numbers cannot be compared";
 	printf("%s\n", error.c_str());
+	assert(0);
 	exit(-1);
 	throw uncomparable(error);
       }
@@ -738,6 +755,7 @@ namespace whiteice
       {
 	const std::string error = "complex numbers cannot be compared";
 	printf("%s\n", error.c_str());
+	assert(0);
 	exit(-1);
 	throw uncomparable(error);
       }
