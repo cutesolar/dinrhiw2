@@ -68,17 +68,30 @@ namespace whiteice
 	math::vertex<T> g;
 	g.resize(m.size());
 	gprev.resize(m.size());
-	
-	for(unsigned int i=0;i<g.size();i++){
-	  gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	  g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+
+	if(typeid(T) == typeid(superresolution< blas_complex<float> >) ||
+	   typeid(T) == typeid(superresolution< blas_complex<double> >)){
+
+	  for(unsigned int i=0;i<g.size();i++){
+	    for(unsigned int j=0;j<g[i].size();j++){
+	      gprev[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	      g[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    }
+	  }
+	  
+	}
+	else{
+	  for(unsigned int i=0;i<g.size();i++){
+	    gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	  }
 	}
 	
 	g.normalize();
 	gprev.normalize();
 	
 	T convergence = T(1.0);
-	T epsilon = T(1e-3);
+	T epsilon = T(1e-2);
 	
 	if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
 	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
@@ -110,7 +123,9 @@ namespace whiteice
 #pragma omp for nowait schedule(auto)
 	      for(unsigned int i=0;i<data.size();i++){
 		delta = (data[i]-m);
-		gcopy += delta*(delta*tmp);
+		auto cdelta = delta;
+		cdelta.conj();
+		gcopy += delta*(cdelta*tmp);
 	      }
 
 #pragma omp critical (fast_pca_fhwuifhwu)
@@ -132,17 +147,22 @@ namespace whiteice
 	    auto t = g;
 	    
 	    for(auto& p : pca){
-	      T s = (t*p)[0];
+	      auto cp = p;
+	      cp.conj();
+	      T s = (t*cp)[0];
 	      g -= p*s;
 	    }
 	    
 	    g.normalize();
 	  }
 
+	  gprev.conj();
 	  auto dot = (g*gprev)[0];
 
 	  if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
-	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_complex<float>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_complex<double>, modular<unsigned int> >))
 	  {
 	    // need to still take vector inner product of the superresolution number elements
 	    // this is equal to 1 in convergence!! (so inner product space makes sense too with
@@ -151,22 +171,40 @@ namespace whiteice
 	    p.zero();
 	    
 	    for(unsigned int i=0;i<dot.size();i++){
-	      p[0] += dot[i]*dot[i];
+	      p[0] += dot[i]*whiteice::math::conj(dot[i]);
 	    }
 
 	    p[0] = whiteice::math::sqrt(p[0]);
 	    dot = p;
-	  }
-	  
-	  convergence = whiteice::math::abs(T(1.0f) - dot);
-	  
-	  gprev = g;
-	  
-	  iters++;
 
-	  if(iters > 50){
-	    if(convergence < epsilon || iters >= 2000)
-	      break;
+	    // std::cout << "convergence = " << p << std::endl;
+
+	    
+	    convergence = whiteice::math::abs(T(1.0f) - dot);
+	    
+	    gprev = g;
+	    
+	    iters++;
+	    
+	    if(iters > 10){
+	      if(convergence[0].real() < epsilon[0].real() || iters >= 2000)
+		break;
+	    }
+
+	  }
+	  else{
+	  
+	    convergence = whiteice::math::abs(T(1.0f) - dot);
+	    
+	    gprev = g;
+	    
+	    iters++;
+	    
+	    if(iters > 10){
+	      if(convergence < epsilon || iters >= 2000)
+		break;
+	    }
+	    
 	  }
 	}
 
@@ -200,7 +238,9 @@ namespace whiteice
       if(Cxx.xsize() == m.size()){ // has Cxx
 	
 	for(auto& p : pca){
-	  eigenvalues.push_back((p*Cxx*p)[0]);
+	  auto cp = p;
+	  cp.conj();
+	  eigenvalues.push_back((cp*Cxx*p)[0]);
 	}
 	
       }
@@ -219,9 +259,15 @@ namespace whiteice
 
 	  for(unsigned int i=0;i<pca.size();i++){
 	    const auto& p = pca[i];
-	    auto squared = p*delta;
+	    auto cp = p;
+	    auto cdelta = delta;
+	    cp.conj();
+	    cdelta.conj();
 	    
-	    eigenvalues[i] += (squared*squared)[0];
+	    //auto squared = p*delta;
+	    //eigenvalues[i] += (squared*squared)[0];
+
+	    eigenvalues[i] += ((cp*delta)*(cdelta*p))[0];
 	  }
 	}
 
@@ -299,7 +345,9 @@ namespace whiteice
 
 	for(const auto& d : data){
 	  auto delta = d - m;
-	  total_variance += (delta*delta)[0];
+	  auto cdelta = delta;
+	  cdelta.conj();
+	  total_variance += (delta*cdelta)[0];
 	}
 
 	total_variance /= T(data.size());
@@ -317,10 +365,23 @@ namespace whiteice
 	math::vertex<T> g;
 	g.resize(m.size());
 	gprev.resize(m.size());
-	
-	for(unsigned int i=0;i<g.size();i++){
-	  gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	  g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+
+	if(typeid(T) == typeid(superresolution< blas_complex<float> >) ||
+	   typeid(T) == typeid(superresolution< blas_complex<double> >)){
+	  
+	  for(unsigned int i=0;i<g.size();i++){
+	    for(unsigned int j=0;j<g[i].size();j++){
+	      gprev[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	      g[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    }
+	  }
+	  
+	}
+	else{
+	  for(unsigned int i=0;i<g.size();i++){
+	    gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	  }
 	}
 	
 	g.normalize();
@@ -354,7 +415,9 @@ namespace whiteice
 
 	    for(const auto& di : data){
 	      delta = (di - m);
-	      g += delta*(delta*tmp);
+	      auto cdelta = delta;
+	      cdelta.conj();
+	      g += delta*(cdelta*tmp);
 	    }
 
 	    g /= T(data.size());
@@ -366,17 +429,22 @@ namespace whiteice
 	    auto t = g;
 	    
 	    for(auto& p : pca){
-	      T s = (t*p)[0];
+	      auto cp = p;
+	      cp.conj();
+	      T s = (t*cp)[0];
 	      g -= s*p;
 	    }
 	    
 	    g.normalize();
 	  }
 
+	  gprev.conj();
 	  auto dot = (g*gprev)[0];
 
 	  if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
-	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	     typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_complex<float>, modular<unsigned int> >) ||
+	     typeid(T) == typeid(superresolution< blas_complex<double>, modular<unsigned int> >))
 	  {
 	    // need to still take vector inner product of the superresolution number elements
 	    // this is equal to 1 in convergence!! (so inner product space makes sense too with
@@ -385,9 +453,9 @@ namespace whiteice
 	    p.zero();
 	    
 	    for(unsigned int i=0;i<dot.size();i++){
-	      p[0] += dot[i]*dot[i];
+	      p[0] += dot[i]*whiteice::math::conj(dot[i]);
 	    }
-
+	    
 	    p[0] = whiteice::math::sqrt(p[0]);
 	    dot = p;
 	  }
@@ -398,8 +466,8 @@ namespace whiteice
 	  
 	  iters++;
 
-	  if(iters > 50){
-	    if(convergence < epsilon || iters >= 2000)
+	  if(iters > 10){
+	    if(convergence[0].real() < epsilon[0].real() || iters >= 2000)
 	      break;
 	  }
 	}
@@ -408,14 +476,19 @@ namespace whiteice
 	if(iters >= 2000)
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 
-	// calculate variance of the found component
+	// calculate variance of the found component [
 	{
-	  T mean = (g*m)[0];
+	  auto cg = g;
+	  cg.conj();
+	  
+	  T mean = (cg*m)[0];
 	  T var  = T(0.0f);
 
 	  for(const auto& d : data){
-	    const auto x = (g*d)[0];
-	    var += (x - mean)*(x-mean);
+	    const auto x = (cg*d)[0];
+	    auto cdelta = x-mean;
+	    cdelta.conj();
+	    var += (x - mean)*cdelta;
 	  }
 
 	  var /= T(data.size());
@@ -447,7 +520,9 @@ namespace whiteice
       if(Cxx.xsize() == m.size()){ // has Cxx
 	
 	for(const auto& p : pca){
-	  eigenvalues.push_back((p*Cxx*p)[0]);
+	  auto cp = p;
+	  cp.conj();
+	  eigenvalues.push_back((cp*Cxx*p)[0]);
 	}
 	
       }
@@ -466,9 +541,15 @@ namespace whiteice
 
 	  for(unsigned int i=0;i<pca.size();i++){
 	    const auto& p = pca[i];
-	    auto squared = p*delta;
+	    auto cp = p;
+	    auto cdelta = delta;
+	    cp.conj();
+	    cdelta.conj();
 	    
-	    eigenvalues[i] += (squared*squared)[0];
+	    //auto squared = p*delta;
+	    //eigenvalues[i] += (squared*squared)[0];
+
+	    eigenvalues[i] += ((cp*delta)*(cdelta*p))[0];
 	  }
 	}
 
