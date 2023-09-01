@@ -1,5 +1,11 @@
 
 #include "LinearKCluster.h"
+#include <functional>
+#include <math.h>
+
+#include "RNG.h"
+#include "correlation.h"
+#include "linear_equations.h"
 
 
 namespace whiteice
@@ -47,7 +53,7 @@ namespace whiteice
       b.clear();
       xmean.clear();
       xvariance.clear();
-      currentError = T(INFINITY);
+      currentError = (double)(INFINITY);
 
       this->K = K;
       this->xdata = xdata;
@@ -127,8 +133,8 @@ namespace whiteice
     for(unsigned int i=0;i<xmean.size();i++){
       auto delta = xmean[i] - x;
       for(unsigned int j=0;j<delta.size();j++)
-	if(xvariance[j] != T(0.0f))
-	  delta[j] /= xvariance[j];
+	if(xvariance[i][j] != T(0.0f))
+	  delta[j] /= xvariance[i][j];
 
       double d = 0.0;
       whiteice::math::convert(d, delta.norm());
@@ -146,12 +152,17 @@ namespace whiteice
   template <typename T>
   bool LinearKCluster<T>::save(const std::string& filename) const
   {
+    // IMPLEMENT ME!
+    assert(false);
+    return false;
   }
 
   template <typename T>
   bool LinearKCluster<T>::load(const std::string& filename)
   {
-    
+    // IMPLEMENT ME!
+    assert(false);
+    return false;
   }
 
   template <typename T> 
@@ -263,7 +274,7 @@ namespace whiteice
       for(unsigned int i=0;i<xdata.size();i++){
 
 	unsigned int kbest = 0;
-	double bestErrorr = INFINITY;
+	double bestError = INFINITY;
 	
 	for(unsigned int k=0;k<K;k++){
 	  auto err = (AA[k]*xdata[i] + bb[k] - ydata[i]).norm();
@@ -307,8 +318,8 @@ namespace whiteice
 	
 	for(unsigned int k=0;k<xxmean.size();k++){
 	  if(counts[k]){
-	    xxmean[k] /= counts[k];
-	    xxvariance[k] /= counts[k];
+	    xxmean[k] /= T(counts[k]);
+	    xxvariance[k] /= T(counts[k]);
 
 	    for(unsigned int j=0;j<xxvariance[k].size();j++)
 	      xxvariance[k][j] =
@@ -336,7 +347,7 @@ namespace whiteice
 
 	    auto n = delta.norm();
 	    double distance = INFINITY;
-	    whitiece::math::convert(distance, n);
+	    whiteice::math::convert(distance, n);
 
 	    if(bestError > distance){
 	      kbest = k;
@@ -387,7 +398,7 @@ namespace whiteice
 	  
 	  for(unsigned int i=0;i<datacluster.size();i++){
 	    if(datacluster[i] != old_datacluster[i])
-	      changes++
+	      changes++;
 	  }
 
 	  if(changes <= datacluster.size()/100){ // only 1% of points change => convergence
@@ -409,16 +420,17 @@ namespace whiteice
   }
 
 
-  
-  template class KMeans< math::blas_real<float> >;
-  template class KMeans< math::blas_real<double> >;
-  template class KMeans< math::blas_complex<float> >;
-  template class KMeans< math::blas_complex<double> >;
 
-  template class KMeans< math::superresolution< math::blas_real<float> > >;
-  template class KMeans< math::superresolution< math::blas_real<double> > >;
-  template class KMeans< math::superresolution< math::blas_complex<float> > >;
-  template class KMeans< math::superresolution< math::blas_complex<double> > >;
+  template class LinearKCluster< math::blas_real<float> >;
+  template class LinearKCluster< math::blas_real<double> >;
+  template class LinearKCluster< math::blas_complex<float> >;
+  template class LinearKCluster< math::blas_complex<double> >;
+
+  template class LinearKCluster< math::superresolution< math::blas_real<float> > >;
+  template class LinearKCluster< math::superresolution< math::blas_real<double> > >;
+  template class LinearKCluster< math::superresolution< math::blas_complex<float> > >;
+  template class LinearKCluster< math::superresolution< math::blas_complex<double> > >;
+
   
 };
 

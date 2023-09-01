@@ -49,7 +49,7 @@ namespace whiteice
     bool save(const std::string& filename) const;
     bool load(const std::string& filename); 
     
-  proteted:
+  protected:
 
     // model
 
@@ -78,15 +78,15 @@ namespace whiteice
 
 
 
-  extern template class KMeans< math::blas_real<float> >;
-  extern template class KMeans< math::blas_real<double> >;
-  extern template class KMeans< math::blas_complex<float> >;
-  extern template class KMeans< math::blas_complex<double> >;
+  extern template class LinearKCluster< math::blas_real<float> >;
+  extern template class LinearKCluster< math::blas_real<double> >;
+  extern template class LinearKCluster< math::blas_complex<float> >;
+  extern template class LinearKCluster< math::blas_complex<double> >;
 
-  extern template class KMeans< math::superresolution< math::blas_real<float> > >;
-  extern template class KMeans< math::superresolution< math::blas_real<double> > >;
-  extern template class KMeans< math::superresolution< math::blas_complex<float> > >;
-  extern template class KMeans< math::superresolution< math::blas_complex<double> > >;
+  extern template class LinearKCluster< math::superresolution< math::blas_real<float> > >;
+  extern template class LinearKCluster< math::superresolution< math::blas_real<double> > >;
+  extern template class LinearKCluster< math::superresolution< math::blas_complex<float> > >;
+  extern template class LinearKCluster< math::superresolution< math::blas_complex<double> > >;
 
   
 }
