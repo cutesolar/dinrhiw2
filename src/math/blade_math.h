@@ -2080,6 +2080,38 @@ namespace whiteice
       return blas_complex<T>(whiteice::math::round(x.c[0]),
 			     whiteice::math::round(x.c[1]));
     }
+
+    //////////////////////////////////////////////////////////////////////
+    // innerproduct
+
+    template <typename T>
+    inline blas_real<T> innerproduct(const blas_real<T>& x){
+      return (x*x);
+    }
+
+    template <typename T>
+    inline blas_complex<T> innerproduct(const blas_complex<T>& x){
+      return (x*whiteice::math::conj(x));
+    }
+
+    inline float innerproduct(const float& x){
+      return (x*x);
+    }
+
+    inline double innerproduct(const double& x){
+      return (x*x);
+    }
+
+    template <typename T, typename U>
+    inline superresolution<T, U> innerproduct(const superresolution<T, U>& x){
+      auto y = x;
+      return y.innerproduct();
+    }
+
+    template <typename T>
+    inline complex<T> innerproduct(const complex<T>& x){
+      return x*whiteice::math::conj(x); 
+    }
     
     
     //////////////////////////////////////////////////////////////////////

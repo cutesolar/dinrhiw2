@@ -51,9 +51,8 @@ namespace whiteice
       this->K = 0;
       A.clear();
       b.clear();
-      xmean.clear();
-      xvariance.clear();
       currentError = (double)(INFINITY);
+      clusterLabels.clear();
 
       this->K = K;
       this->xdata = xdata;
@@ -94,7 +93,7 @@ namespace whiteice
     std::lock_guard<std::mutex> lock(thread_mutex);
     
     thread_running = false;
-
+    
     if(optimizer_thread){
       optimizer_thread->join();
       delete optimizer_thread;
@@ -106,10 +105,13 @@ namespace whiteice
   }
 
   template <typename T>
-  double LinearKCluster<T>::getSolutionError() const
+  bool LinearKCluster<T>::getSolutionError(unsigned int& iters, double& error) const
   {
     std::lock_guard<std::mutex> lock(solution_mutex);
-    return this->currentError;
+    iters = this->iterations;
+    error = this->currentError;
+
+    return true;
   }
 
   template <typename T>
@@ -130,21 +132,20 @@ namespace whiteice
     double best_distance = INFINITY;
     unsigned int kbest = 0;
 
-    for(unsigned int i=0;i<xmean.size();i++){
-      auto delta = xmean[i] - x;
-      for(unsigned int j=0;j<delta.size();j++)
-	if(xvariance[i][j] != T(0.0f))
-	  delta[j] /= xvariance[i][j];
+    for(unsigned int i=0;i<xdata.size();i++){
+      auto delta = xdata[i] - x;
 
       double d = 0.0;
-      whiteice::math::convert(d, delta.norm());
-      if(d < best_distance){
+      whiteice::math::convert(d, delta.norm()[0]);
+      if(d<best_distance){
 	best_distance = d;
 	kbest = i;
       }
     }
 
-    y = A[kbest]*x + b[kbest];
+    const unsigned int k = clusterLabels[kbest];
+
+    y = A[k]*x + b[k];
 
     return true;
   }
@@ -163,10 +164,10 @@ namespace whiteice
     if(data.createCluster("K", 1) == false) return false;
     if(data.createCluster("A", A[0].size()) == false) return false;
     if(data.createCluster("b", b[0].size()) == false) return false;
-    if(data.createCluster("xmean", xmean[0].size()) == false) return false;
-    if(data.createCluster("xvariance", xvariance[0].size()) == false) return false;
+    if(data.createCluster("xdata", xdata[0].size()) == false) return false;
+    if(data.createCluster("x-cluster-labels", 1) == false) return false;
     if(data.createCluster("model error", 1) == false) return false;
-
+    
     math::vertex<T> v;
 
     {
@@ -194,27 +195,28 @@ namespace whiteice
     }
 
     {
-      v.resize(xmean[0].size());
+      v.resize(xdata[0].size());
 
-      for(unsigned int k=0;k<K;k++){
-	v = xmean[k];
+      for(unsigned int i=0;i<xdata.size();i++){
+	v = xdata[i];
 	if(data.add(3, v) == false) return false;
-      }
-    }
-
-    {
-      v.resize(xvariance[0].size());
-
-      for(unsigned int k=0;k<K;k++){
-	v = xvariance[k];
-	if(data.add(4, v) == false) return false;
       }
     }
 
     {
       v.resize(1);
 
-      v[0] = T(currentError);
+      for(unsigned int i=0;i<xdata.size();i++){
+	v[0] = T(clusterLabels[i]);
+	if(data.add(4, v) == false) return false;
+      }
+    }
+      
+
+    {
+      v.resize(1);
+
+      v[0] = T(this->currentError);
       if(data.add(5, v) == false) return false;
     }
     
@@ -233,7 +235,6 @@ namespace whiteice
     if(data.dimension(0) != 1) return false;
     if(data.size(0) != 1) return false;
     if(data.dimension(5) != 1) return false;
-    if(data.size(5) != 1) return false;
 
     unsigned int k = 0; 
 
@@ -252,12 +253,11 @@ namespace whiteice
     const unsigned int xsize = data.dimension(3);
     const unsigned int ysize = data.dimension(2);
     if(xsize*ysize != data.dimension(1)) return false;
-    if(xsize != data.dimension(4)) return false;
+    if(1 != data.dimension(4)) return false;
     
     if(data.size(1) != k) return false;
     if(data.size(2) != k) return false;
-    if(data.size(3) != k) return false;
-    if(data.size(4) != k) return false;
+    if(data.size(5) != 1) return false;
 
     if(xsize*ysize > 2000000000) return false; // sanity check, 2 GB max size
 
@@ -268,8 +268,9 @@ namespace whiteice
       this->K = k;
       A.resize(k);
       b.resize(k);
-      xmean.resize(k);
-      xvariance.resize(k);
+      xdata.clear();
+      ydata.clear();
+      clusterLabels.clear();
 
       for(unsigned int k=0;k<K;k++){
 	v = data.access(1, k);
@@ -279,12 +280,18 @@ namespace whiteice
 
 	v = data.access(2, k);
 	b[k] = v;
+      }
 
-	v = data.access(3, k);
-	xmean[k] = v;
-
-	v = data.access(4, k);
-	xvariance[k] = v;
+      for(unsigned int i=0;i<data.size(3);i++){
+	v = data.access(3, i);
+	xdata.push_back(v);
+	v = data.access(4, i);
+	unsigned int k = 0;
+	double kd = 0.0;
+	whiteice::math::convert(kd, v[0][0]);
+	whiteice::math::convert(k, kd);
+	
+	clusterLabels.push_back(k);
       }
 
       v = data.access(5, 0);
@@ -300,7 +307,7 @@ namespace whiteice
   void LinearKCluster<T>::optimizer_loop()
   {
     if(thread_running == false) return;
-    
+
     //* 0. Assign data points (x,y) randomly to K-Clusters
     
     //* 3. Calculate mean and variance of clusters and reassign datapoints to most probable
@@ -312,42 +319,52 @@ namespace whiteice
       
       A.resize(K);
       b.resize(K);
-      xmean.resize(K);
-      xvariance.resize(K);
+      clusterLabels.resize(xdata.size());
 
       for(unsigned int k=0;k<K;k++){
 	A[k].resize(ydata[0].size(),xdata[0].size());
 	b[k].resize(ydata[0].size());
-	xmean[k].resize(xdata[0].size());
-	xvariance[k].resize(xdata[0].size());
 
 	A[k].zero();
 	b[k].zero();
-	xmean[k].zero();
-	xvariance[k].zero();
       }
+
+      for(unsigned int i=0;i<xdata.size();i++)
+	clusterLabels.push_back(whiteice::rng.rand()%K);
+
+      iterations = 0;
+      currentError = INFINITY;
     }
 
-    std::vector<unsigned int> datacluster, old_datacluster;
+    std::vector< std::vector<double> > datacluster, old_datacluster;
+    
     for(unsigned int i=0;i<xdata.size();i++){
-      datacluster.push_back(whiteice::rng.rand() % K); // random assignment
+      std::vector<double> px;
+      px.resize(K);
+      double sump = (0.0f);
+      
+      for(unsigned int k=0;k<px.size();k++){
+	px[k] = (double)(rng.uniform().c[0]); // random assignment
+	sump += px[k];
+      }
+
+      for(unsigned int k=0;k<px.size();k++)
+	if(sump) px[k] /= sump;
+      
+      datacluster.push_back(px);
     }
 
     // local copy of solutions
     std::vector< math::matrix<T> > AA;
     std::vector< math::vertex<T> > bb;
-    std::vector< math::vertex<T> > xxmean;
-    std::vector< math::vertex<T> > xxvariance;
 
     AA.resize(K);
     bb.resize(K);
-    xxmean.resize(K);
-    xxvariance.resize(K);
     
 
     while(true){
       {
-	std::lock_guard<std::mutex> lock(thread_mutex);
+	//std::lock_guard<std::mutex> lock(thread_mutex); [not needed for only read variables (bool)??
 	
 	if(thread_running == false)
 	  break; // out from the loop and finish
@@ -357,19 +374,45 @@ namespace whiteice
 	//* 1. Train/optimize linear model for points assigned to this cluster
 
 	std::vector< math::vertex<T> > x, y;
+	double p_x = (0.0), px_2 = (0.0);
 
 	for(unsigned int i=0;i<datacluster.size();i++){
-	  if(datacluster[i] == k){
-	    x.push_back(xdata[i]);
-	    y.push_back(ydata[i]);
-	  }
+
+	  auto px = T(datacluster[i][k])*xdata[i];
+	  auto py = T(datacluster[i][k])*ydata[i];
+
+	  x.push_back(px);
+	  y.push_back(py);
+
+	  p_x += datacluster[i][k];
+	  px_2 += datacluster[i][k]*datacluster[i][k];
 	}
 
 	math::matrix<T> Cxx, Cyx;
 	math::vertex<T> mx, my;
 
-	math::mean_covariance_estimate(mx, Cxx, x);
-	math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
+	if(x.size() == 0){
+	  Cxx.resize(xdata[0].size(),xdata[0].size());
+	  Cyx.resize(ydata[0].size(),xdata[0].size());
+	  mx.resize(xdata[0].size());
+	  my.resize(ydata[0].size());
+
+	  mx.zero();
+	  my.zero();
+	  Cxx.identity();
+	  Cyx.zero();
+	  for(unsigned int i=0;i<Cyx.ysize()&&i<Cyx.xsize();i++)
+	    Cyx(i,i) = T(1.0f);
+	}
+	else{
+	  math::mean_covariance_estimate(mx, Cxx, x);
+	  math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
+
+	  mx /= T(p_x);
+	  my /= T(p_x);
+	  Cxx /= T(px_2);
+	  Cyx /= T(px_2);
+	}
 
 	math::matrix<T> INV;
 	T l = T(1e-20);
@@ -404,105 +447,107 @@ namespace whiteice
       
       for(unsigned int i=0;i<xdata.size();i++){
 
-	unsigned int kbest = 0;
-	double bestError = INFINITY;
+	std::vector<double> errors;
 	
 	for(unsigned int k=0;k<K;k++){
-	  auto err = (AA[k]*xdata[i] + bb[k] - ydata[i]).norm();
+	  auto err = (AA[k]*xdata[i] + bb[k] - ydata[i]).norm()[0];
 
 	  double e = INFINITY;
 	  whiteice::math::convert(e, err);
-	  if(e < bestError){
-	    kbest = k;
-	    bestError = e;
-	  }
+
+	  errors.push_back(e);
 	}
 
-	datacluster.push_back(kbest);
+	double sump = 0.0; 
+
+	for(unsigned int i=0;i<errors.size();i++){
+	  errors[i] = whiteice::math::exp(-errors[i]);
+	  sump += errors[i];
+	}
+
+	for(unsigned int i=0;i<errors.size();i++){
+	  errors[i] /= sump;
+	}
+
+	datacluster.push_back(errors);
       }
       
-      //* 3. Calculate mean and variance of clusters and reassign datapoints to most probable
-      //*    cluster based on mean and variance of each cluster
-
+      // reassign points according to the 5 closest points [reassign datapoints based on cluster mean and variance]
       {
-	std::vector<unsigned int> counts;
-	counts.resize(xxmean.size());
-	
-	for(unsigned int k=0;k<xxmean.size();k++){
-	  xxmean[k].resize(xdata[0].size());
-	  xxvariance[k].resize(xdata[0].size());
-	  xxmean[k].zero();
-	  xxvariance[k].zero();
-	  counts[k] = 0;
-	}
-	
-	
-	
-	for(unsigned int i=0;i<datacluster.size();i++){
-	  const unsigned int k = datacluster[i];
-	  xxmean[k] += xdata[i];
-	  counts[k]++;
-	  
-	  for(unsigned int j=0;j<xxvariance[k].size();j++)
-	    xxvariance[k][j] += xdata[i][j]*xdata[i][j];
-	}
-	
-	for(unsigned int k=0;k<xxmean.size();k++){
-	  if(counts[k]){
-	    xxmean[k] /= T(counts[k]);
-	    xxvariance[k] /= T(counts[k]);
+	auto cluster = datacluster;
 
-	    for(unsigned int j=0;j<xxvariance[k].size();j++)
-	      xxvariance[k][j] =
-		whiteice::math::sqrt(whiteice::math::abs(xxvariance[k][j] - xxmean[k][j]*xxmean[k][j]));
-	  }
-	}
-      }
-
-      // reassign datapoints based on cluster mean and variance
-      {
 	datacluster.clear();
 
 	for(unsigned int i=0;i<xdata.size();i++){
+	  
+	  std::multimap<double, unsigned int> distances;
 
-	  unsigned int kbest = 0;
-	  double bestError = INFINITY;
-
-	  for(unsigned int k=0;k<K;k++){
-	    auto delta = xdata[i] - xxmean[k];
-
-	    for(unsigned int j=0;j<delta.size();j++){
-	      if(xxvariance[k][j] != T(0.0f))
-		delta[j] = delta[j]/xxvariance[k][j];
-	    }
-
-	    auto n = delta.norm();
-	    double distance = INFINITY;
-	    whiteice::math::convert(distance, n);
-
-	    if(bestError > distance){
-	      kbest = k;
-	      bestError = distance;
-	    }
+	  for(unsigned int j=0;j<xdata.size();j++){
+	    if(j == i) continue;
 	    
+	    auto delta = xdata[i] - xdata[j];
+	    double d = INFINITY;
+
+	    whiteice::math::convert(d, delta.norm()[0]);
+
+	    distances.insert(std::pair<double,unsigned int>(d, j));
 	  }
 
-	  datacluster.push_back(kbest);
-	}
-	
-      }
+	  std::vector<double> pe;
+	  pe.resize(K);
+	  
+	  auto iter = distances.begin();
+	  unsigned int counter = 0;
+	  double sump = 0.0;
 
-      
+	  while(iter != distances.end() && counter < 10){
+	    const auto pk = cluster[iter->second];
+
+	    // std::cout << "D: " << iter->first << std::endl;
+
+	    unsigned int k=0;
+	    double bestp = 0.0;
+	    for(unsigned int ii=0;ii<K;ii++){
+	      if(pk[ii] > bestp){
+		k = ii;
+		bestp = pk[ii];
+	      }
+	    }
+	    
+	    double p = whiteice::math::exp(-(iter->first));
+	    pe[k] += p;
+	    sump += p;
+	    
+	    iter++;
+	    counter++;
+	  }
+
+	  for(unsigned int k=0;k<pe.size();k++)
+	    if(sump) pe[k] /= sump;
+
+	  datacluster.push_back(pe);
+	}
+      }
+	
       // calculate solution error
       double error = 0.0;
       
       {
 	for(unsigned int i=0;i<xdata.size();i++){
-	  const unsigned int k = datacluster[i];
+
+	  unsigned int k = 0;
+	  double bestp = 0.0;
+
+	  for(unsigned int j=0;j<datacluster[i].size();j++)
+	    if(datacluster[i][j] > bestp){
+	      k = j;
+	      bestp = datacluster[i][j];
+	    }
+	  
 
 	  auto delta = AA[k]*xdata[i] + bb[k] - ydata[i];
 	  double e = INFINITY;
-	  whiteice::math::convert(e, delta.norm());
+	  whiteice::math::convert(e, delta.norm()[0]);
 	  error += e;
 	}
 
@@ -510,32 +555,51 @@ namespace whiteice
       }
 
 
-      //* 4. Goto 1 if there were signficant changes/no convergence 
+      //* 4. Goto 1 if there were significant changes/no convergence 
       {
 	{
 	  std::lock_guard<std::mutex> lock(solution_mutex);
 	  
 	  A = AA;
 	  b = bb;
-	  xmean = xxmean;
-	  xvariance = xxvariance;
-
 	  currentError = error;
+
+	  clusterLabels.clear();
+
+	  for(unsigned int i=0;i<datacluster.size();i++){
+	    unsigned int k = 0;
+	    double bestk = 0.0;
+	    auto pk = datacluster[i];
+
+	    for(unsigned int kk=0;kk<pk.size();kk++){
+	      if(pk[kk] > bestk){
+		bestk = pk[kk];
+		k = kk;
+	      }
+	    }
+
+	    clusterLabels.push_back(k);
+	  }
+
+	  iterations++;
 	}
 
 	if(old_datacluster.size() > 0){
 	  
-	  unsigned int changes = 0;
+	  double changes = 0.0;
 	  
 	  for(unsigned int i=0;i<datacluster.size();i++){
-	    if(datacluster[i] != old_datacluster[i])
-	      changes++;
+	    for(unsigned int k=0;k<K;k++){
+	      changes += whiteice::math::abs(datacluster[i][k]-old_datacluster[i][k]);
+	    }
 	  }
 
-	  if(changes <= datacluster.size()/100){ // only 1% of points change => convergence
-	    std::lock_guard<std::mutex> lock(thread_mutex);
-	    thread_running = false;
-	    continue;
+	  changes /= datacluster.size();
+
+	  std::cout << "DELTAS THIS ITER: " << changes << std::endl;
+
+	  if(changes <= 0.05){
+	    break;
 	  }
 	}
 
@@ -545,12 +609,10 @@ namespace whiteice
 
 
     {
-      // frees memory
-      xdata.clear();
-      ydata.clear();
-      
-      std::lock_guard<std::mutex> lock(thread_mutex);
-      thread_running = false;
+      if(thread_running){
+	std::lock_guard<std::mutex> lock(thread_mutex);
+	thread_running = false;
+      }
     }
   }
 

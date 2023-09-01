@@ -60,6 +60,8 @@
 #include "rLBFGS_recurrent_nnetwork.h"
 #include "SGD_recurrent_nnetwork.h"
 
+#include "LinearKCluster.h"
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -160,6 +162,8 @@ void pretrain_test(); // good pretraining, optimization idea test
 
 void compressed_neuralnetwork_test();
 
+void linear_kcluster_test(); // unit tests LinearKCluster class
+
 
 
 void createHermiteCurve(std::vector< math::vertex< math::blas_real<double> > >& samples,
@@ -182,6 +186,11 @@ int main()
   whiteice::logging.setOutputFile("testsuite1.log");
   
   try{
+
+    linear_kcluster_test(); // unit tests LinearKCluster class
+    
+    return 0;
+    
     // nnetwork_entropy_test();
 
     // nnetwork_kl_divergence_test();
@@ -350,6 +359,172 @@ private:
   char* reason;
   
 };
+
+
+/**********************************************************************/
+
+void linear_kcluster_test() // unit tests LinearKCluster class
+{
+  // tests code with superresolution< blas_complex<> > class
+  std::cout << "Linear K-Cluster test" << std::endl;
+
+  LinearKCluster< math::superresolution< math::blas_complex<> > > model;
+
+  const unsigned int TIME_LIMIT = 300; // 5 minutes
+
+  // creates data using random neural network
+  std::vector< math::vertex< math::superresolution< math::blas_complex<> > > > xdata, ydata;
+  
+  nnetwork< math::superresolution< math::blas_complex<> > > nn;
+  std::vector<unsigned int> arch;
+
+  arch.push_back(20);
+  arch.push_back(10);
+  arch.push_back(5);
+
+  nn.setArchitecture(arch);
+  nn.randomize();
+
+  for(unsigned int n=0;n<500;n++){
+    math::vertex< math::superresolution< math::blas_complex<> > > x, y;
+    x.resize(arch[0]);
+    y.resize(arch[arch.size()-1]);
+
+    for(unsigned int i=0;i<x.size();i++)
+      for(unsigned int j=0;j<x[i].size();j++)
+	for(unsigned int k=0;k<x[i][j].size();k++)
+	  x[i][j][k] = rng.normal();
+
+    nn.calculate(x, y);
+
+    xdata.push_back(x);
+    ydata.push_back(y);
+  }
+
+  // normalize data [do not work with superresolution!]
+#if 0
+  {
+    dataset< math::superresolution< math::blas_complex<> > > data;
+    data.createCluster("x", xdata[0].size());
+    data.createCluster("y", ydata[0].size());
+
+    data.add(0, xdata);
+    data.add(1, ydata);
+
+    data.preprocess(0);
+    data.preprocess(1);
+
+    xdata.clear();
+    ydata.clear();
+
+    data.getData(0, xdata);
+    data.getData(1, ydata);
+  }
+#endif
+
+  const unsigned int K = 50;
+
+  std::cout << "Starting optimization with K=" << K << " clusters.." << std::endl;
+  
+  if(model.startTrain(K, xdata, ydata) == false){
+    std::cout << "ERROR: startTrain() FAILED!" << std::endl;
+    return; 
+  }
+
+  if(model.getNumberOfClusters() != K){
+    std::cout << "WARN: number of clusters is not: " << K << std::endl;
+  }
+
+  unsigned long long start_time = (unsigned long long)time(0);
+  unsigned int iters_shown = 0;
+
+  while(model.isRunning()){
+    sleep(1);
+    unsigned long long cur_time = (unsigned long long)time(0);
+
+    if((cur_time-start_time) > TIME_LIMIT){
+      std::cout << "ERROR: solution does not converge in " << TIME_LIMIT << " seconds!" << std::endl;
+      break;
+    }
+
+    double e = 0;
+    unsigned int iters = 0;
+    model.getSolutionError(iters, e);
+    if(iters > iters_shown){
+      std::cout << iters << ": current model error: " << e << std::endl;
+      iters_shown = iters;
+    }
+  }
+  
+  if(model.stopTrain() == false){
+    std::cout << "WARN: stopTrain() FAILED!" << std::endl;
+  }
+  else std::cout << "stopTrain() was OK" << std::endl;
+  
+  double e = 0.0;
+  unsigned int iters = 0;
+  model.getSolutionError(iters, e);
+  std::cout << "Final model error: " << e << std::endl;
+
+  if(model.save("linear-k-cluster-model.dat") == false){
+    std::cout << "ERROR: save() FAILED!" << std::endl;
+    return;
+  }
+
+  if(model.load("linear-k-cluster-model.dat") == false){
+    std::cout << "ERROR: load() FAILED!" << std::endl;
+  }
+
+  double ee = 0.0;
+  model.getSolutionError(iters, ee);
+
+  if(whiteice::math::abs(e - ee) > 1e-2){
+    std::cout << "ERROR: getSolutionError() FAILS AFTER LOAD!" << std::endl;
+    std::cout << "orig e = " << e << std::endl;
+    std::cout << "model e = " << ee << std::endl;
+    return;
+  }
+
+  if(model.getNumberOfClusters() != K){
+    std::cout << "ERROR: getNumberOfClusters() FAILS AFTER LOAD!" << std::endl;
+    return;
+  }
+
+  {
+    double err = 0.0;
+
+    for(unsigned int i=0;i<xdata.size();i++){
+      math::vertex< math::superresolution< math::blas_complex<> > > x, y;
+      
+      x = xdata[i];
+      if(model.predict(x, y) == false){
+	std::cout << "ERROR: predict() FAILS!" << std::endl;
+	return;
+      }
+
+      auto delta = y - ydata[i];
+      auto n = delta.norm();
+
+
+      // std::cout << "norm = " << n << std::endl; 
+      
+      double nd = 0.0f;
+      whiteice::math::convert(nd, n);
+      err += nd;
+    }
+
+    err /= xdata.size();
+
+    std::cout << "Experimental model error: " << err << std::endl;
+    model.getSolutionError(iters, e);
+    std::cout << "Model reported error: " << e << std::endl; 
+  }
+
+  std::cout << "LinearKCluster class UNIT tests DONE." << std::endl;
+}
+
+
+
 
 /************************************************************/
 

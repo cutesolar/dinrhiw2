@@ -702,10 +702,20 @@ namespace whiteice
       }
       else{ // generic length calculation
 	len = T(0.0f);
-	
-	for(unsigned int i=0;i<dataSize;i++)
-	  len += data[i]*whiteice::math::conj(data[i]);
-	
+
+	if(typeid(T) == typeid(whiteice::math::superresolution< math::blas_real<float> >) ||
+	   typeid(T) == typeid(whiteice::math::superresolution< math::blas_real<double> >) ||
+	   typeid(T) == typeid(whiteice::math::superresolution< math::blas_complex<float> >) ||
+	   typeid(T) == typeid(whiteice::math::superresolution< math::blas_complex<double> >))
+	{
+	  for(unsigned int i=0;i<dataSize;i++)
+	    len += whiteice::math::innerproduct(data[i]);
+	}
+	else{
+	  for(unsigned int i=0;i<dataSize;i++)
+	    len += data[i]*whiteice::math::conj(data[i]);
+	}
+	  
 	len = whiteice::math::sqrt(len);
 	return len;
       }

@@ -2171,10 +2171,14 @@ namespace whiteice
     vertex<T> matrix<T>::operator*(const vertex<T>& v) const
       
     {
-      if(v.size() == 0)
+      if(v.size() == 0){
+	assert(false);
 	throw std::invalid_argument("multiply: incompatible vertex/matrix sizes");
-      if(numCols != v.size())
+      }
+      if(numCols != v.size()){
+	assert(false);
 	throw std::invalid_argument("multiply: incompatible vertex/matrix sizes");
+      }
 
 #ifdef CUBLAS
 

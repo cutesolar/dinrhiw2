@@ -41,7 +41,7 @@ namespace whiteice
 
     bool stopTrain();
     
-    double getSolutionError() const;
+    bool getSolutionError(unsigned int& iters, double& error) const;
     unsigned int getNumberOfClusters() const;
     
     bool predict(const math::vertex<T>& x, math::vertex<T>& y) const;
@@ -57,9 +57,9 @@ namespace whiteice
     
     std::vector< math::matrix<T> > A;
     std::vector< math::vertex<T> > b;
-    std::vector< math::vertex<T> > xmean;
-    std::vector< math::vertex<T> > xvariance;
 
+    std::vector<unsigned int> clusterLabels; // clusterLabels[datapoint_index] =  cluster_index_k
+    
     double currentError;
 
     // data
@@ -71,6 +71,8 @@ namespace whiteice
     std::thread* optimizer_thread = nullptr;
     mutable std::mutex thread_mutex, solution_mutex;
     bool thread_running = false;
+
+    unsigned int iterations = 0;
 
     void optimizer_loop();
     

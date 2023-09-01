@@ -2447,7 +2447,7 @@ namespace whiteice
 	output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
+	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 
@@ -2838,7 +2838,7 @@ namespace whiteice
 	output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
+	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
@@ -3134,7 +3134,7 @@ namespace whiteice
 	output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
+	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 
@@ -3453,7 +3453,7 @@ namespace whiteice
 	output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
+	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
@@ -3588,7 +3588,7 @@ namespace whiteice
 	output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(output[i].real() < 0.0f)
+	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
 	    output[i] /= RELUcoef;
 	}
 
