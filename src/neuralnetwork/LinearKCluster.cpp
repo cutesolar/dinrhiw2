@@ -6,7 +6,7 @@
 #include "RNG.h"
 #include "correlation.h"
 #include "linear_equations.h"
-
+#include "dataset.h"
 
 namespace whiteice
 {
@@ -152,17 +152,148 @@ namespace whiteice
   template <typename T>
   bool LinearKCluster<T>::save(const std::string& filename) const
   {
-    // IMPLEMENT ME!
-    assert(false);
-    return false;
+    if(filename.size() <= 0) return false;
+
+    std::lock_guard<std::mutex> lock(solution_mutex);
+    
+    if(A.size() <= 0 || K <= 0) return false;
+
+    whiteice::dataset<T> data;
+    
+    if(data.createCluster("K", 1) == false) return false;
+    if(data.createCluster("A", A[0].size()) == false) return false;
+    if(data.createCluster("b", b[0].size()) == false) return false;
+    if(data.createCluster("xmean", xmean[0].size()) == false) return false;
+    if(data.createCluster("xvariance", xvariance[0].size()) == false) return false;
+    if(data.createCluster("model error", 1) == false) return false;
+
+    math::vertex<T> v;
+
+    {
+      v.resize(1);
+      v[0] = T(this->K);
+      if(data.add(0, v) == false) return false;
+    }
+
+    {
+      v.resize(A[0].size());
+      for(unsigned int k=0;k<K;k++){
+	for(unsigned int i=0;i<v.size();i++)
+	  v[i]= A[k][i];
+
+	if(data.add(1, v) == false) return false;
+      }
+    }
+
+    {
+      v.resize(b[0].size());
+      for(unsigned int k=0;k<K;k++){
+	v = b[k];
+	if(data.add(2, v) == false) return false;
+      }
+    }
+
+    {
+      v.resize(xmean[0].size());
+
+      for(unsigned int k=0;k<K;k++){
+	v = xmean[k];
+	if(data.add(3, v) == false) return false;
+      }
+    }
+
+    {
+      v.resize(xvariance[0].size());
+
+      for(unsigned int k=0;k<K;k++){
+	v = xvariance[k];
+	if(data.add(4, v) == false) return false;
+      }
+    }
+
+    {
+      v.resize(1);
+
+      v[0] = T(currentError);
+      if(data.add(5, v) == false) return false;
+    }
+    
+    return data.save(filename);
   }
+  
 
   template <typename T>
   bool LinearKCluster<T>::load(const std::string& filename)
   {
-    // IMPLEMENT ME!
-    assert(false);
-    return false;
+    whiteice::dataset<T> data;
+
+    if(data.load(filename) == false) return false;
+
+    if(data.getNumberOfClusters() != 6) return false;
+    if(data.dimension(0) != 1) return false;
+    if(data.size(0) != 1) return false;
+    if(data.dimension(5) != 1) return false;
+    if(data.size(5) != 1) return false;
+
+    unsigned int k = 0; 
+
+    math::vertex<T> v;
+    
+    v = data.access(0, 0);
+    if(v.size() != 1) return false;
+    T value;
+    double kd;
+    whiteice::math::convert(value, v[0]);
+    whiteice::math::convert(kd, value);
+    k = (unsigned int)kd;
+
+    if(k == 0) return false;
+
+    const unsigned int xsize = data.dimension(3);
+    const unsigned int ysize = data.dimension(2);
+    if(xsize*ysize != data.dimension(1)) return false;
+    if(xsize != data.dimension(4)) return false;
+    
+    if(data.size(1) != k) return false;
+    if(data.size(2) != k) return false;
+    if(data.size(3) != k) return false;
+    if(data.size(4) != k) return false;
+
+    if(xsize*ysize > 2000000000) return false; // sanity check, 2 GB max size
+
+    // looks good, try to load parameters
+    {
+      std::lock_guard<std::mutex> lock(solution_mutex);
+
+      this->K = k;
+      A.resize(k);
+      b.resize(k);
+      xmean.resize(k);
+      xvariance.resize(k);
+
+      for(unsigned int k=0;k<K;k++){
+	v = data.access(1, k);
+	A[k].resize(ysize, xsize);
+	for(unsigned int index=0;index<v.size();index++)
+	  A[k][index] = v[index];
+
+	v = data.access(2, k);
+	b[k] = v;
+
+	v = data.access(3, k);
+	xmean[k] = v;
+
+	v = data.access(4, k);
+	xvariance[k] = v;
+      }
+
+      v = data.access(5, 0);
+      if(v.size() != 1) return false;
+      whiteice::math::convert(currentError, v[0]);
+    }
+
+
+    return true;
   }
 
   template <typename T> 
@@ -414,6 +545,10 @@ namespace whiteice
 
 
     {
+      // frees memory
+      xdata.clear();
+      ydata.clear();
+      
       std::lock_guard<std::mutex> lock(thread_mutex);
       thread_running = false;
     }
