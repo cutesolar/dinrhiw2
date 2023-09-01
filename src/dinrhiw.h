@@ -179,6 +179,7 @@
 
 #include "KMeans.h"
 #include "SOM2D.h"
+#include "LinearKCluster.h"
 
 #include "function.h"
 #include "optimized_function.h"

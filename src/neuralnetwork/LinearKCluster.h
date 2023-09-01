@@ -1,0 +1,95 @@
+/*
+ * Linear K-Cluster machine learning 
+ *
+ * Code:
+ * 0. Assign data points (x,y) randomly to K-Clusters
+ * 1. Train/optimize linear model for points assigned to this cluster
+ * 2. Measure error in each cluster model for each datapoint and 
+ *    assign datapoints to smallest error cluster.
+ * 3. Calculate mean and variance of clusters and reassign datapoints to most probable
+ *    cluster based on mean and variance of each cluster
+ * 4. Goto 1 if there were signficant changes/no convergence 
+ *
+ */
+
+#ifndef __whiteice__LinearKCluster_h
+#define __whiteice__LinearKCluster_h
+
+#include <vector>
+#include <string>
+#include <thread>
+#include <mutex>
+
+#include "vertex.h"
+#include "matrix.h"
+#include "superresolution.h"
+
+namespace whiteice
+{
+  template <typename T=whiteice::math::blas_real<float> >
+  class LinearKCluster
+  {
+  public:
+    LinearKCluster();
+    virtual ~LinearKCluster();
+
+    bool startTrain(const unsigned int K,
+		    const std::vector< math::vertex<T> >& xdata,
+		    const std::vector< math::vertex<T> >& ydata);
+
+    bool isRunning() const;
+
+    bool stopTrain();
+    
+    double getSolutionError() const;
+    unsigned int getNumberOfClusters() const;
+    
+    bool predict(const math::vertex<T>& x, math::vertex<T>& y) const;
+
+    bool save(const std::string& filename) const;
+    bool load(const std::string& filename); 
+    
+  proteted:
+
+    // model
+
+    unsigned int K;
+    
+    std::vector< math::matrix<T> > A;
+    std::vector< math::vertex<T> > b;
+    std::vector< math::vertex<T> > xmean;
+    std::vector< math::vertex<T> > xvariance;
+
+    double currentError;
+
+    // data
+    
+    std::vector< math::vertex<T> > xdata;
+    std::vector< math::vertex<T> > ydata;
+
+    // running
+    std::thread* optimizer_thread = nullptr;
+    mutable std::mutex thread_mutex, solution_mutex;
+    bool thread_running = false;
+
+    void optimizer_loop();
+    
+  };
+
+
+
+  extern template class KMeans< math::blas_real<float> >;
+  extern template class KMeans< math::blas_real<double> >;
+  extern template class KMeans< math::blas_complex<float> >;
+  extern template class KMeans< math::blas_complex<double> >;
+
+  extern template class KMeans< math::superresolution< math::blas_real<float> > >;
+  extern template class KMeans< math::superresolution< math::blas_real<double> > >;
+  extern template class KMeans< math::superresolution< math::blas_complex<float> > >;
+  extern template class KMeans< math::superresolution< math::blas_complex<double> > >;
+
+  
+}
+
+
+#endif
