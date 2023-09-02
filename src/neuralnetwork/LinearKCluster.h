@@ -22,6 +22,7 @@
 
 #include "vertex.h"
 #include "matrix.h"
+#include "nnetwork.h"
 #include "superresolution.h"
 
 namespace whiteice
@@ -30,7 +31,7 @@ namespace whiteice
   class LinearKCluster
   {
   public:
-    LinearKCluster();
+    LinearKCluster(const unsigned int XSIZE, const unsigned int YSIZE);
     virtual ~LinearKCluster();
 
     bool startTrain(const std::vector< math::vertex<T> >& xdata,
@@ -51,12 +52,13 @@ namespace whiteice
     
   protected:
 
+    nnetwork<T> architecture;
+
     // model
 
     unsigned int K;
     
-    std::vector< math::matrix<T> > A;
-    std::vector< math::vertex<T> > b;
+    std::vector< whiteice::nnetwork<T> > model;
 
     std::vector<unsigned int> clusterLabels; // clusterLabels[datapoint_index] =  cluster_index_k
     

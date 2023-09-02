@@ -47,7 +47,7 @@ namespace whiteice
 	// calculates Cxx live and only precalculates mean value m
 
 	if(verbose){
-	  printf("Using statistical inner product with Cxx matrix/data (Cxx would be HUGE)..\n");
+	  printf("Using statistical inner product with Cxx matrix/data (Cxx could be HUGE)..\n");
 	  fflush(stdout);
 	}
 
@@ -69,8 +69,22 @@ namespace whiteice
 	g.resize(m.size());
 	gprev.resize(m.size());
 
+	
 	if(typeid(T) == typeid(superresolution< blas_complex<float> >) ||
 	   typeid(T) == typeid(superresolution< blas_complex<double> >)){
+
+	  for(unsigned int i=0;i<g.size();i++){
+	    for(unsigned int j=0;j<g[i].size();j++){
+	      for(unsigned int k=0;k<g[i][j].size();k++){
+		gprev[i][j][k] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+		g[i][j][k] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	      }
+	    }
+	  }
+	  
+	}
+	else if(typeid(T) == typeid(superresolution< blas_real<float> >) ||
+		typeid(T) == typeid(superresolution< blas_real<double> >)){
 
 	  for(unsigned int i=0;i<g.size();i++){
 	    for(unsigned int j=0;j<g[i].size();j++){
@@ -94,7 +108,9 @@ namespace whiteice
 	T epsilon = T(1e-2);
 	
 	if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
-	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >))
+	   typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >) ||
+	   typeid(T) == typeid(superresolution< blas_complex<float>, modular<unsigned int> >) ||
+	   typeid(T) == typeid(superresolution< blas_complex<double>, modular<unsigned int> >))
 	{
 	  for(unsigned int i=1;i<epsilon.size();i++){
 	    epsilon[i] = epsilon[0];
@@ -103,7 +119,7 @@ namespace whiteice
 	
 	unsigned int iters = 0;
 
-	while(1){
+	while(true){
 	  
 	  if(Cxx.xsize() == m.size()){ // has Cxx
 	    g = Cxx*g;

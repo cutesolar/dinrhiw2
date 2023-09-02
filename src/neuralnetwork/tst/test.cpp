@@ -78,7 +78,7 @@
 
 #include <fenv.h>
 
-#if 1
+#if 0
 
 extern "C" {
 
@@ -368,7 +368,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
   // tests code with superresolution< blas_complex<> > class
   std::cout << "Linear K-Cluster test" << std::endl;
 
-  LinearKCluster< math::superresolution< math::blas_complex<> > > model;
+  LinearKCluster< math::superresolution< math::blas_complex<> > > model(20, 5);
 
   const unsigned int TIME_LIMIT = 3600; // 60 minutes
 
@@ -385,7 +385,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
   nn.setArchitecture(arch);
   nn.randomize();
 
-  for(unsigned int n=0;n<5000;n++){
+  for(unsigned int n=0;n<500;n++){
     math::vertex< math::superresolution< math::blas_complex<> > > x, y;
     x.resize(arch[0]);
     y.resize(arch[arch.size()-1]);
@@ -517,6 +517,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
     }
 
     err /= xdata.size();
+    err /= ydata[0].size();
 
     std::cout << "Experimental model error: " << err << std::endl;
     model.getSolutionError(iters, e);

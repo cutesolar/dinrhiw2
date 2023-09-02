@@ -709,8 +709,9 @@ namespace whiteice
 	   typeid(T) == typeid(whiteice::math::superresolution< math::blas_complex<double> >))
 	{
 	  for(unsigned int i=0;i<dataSize;i++){
-	    auto a = whiteice::math::abs(data[i]); 
-	    len += a*whiteice::math::conj(a);
+	    //auto a = whiteice::math::abs(data[i]); 
+	    //len += a*whiteice::math::conj(a);
+	    len += data[i]*whiteice::math::conj(data[i]);
 	    //len += whiteice::math::innerproduct(data[i]);
 	  }
 	}

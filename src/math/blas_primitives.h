@@ -229,7 +229,12 @@ namespace whiteice
 	  blas_safebox(c[0]);
 	  return *this;
 	}
-	     
+
+	inline blas_real<T>& circular_convolution(const blas_real<T>& s){
+	  (*this) = ((*this)*s);
+	  return (*this);
+	}
+
 	inline blas_real<T> abs() const
 	{ return blas_real<T>( T(fabs((double)c[0])) ); }
 	
@@ -605,7 +610,12 @@ namespace whiteice
 	  blas_safebox(c[0]); blas_safebox(c[1]);
 	  return *this;
 	}
-	     
+
+	inline blas_complex<T>& circular_convolution(const blas_complex<T>& s){
+	  (*this) = ((*this)*s);
+	  return (*this);
+	}
+
 	inline blas_real<T> abs() const
 	{ blas_real<T> r; r.c[0] = T(sqrt((double)(c[0]*c[0] + c[1]*c[1]))); return r; }
 	

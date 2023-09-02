@@ -7,14 +7,27 @@
 #include "correlation.h"
 #include "linear_equations.h"
 #include "dataset.h"
+#include "nnetwork.h"
 
 namespace whiteice
 {
 
   template <typename T>
-  LinearKCluster<T>::LinearKCluster()
+  LinearKCluster<T>::LinearKCluster(const unsigned XSIZE, const unsigned int YSIZE)
   {
+    assert(XSIZE >= 1 && YSIZE >= 1); 
+    
     K = 0;
+
+    std::vector<unsigned int> arch;
+    
+    arch.push_back(XSIZE);
+    arch.push_back(YSIZE);
+    
+    architecture.setArchitecture
+      (arch, nnetwork<T>::pureLinear);
+    
+    architecture.randomize();
   }
 
   template <typename T>
@@ -49,8 +62,7 @@ namespace whiteice
     {
       std::lock_guard<std::mutex> lock(solution_mutex);
       this->K = 0;
-      A.clear();
-      b.clear();
+      this->model.clear();
       currentError = (double)(INFINITY);
       clusterLabels.clear();
 
@@ -77,7 +89,9 @@ namespace whiteice
 
       if(K == 0){
 	this->K = this->xdata.size()/50;
-	if(this->K == 0) this->K = 1;
+	if(this->K == 0) this->K = 2;
+
+	std::cout << "Using K=" << this->K << " cluster(s) in optimization." << std::endl;
       }
     }
 
@@ -146,7 +160,7 @@ namespace whiteice
   {
     std::lock_guard<std::mutex> lock(solution_mutex);
 
-    if(K == 0 || A.size() == 0) return false;
+    if(K == 0 || model.size() != K) return false;
 
     double best_distance = INFINITY;
     unsigned int kbest = 0;
@@ -161,7 +175,7 @@ namespace whiteice
 	auto delta = xdata[i] - x;
 	
 	double d = 0.0;
-	whiteice::math::convert(d, delta.norm()[0]);
+	whiteice::math::convert(d, whiteice::math::abs(delta.norm())[0]);
 	if(d<best_distance_thread){
 	  best_distance_thread = d;
 	  kbest_thread = i;
@@ -179,14 +193,17 @@ namespace whiteice
 
     const unsigned int k = clusterLabels[kbest];
 
-    y = A[k]*x + b[k];
-
+    model[k].calculate(x, y);
+    
     return true;
   }
 
   template <typename T>
   bool LinearKCluster<T>::save(const std::string& filename) const
   {
+    return false;
+    
+#if 0
     if(filename.size() <= 0) return false;
 
     std::lock_guard<std::mutex> lock(solution_mutex);
@@ -255,12 +272,15 @@ namespace whiteice
     }
     
     return data.save(filename);
+#endif
   }
   
 
   template <typename T>
   bool LinearKCluster<T>::load(const std::string& filename)
   {
+    return false;
+#if 0
     whiteice::dataset<T> data;
 
     if(data.load(filename) == false) return false;
@@ -335,6 +355,7 @@ namespace whiteice
 
 
     return true;
+#endif
   }
 
   template <typename T> 
@@ -351,16 +372,11 @@ namespace whiteice
     {
       std::lock_guard<std::mutex> lock(solution_mutex);
       
-      A.resize(K);
-      b.resize(K);
-      clusterLabels.resize(xdata.size());
+      model.resize(K);
 
-      for(unsigned int k=0;k<K;k++){
-	A[k].resize(ydata[0].size(),xdata[0].size());
-	b[k].resize(ydata[0].size());
-
-	A[k].zero();
-	b[k].zero();
+      for(unsigned int k=0;k<model.size();k++){
+	model[k] = this->architecture;
+	model[k].randomize();
       }
 
       for(unsigned int i=0;i<xdata.size();i++)
@@ -398,184 +414,187 @@ namespace whiteice
     }
 
     // local copy of solutions
-    std::vector< math::matrix<T> > AA;
-    std::vector< math::vertex<T> > bb;
 
-    AA.resize(K);
-    bb.resize(K);
+    std::vector< whiteice::nnetwork<T> > M;
 
-    // calculates single model solution
+    M.resize(K);
+
     {
-      std::vector< math::vertex<T> > x, y;
-
-      for(unsigned int i=0;i<xdata.size();i++){
-	x.push_back(xdata[i]);
-	y.push_back(ydata[i]);
-      }
+      std::lock_guard<std::mutex> lock(solution_mutex);
       
-      math::matrix<T> Cxx, Cyx;
-      math::vertex<T> mx, my;
-      
-      math::mean_covariance_estimate(mx, Cxx, x);
-      math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
-
-      math::matrix<T> INV;
-      T l = T(1e-20);
-      
-      do{
-	INV = Cxx;
-	
-	T trace = T(0.0f);
-	
-	for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
-	  trace += Cxx(i,i);
-	  INV(i,i) += l; // regularizes Cxx (if needed)
-	}
-	
-	if(Cxx.xsize() < Cxx.ysize())	  
-	  trace /= Cxx.xsize();
-	else
-	  trace /= Cxx.ysize();
-	
-	l += T(0.1)*trace + -T(2.0f)*l; // keeps "scale" of the matrix same
+      for(unsigned int k=0;k<M.size();k++){
+	M[k] = model[k];
       }
-      while(whiteice::math::symmetric_inverse(INV) == false);
+    }
+      
 
-      {
-	std::lock_guard<std::mutex> lock(solution_mutex);
-	
-	A[0] = Cyx*INV;
-	b[0] = my - A[0]*mx;
-	
-	for(unsigned int k=1;k<K;k++){
-	  A[k] = A[0];
-	  b[k] = b[0];
-	}
-      }
-
-      // calculate solution error
-      double error = 0.0;
+    // calculate solution error
+    double error = 0.0;
       
 #pragma omp parallel shared(error)
-      {
-	double ei = 0.0;
-	
+    {
+      double ei = 0.0;
+      
 #pragma omp for schedule(auto)
-	for(unsigned int i=0;i<xdata.size();i++){
+      for(unsigned int i=0;i<xdata.size();i++){
 
-	  auto delta = A[0]*xdata[i] + b[0] - ydata[i];
-	  double e = INFINITY;
-	  whiteice::math::convert(e, delta.norm()[0]);
-	  ei += e;
+	const auto& pe = datacluster[i];
+
+	double bestp = 0.0;
+	unsigned int bestk = 0;
+	
+	for(unsigned int k=0;k<pe.size();k++){
+	  if(pe[k] > bestp){ bestp = pe[k]; bestk = k;}
 	}
 
-#pragma omp critical
-	{
-	  error += ei;
+	const unsigned int k = bestk;
+
+	math::vertex<T> delta;
+
+	M[k].calculate(xdata[i], delta);
+	delta -= ydata[i];
+
+	// keeps only real part of the error
+	for(unsigned int i=0;i<delta.size();i++){
+	  delta[i] = T(delta[i][0]);
 	}
+	
+	double e = INFINITY;
+	whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
+	ei += e;
       }
-
-      error /= xdata.size();
-
-      // std::cout << "INITIAL ERROR: " << error << std::endl;
+      
+#pragma omp critical
+      {
+	error += ei;
+      }
     }
+    
+    error /= xdata.size();
+    
+    std::cout << "INITIAL ERROR: " << error << std::endl;
+    
+    
 
     // convergence checking code..
     const unsigned int CONV_LIMIT = 30;
     std::vector<double> convergence_errors;
 
+    const double lrate = 0.01; // FIXME constant lrate..
+    
     while(true){
+      
       {
-	//std::lock_guard<std::mutex> lock(thread_mutex); [not needed for only read variables (bool)??
-	
 	if(thread_running == false)
 	  break; // out from the loop and finish
       }
+
 
 #pragma omp parallel for schedule(auto)
       for(unsigned int k=0;k<K;k++){
 	//* 1. Train/optimize linear model for points assigned to this cluster
 
 	std::vector< math::vertex<T> > x, y;
-	double p_x = (0.0), px_2 = (0.0);
-
+	
 	for(unsigned int i=0;i<datacluster.size();i++){
 	  const double p = datacluster[i][k];
 
-	  if(p >= 1e-4){
+	  if(p >= 0.50){
 	    auto px = T(p)*xdata[i];
 	    auto py = T(p)*ydata[i];
 
 	    x.push_back(px);
 	    y.push_back(py);
-
-	    p_x += p;
-	    px_2 += p*p;
 	  }
-	  
 	}
 
-	math::matrix<T> Cxx, Cyx;
-	math::vertex<T> mx, my;
+	math::vertex<T> sumgrad;
+	sumgrad.resize(M[k].exportdatasize());
+	sumgrad.zero();
+	
 
-	if(x.size() < 2 || p_x <= 1e-4){
-	  Cxx.resize(xdata[0].size(),xdata[0].size());
-	  Cyx.resize(ydata[0].size(),xdata[0].size());
-	  mx.resize(xdata[0].size());
-	  my.resize(ydata[0].size());
+	for(unsigned int i=0;i<x.size();i++){
 
-	  mx.zero();
-	  my.zero();
-	  Cxx.identity();
-	  Cyx.zero();
-	  for(unsigned int i=0;i<Cyx.ysize()&&i<Cyx.xsize();i++)
-	    Cyx(i,i) = T(1.0f);
+	  math::vertex<T> err;
+	  
+	  M[k].calculate(x[i], err);
+	  err -= y[i];
+
+	  math::matrix<T> DF, cDF;
+
+	  M[k].jacobian(x[i], DF);
+	  cDF.resize(DF.ysize(),DF.xsize());
+
+	  for(unsigned int j=0;j<DF.size();j++){
+	    whiteice::math::convert(cDF[j], DF[j]);
+	    cDF[j].fft();
+	  }
+
+	  math::vertex<T> ce, cerr;
+
+	  ce.resize(err.size());
+
+	  for(unsigned int j=0;j<err.size();j++){
+	    whiteice::math::convert(ce[j], err[j]);
+	    ce[j].fft();
+	  }
+
+	  cerr.resize(DF.xsize());
+	  cerr.zero();
+
+	  for(unsigned int j=0;j<DF.xsize();j++){
+	    auto ctmp = ce;
+	    for(unsigned int k=0;k<DF.ysize();k++){
+	      cerr[j] += ctmp[k].circular_convolution(cDF(k,j));
+	    }
+	  }
+
+	  T one;
+	  one.zero();
+	  one = T(1.0);
+	  one.fft();
+
+	  for(unsigned int j=0;j<cerr.size();j++)
+	    cerr[j].circular_convolution(one);
+
+	  err.resize(cerr.size());
+
+	  for(unsigned int j=0;j<err.size();j++){
+	    cerr[j].inverse_fft();
+	    for(unsigned int k=0;k<err[j].size();k++)
+	      whiteice::math::convert(err[j][k], cerr[j][k]);
+	  }
+
+	  const auto& grad = err;
+
+	  sumgrad += grad;
+	}
+
+	
+	if(x.size() > 0){
+	
+	  sumgrad *= T(1.0/x.size());
+
+	  math::vertex<T> w;
+	  
+	  M[k].exportdata(w);
+
+	  for(unsigned int j=0;j<sumgrad.size();j++){
+	    for(unsigned int k=0;k<sumgrad[0].size();k++){
+	      sumgrad[j][k] *= lrate;
+	    }
+	  }
+
+	  w -= sumgrad;
+
+	  M[k].importdata(w);
 	}
 	else{
-	  math::mean_covariance_estimate(mx, Cxx, x);
-	  math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
-
-	  if(p_x != 0){
-	    mx /= T(p_x);
-	    my /= T(p_x);
-	  }
-
-	  if(px_2 != 0){
-	    Cxx /= T(px_2);
-	    Cyx /= T(px_2);
-	  }
+	  M[k].randomize();
 	}
-
-	math::matrix<T> INV;
-	T l = T(1e-10);
-
-	do{
-	  INV = Cxx;
-
-	  T trace = T(0.0f);
-      
-	  for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
-	    trace += Cxx(i,i);
-	    INV(i,i) += l; // regularizes Cxx (if needed)
-	  }
-      
-	  if(Cxx.xsize() < Cxx.ysize())	  
-	    trace /= Cxx.xsize();
-	  else
-	    trace /= Cxx.ysize();
-      
-	  l += T(0.1)*trace + -T(2.0f)*l; // keeps "scale" of the matrix same
-	}
-	while(whiteice::math::symmetric_inverse(INV) == false);
-
-	AA[k] = Cyx*INV;
-	bb[k] = my - AA[k]*mx;
-
-	{
-	  AA[k] = T(0.1)*AA[k] + T(0.9)*A[k];
-	  bb[k] = T(0.1)*bb[k] + T(0.9)*b[k];
-	}
+	
       }
+
 
       //* 2. Measure error in each cluster model for each datapoint and 
       //*    assign datapoints to the cluster with smallest error.
@@ -590,8 +609,16 @@ namespace whiteice
 	std::vector<double> errors;
 	
 	for(unsigned int k=0;k<K;k++){
-	  auto err = (AA[k]*xdata[i] + bb[k] - ydata[i]).norm()[0];
 
+	  math::vertex<T> delta;
+	  M[k].calculate(xdata[i], delta);
+	  delta -= ydata[i];;
+	  
+	  for(unsigned int i=0;i<delta.size();i++)
+	    delta[i] = T(delta[i][0]);
+	  
+	  auto err = whiteice::math::abs(delta.norm()[0]);
+	  
 	  double e = INFINITY;
 	  whiteice::math::convert(e, err);
 
@@ -609,13 +636,21 @@ namespace whiteice
 	  errors[i] /= sump;
 	}
 
-	double bestp = 0.0;
+	sump = 0.0;
 	unsigned int bestk = 0;
 
+	double r = whiteice::rng.uniform().c[0];
+
 	for(unsigned int i=0;i<errors.size();i++){
-	  if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
-	  errors[i] = 0.0;
+	  sump += errors[i];
+
+	  if(r <= sump){ bestk = i; break; }
+	  
+	  //if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
 	}
+
+	for(unsigned int i=0;i<errors.size();i++)
+	  errors[i] = 0.0;
 
 	errors[bestk] = 1.0; 
 
@@ -640,7 +675,7 @@ namespace whiteice
 	    auto delta = xdata[i] - xdata[j];
 	    double d = INFINITY;
 
-	    whiteice::math::convert(d, delta.norm()[0]);
+	    whiteice::math::convert(d, whiteice::math::abs(delta.norm())[0]);
 
 	    distances.insert(std::pair<double,unsigned int>(d, j));
 	  }
@@ -700,9 +735,17 @@ namespace whiteice
 	    }
 	  
 
-	  auto delta = AA[k]*xdata[i] + bb[k] - ydata[i];
+	  math::vertex<T> delta;
+	  M[k].calculate(xdata[i], delta);
+	  delta -= ydata[i];
+	  
 	  double e = INFINITY;
-	  whiteice::math::convert(e, delta.norm()[0]);
+
+	  for(unsigned int i=0;i<delta.size();i++){
+	    delta[i] = T(delta[i][0]);
+	  }
+	  
+	  whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
 	  ei += e;
 	}
 
@@ -713,17 +756,16 @@ namespace whiteice
       }
 
       error /= xdata.size();
-      error /= ydata[0].size();
-
+      //error /= ydata[0].size();
+      
 
       //* 4. Goto 1 if there were significant changes/no convergence 
       {
 	if(error <= currentError)
 	{
 	  std::lock_guard<std::mutex> lock(solution_mutex);
-	  
-	  A = AA;
-	  b = bb;
+
+	  model = M;
 	  currentError = error;
 
 	  clusterLabels.resize(datacluster.size());
@@ -754,13 +796,12 @@ namespace whiteice
 	    }
 	  }
 
-	  /*
 	  printf("CLUSTER SIZES:\n");
 	  for(unsigned int k=0;k<K;k++){
-	    printf("cluster %d = %d data apoints\n", k, cluster_sizes[k]);
+	    printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
 	  }
-	  */
 	}
+
 
 	iterations++;
 
@@ -810,7 +851,7 @@ namespace whiteice
 
 	  changes /= datacluster.size();
 
-	  // std::cout << "DELTAS THIS ITER: " << changes << std::endl;
+	  std::cout << "DELTAS THIS ITER: " << changes << std::endl;
 	  // if(changes <= 0.10) break;
 	}
 
