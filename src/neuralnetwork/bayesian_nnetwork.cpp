@@ -697,9 +697,9 @@ namespace whiteice
 	data = configuration.accessName(FNN_VERSION_CFGSTR, 0);
 	ints.resize(data.size());
 	for(unsigned int i=0;i<data.size();i++){
-	  int a = -1;
-	  math::convert(a, data[i]);
-	  ints[i] = a;
+	  double ad = -1.0;
+	  math::convert(ad, data[i]);
+	  ints[i] = (int)ad;
 	}
 	
 	
@@ -730,9 +730,9 @@ namespace whiteice
 	data = configuration.accessName(FNN_ARCH_CFGSTR, 0);
 	ints.resize(data.size());
 	for(unsigned int i=0;i<data.size();i++){
-	  int a = -1;
-	  math::convert(a, data[i]);
-	  ints[i] = a;
+	  double ad = -1.0;
+	  math::convert(ad, data[i]);
+	  ints[i] = (int)ad;
 	}
 	
 	if(ints.size() < 2)
@@ -761,9 +761,9 @@ namespace whiteice
 	ints.resize(data.size());
 	
 	for(unsigned int i=0;i<data.size();i++){
-	  int a = -1;
-	  math::convert(a, data[i]);
-	  ints[i] = a;
+	  double ad = -1.0;
+	  math::convert(ad, data[i]);
+	  ints[i] = (int)ad;
 	}
 	
 	if(ints.size() != nl.size())
@@ -806,9 +806,9 @@ namespace whiteice
 	ints.resize(data.size());
 	
 	for(unsigned int i=0;i<data.size();i++){
-	  int a = -1;
-	  math::convert(a, data[i]);
-	  ints[i] = a;
+	  double ad = -1.0;
+	  math::convert(ad, data[i]);
+	  ints[i] = (int)ad;
 	}
 	
 	if(ints.size() != frozen.size())
@@ -853,9 +853,9 @@ namespace whiteice
 	data = configuration.accessName(FNN_NUMWEIGHTS_CFGSTR, 0);
 	ints.resize(data.size());
 	for(unsigned int i=0;i<data.size();i++){
-	  int a = 0;
-	  math::convert(a, data[i]);
-	  ints[i] = a;
+	  double ad = 0.0;
+	  math::convert(ad, data[i]);
+	  ints[i] = (int)ad;
 	}
 	
 	if(ints.size() != 1)
@@ -967,7 +967,7 @@ namespace whiteice
 	configuration.createCluster(FNN_VERSION_CFGSTR, ints.size());
 	data.resize(ints.size());
 	for(unsigned int i=0;i<ints.size();i++){
-	  whiteice::math::convert(data[i], ints[i]);
+	  whiteice::math::convert(data[i], (double)ints[i]);
 	  //data[i] = ints[i];
 	}
 	configuration.add(configuration.getCluster(FNN_VERSION_CFGSTR), data);
@@ -991,7 +991,7 @@ namespace whiteice
 	configuration.createCluster(FNN_ARCH_CFGSTR, ints.size());
 	data.resize(ints.size());
 	for(unsigned int i=0;i<ints.size();i++){
-	  whiteice::math::convert(data[i], ints[i]);
+	  whiteice::math::convert(data[i], (double)ints[i]);
 	  //data[i] = ints[i];
 	}
 	configuration.add(configuration.getCluster(FNN_ARCH_CFGSTR), data);
@@ -1009,7 +1009,7 @@ namespace whiteice
 	configuration.createCluster(FNN_NUMWEIGHTS_CFGSTR, ints.size());
 	data.resize(ints.size());
 	for(unsigned int i=0;i<ints.size();i++){
-	  whiteice::math::convert(data[i], ints[i]);
+	  whiteice::math::convert(data[i], (double)ints[i]);
 	  //data[i] = ints[i];
 	}
 	configuration.add(configuration.getCluster(FNN_NUMWEIGHTS_CFGSTR), data);
@@ -1054,7 +1054,7 @@ namespace whiteice
 	configuration.createCluster(FNN_NONLINEARITY_CFGSTR, ints.size());
 	data.resize(ints.size());
 	for(unsigned int i=0;i<ints.size();i++){
-	  whiteice::math::convert(data[i], ints[i]);
+	  whiteice::math::convert(data[i], (double)ints[i]);
 	  //data[i] = ints[i];
 	}
 	configuration.add(configuration.getCluster(FNN_NONLINEARITY_CFGSTR), data);
@@ -1081,7 +1081,7 @@ namespace whiteice
 	configuration.createCluster(FNN_FROZEN_CFGSTR, ints.size());
 	data.resize(ints.size());
 	for(unsigned int i=0;i<ints.size();i++){
-	  whiteice::math::convert(data[i], ints[i]);
+	  whiteice::math::convert(data[i], (double)ints[i]);
 	  //data[i] = ints[i];
 	}
 	configuration.add(configuration.getCluster(FNN_FROZEN_CFGSTR), data);
@@ -1186,8 +1186,12 @@ namespace whiteice
   
   template class bayesian_nnetwork< math::blas_real<float> >;
   template class bayesian_nnetwork< math::blas_real<double> >;
+  template class bayesian_nnetwork< math::blas_complex<float> >;
+  template class bayesian_nnetwork< math::blas_complex<double> >;
 
   template class bayesian_nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >;
   template class bayesian_nnetwork< math::superresolution< math::blas_real<double>, math::modular<unsigned int> > >;
+  template class bayesian_nnetwork< math::superresolution< math::blas_complex<float>, math::modular<unsigned int> > >;
+  template class bayesian_nnetwork< math::superresolution< math::blas_complex<double>, math::modular<unsigned int> > >;
   
 };

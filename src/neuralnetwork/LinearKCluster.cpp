@@ -634,7 +634,11 @@ namespace whiteice
 	double sump = 0.0; 
 
 	for(unsigned int i=0;i<errors.size();i++){
-	  errors[i] = whiteice::math::exp(-errors[i]);
+	  if(errors[i] < 100.0) 
+	    errors[i] = whiteice::math::exp(-errors[i]);
+	  else
+	    errors[i] = whiteice::math::exp(-100.0);
+	  
 	  sump += errors[i];
 	}
 
@@ -704,8 +708,14 @@ namespace whiteice
 		bestp = pk[ii];
 	      }
 	    }
+
 	    
-	    double p = whiteice::math::exp(-(iter->first));
+	    double p = 0.0;
+	    if(iter->first < 100.0)
+	      p = whiteice::math::exp(-(iter->first));
+	    else
+	      p = whiteice::math::exp(-100.0);
+	    
 	    pe[k] += p;
 	    sump += p;
 	    
