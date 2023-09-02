@@ -1318,7 +1318,9 @@ namespace whiteice
     
     //////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
-    
+
+    unsigned int has_plan = 0;
+    cfft_plan basic_fft_plan;  // FIXME: global variable should be free'ed at exit [saves computing time]
     
     // slow arbitrary length signal FFT
     template <typename T>
@@ -1337,16 +1339,26 @@ namespace whiteice
 	buffer[2*i+1] = v[i].c[1];
       }
 
-      cfft_plan plan = make_cfft_plan(LEN);
-      cfft_forward(plan, buffer, 1.0);
-      destroy_cfft_plan(plan);
+      cfft_plan plan;
 
+      if(has_plan != LEN){
+	if(has_plan) destroy_cfft_plan(basic_fft_plan);
+	basic_fft_plan = make_cfft_plan(LEN);
+	plan = basic_fft_plan;
+      }
+      else{
+	plan = basic_fft_plan;
+      }
+
+      cfft_forward(plan, buffer, 1.0);
+      
       for(unsigned int i=0;i<LEN;i++){
 	v[i].c[0] = buffer[2*i+0];
 	v[i].c[1] = buffer[2*i+1];
       }
 
       free(buffer);
+
 
       return true;
 
@@ -1398,6 +1410,7 @@ namespace whiteice
     {
       const unsigned int LEN = v.size();
 
+
       double* buffer = (double*)malloc(LEN*sizeof(double)*2);
 
       if(buffer == NULL){
@@ -1409,16 +1422,29 @@ namespace whiteice
 	buffer[2*i+1] = v[i].c[1];
       }
 
-      cfft_plan plan = make_cfft_plan(LEN);
-      cfft_backward(plan, buffer, 1.0/LEN);
-      destroy_cfft_plan(plan);
+      //double* buffer = (double*)(&(v[0])); 
 
+      cfft_plan plan;
+
+      if(has_plan != LEN){
+	if(has_plan) destroy_cfft_plan(basic_fft_plan);
+	basic_fft_plan = make_cfft_plan(LEN);
+	plan = basic_fft_plan;
+      }
+      else{
+	plan = basic_fft_plan;
+      }
+      
+      cfft_backward(plan, buffer, 1.0/LEN);
+      
+      
       for(unsigned int i=0;i<LEN;i++){
 	v[i].c[0] = buffer[2*i+0];
 	v[i].c[1] = buffer[2*i+1];
       }
-
+      
       free(buffer);
+
       
 
       return true;
