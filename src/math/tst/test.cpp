@@ -1104,7 +1104,12 @@ void fft_test()
 
       auto orig = samples[i];
 
-      basic_fft(samples[i]);
+      if(basic_fft(samples[i]) == false){
+	printf("ERROR: FFT FAILED!\n");
+	exit(-1);
+      }
+
+      //std::cout << samples[i] << std::endl;
 
       auto delta = orig - samples[i];
 
@@ -1112,7 +1117,12 @@ void fft_test()
 	std::cout << "WARN: fft(x) don't change the x signal." << std::endl; 
       }
       
-      basic_ifft(samples[i]);
+      if(basic_ifft(samples[i]) == false){
+	printf("ERROR: IFFT FAILED!\n");
+	exit(-1);
+      }
+
+      //std::cout << samples[i] << std::endl;
 
       auto err = orig - samples[i];
 

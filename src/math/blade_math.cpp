@@ -1338,7 +1338,7 @@ namespace whiteice
       }
 
       cfft_plan plan = make_cfft_plan(LEN);
-      cfft_forward(plan, buffer, 1.0/sqrt(LEN));
+      cfft_forward(plan, buffer, 1.0);
       destroy_cfft_plan(plan);
 
       for(unsigned int i=0;i<LEN;i++){
@@ -1410,7 +1410,7 @@ namespace whiteice
       }
 
       cfft_plan plan = make_cfft_plan(LEN);
-      cfft_backward(plan, buffer, 1.0/sqrt(LEN));
+      cfft_backward(plan, buffer, 1.0/LEN);
       destroy_cfft_plan(plan);
 
       for(unsigned int i=0;i<LEN;i++){

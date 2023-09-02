@@ -26,7 +26,7 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	DiffEQ_HMC.cpp neuro-diffeqs/diffeqs.cpp neuro-diffeqs/HMC_diffeq.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
-	../math/RNG.cpp ../math/LBFGS.cpp ../math/SGD.cpp
+	../math/RNG.cpp ../math/LBFGS.cpp ../math/SGD.cpp ../math/pocketfft/pocketfft.c
 
 OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensional_gaussian.o \
 	stretched_function.o optimized_function.o \
@@ -54,7 +54,7 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
-	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o 
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o
 
 
 TARGET1_OBJECTS=tst/test.o 
