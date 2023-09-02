@@ -132,14 +132,29 @@ namespace whiteice
     double best_distance = INFINITY;
     unsigned int kbest = 0;
 
-    for(unsigned int i=0;i<xdata.size();i++){
-      auto delta = xdata[i] - x;
-
-      double d = 0.0;
-      whiteice::math::convert(d, delta.norm()[0]);
-      if(d<best_distance){
-	best_distance = d;
-	kbest = i;
+#pragma omp parallel
+    {
+      double best_distance_thread = best_distance;
+      unsigned int kbest_thread = kbest;
+      
+#pragma omp for schedule(auto) nowait
+      for(unsigned int i=0;i<xdata.size();i++){
+	auto delta = xdata[i] - x;
+	
+	double d = 0.0;
+	whiteice::math::convert(d, delta.norm()[0]);
+	if(d<best_distance_thread){
+	  best_distance_thread = d;
+	  kbest_thread = i;
+	}
+      }
+      
+#pragma omp critical
+      {
+	if(best_distance > best_distance_thread){
+	  best_distance = best_distance_thread;
+	  kbest = kbest_thread;
+	}
       }
     }
 
@@ -443,9 +458,12 @@ namespace whiteice
 
       error /= xdata.size();
 
-      std::cout << "INITIAL ERROR: " << error << std::endl;
+      // std::cout << "INITIAL ERROR: " << error << std::endl;
     }
-    
+
+    // convergence checking code..
+    const unsigned int CONV_LIMIT = 30;
+    std::vector<double> convergence_errors;
 
     while(true){
       {
@@ -676,6 +694,7 @@ namespace whiteice
       }
 
       error /= xdata.size();
+      error /= ydata[0].size();
 
 
       //* 4. Goto 1 if there were significant changes/no convergence 
@@ -723,8 +742,42 @@ namespace whiteice
 	  }
 	  */
 	}
-	
+
 	iterations++;
+
+	// converegence detection
+	{
+	  convergence_errors.push_back(currentError);
+	  
+	  while(convergence_errors.size() > CONV_LIMIT){
+	    convergence_errors.erase(convergence_errors.begin());
+	  }
+
+	  if(convergence_errors.size() >= CONV_LIMIT){
+	    double m = 0.0, s = 0.0;
+	    
+	    for(const auto& c : convergence_errors){
+	      m += fabs(c);
+	      s += c*c;
+	    }
+
+	    // mean and variance of the data
+	    m /= convergence_errors.size();
+	    s /= convergence_errors.size();
+	    s = fabs(s - m*m);
+
+	    // mean estimator st.dev.
+	    s /= convergence_errors.size();
+	    s = whiteice::math::sqrt(s); 
+	    
+	    const double conv = s/(m + 1e-3);
+
+	    // std::cout << "convergence: " << conv << std::endl;
+
+	    if(conv < 0.00001) break; // mean error is 0.001% of the mean value
+	  }
+	}
+	
 
 	if(old_datacluster.size() > 0){
 	  
@@ -738,11 +791,8 @@ namespace whiteice
 
 	  changes /= datacluster.size();
 
-	  std::cout << "DELTAS THIS ITER: " << changes << std::endl;
-
-	  if(changes <= 0.10){
-	    break;
-	  }
+	  // std::cout << "DELTAS THIS ITER: " << changes << std::endl;
+	  // if(changes <= 0.10) break;
 	}
 
 	old_datacluster = datacluster;
