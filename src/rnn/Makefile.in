@@ -17,7 +17,7 @@ EXTRA_OBJECTS =	../dataset.o \
 	../neuralnetwork/nnetwork.o ../neuralnetwork/BBRBM.o \
 	../math/LBFGS.o ../neuralnetwork/LBFGS_BBRBM.o \
 	../neuralnetwork/bayesian_nnetwork.o \
-	../Log.o ../math/RNG.o
+	../Log.o ../math/RNG.o ../math/pocketfft/pocketfft.o
 
 TEST_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test.o
 
@@ -29,7 +29,8 @@ SOURCES = tst/test.cpp RNN_RBM.cpp \
 	../math/integer.cpp ../math/blade_math.cpp ../math/real.cpp \
 	../math/superresolution.cpp ../math/modular.cpp \
 	../linear_ETA.cpp \
-	../math/ownexception.cpp ../math/RNG.cpp
+	../math/ownexception.cpp ../math/RNG.cpp \
+	../math/pocketfft/pocketfft.c
 
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@

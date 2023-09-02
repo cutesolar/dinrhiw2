@@ -23,6 +23,7 @@ EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../neuralnetwork/DBN.o ../neuralnetwork/GBRBM.o ../neuralnetwork/BBRBM.o \
 	../math/outerproduct.o \
 	../math/LBFGS.o ../neuralnetwork/rLBFGS_recurrent_nnetwork.o \
+	../math/pocketfft/pocketfft.o \
 	../neuralnetwork/rLBFGS_recurrent_nnetwork_softmax_actions.o \
 	../neuralnetwork/LBFGS_GBRBM.o \
 	../neuralnetwork/LBFGS_BBRBM.o ../math/RNG.o
@@ -64,7 +65,7 @@ SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp
 	../math/LBFGS.cpp ../neuralnetwork/rLBFGS_recurrent_nnetwork.cpp \
 	../neuralnetwork/rLBFGS_recurrent_nnetwork_softmax_actions.cpp \
 	../neuralnetwork/LBFGS_GBRBM.cpp ../neuralnetwork/LBFGS_BBRBM.cpp \
-	../math/RNG.cpp
+	../math/RNG.cpp ../math/pocketfft/pocketfft.c
 
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@ `python3-config --cflags`

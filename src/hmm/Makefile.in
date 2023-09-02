@@ -11,7 +11,7 @@ EXTRA_OBJECTS = ../dataset.o ../dynamic_bitset.o \
 	../math/vertex.o ../math/matrix.o ../math/ownexception.o \
 	../math/integer.o ../math/correlation.o ../math/matrix_rotations.o \
 	../math/eig.o ../math/blade_math.o ../math/real.o ../math/ica.o \
-	../math/RNG.o \
+	../math/RNG.o ../math/pocketfft/pocketfft.o \
 	../linear_ETA.o ../Log.o ../math/norms.o \
 	../math/superresolution.o ../math/modular.o
 
@@ -22,6 +22,7 @@ SOURCES = HMM.cpp tst/test.cpp \
 	../dataset.cpp ../dynamic_bitset.cpp \
 	../math/vertex.cpp ../math/quaternion.cpp \
 	../math/integer.cpp ../math/blade_math.cpp ../math/real.cpp \
+	../math/pocketfft/pocketfft.c \
 	../linear_ETA.cpp ../Log.cpp \
 	../math/ownexception.cpp ../math/norms.cpp \
 	../math/superresolution.cpp ../math/modular.cpp

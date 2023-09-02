@@ -19,7 +19,7 @@ EXTRA_OBJECTS = math/vertex.o math/matrix.o math/ownexception.o \
 	math/quaternion.o \
 	math/integer.o math/correlation.o math/matrix_rotations.o \
 	math/eig.o math/blade_math.o math/real.o math/ica.o math/norms.o \
-	math/superresolution.o math/modular.o math/RNG.o
+	math/superresolution.o math/modular.o math/RNG.o math/pocketfft/pocketfft.o
 
 TEST_OBJECTS = $(OBJECTS) $(EXTRA_OBJECTS) tst/test.o
 # universal_hash.o
@@ -35,6 +35,7 @@ SOURCES = point.cpp static_array.cpp dynamic_array.cpp \
 	math/quaternion.cpp math/RNG.cpp \
 	math/vertex.cpp math/matrix.cpp math/ownexception.cpp \
 	math/norms.cpp math/superresolution.cpp math/modular.cpp \
+	math/pocketfft/pocketfft.c \
 	tst/test.cpp tst/conv_test.cpp \
 	singleton.cpp singleton_list.cpp \
 	dynamic_bitset.cpp list_source.cpp \
