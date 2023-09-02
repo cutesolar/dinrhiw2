@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <stdlib.h>
 
-#include "pocketfft_hdronly.h" // FFT algorithm
-
+//#include "pocketfft_hdronly.h" // FFT algorithm
+#include "pocketfft/pocketfft.h"
 
 
 #include "blade_math.h"
@@ -16,7 +16,7 @@
 #include <math.h>
 #include <gmp.h>
 
-using namespace pocketfft;
+// using namespace pocketfft;
 
 
 
@@ -1326,6 +1326,34 @@ namespace whiteice
     {
       const unsigned int LEN = v.size();
 
+      double* buffer = (double*)malloc(LEN*sizeof(double)*2);
+
+      if(buffer == NULL){
+	return false;
+      }
+      
+      for(unsigned int i=0;i<LEN;i++){
+	buffer[2*i+0] = v[i].c[0];
+	buffer[2*i+1] = v[i].c[1];
+      }
+
+      cfft_plan plan = make_cfft_plan(LEN);
+      cfft_forward(plan, buffer, 1.0/sqrt(LEN));
+      destroy_cfft_plan(plan);
+
+      for(unsigned int i=0;i<LEN;i++){
+	v[i].c[0] = buffer[2*i+0];
+	v[i].c[1] = buffer[2*i+1];
+      }
+
+      free(buffer);
+
+      return true;
+
+      
+#if 0
+      const unsigned int LEN = v.size();
+
       shape_t shape { LEN };
       stride_t stride(1);
 
@@ -1361,12 +1389,43 @@ namespace whiteice
 	whiteice::math::convert(v[i], res[i]);
 
       return true;
+#endif
     }
 
     
     template <typename T>
     bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
     {
+      const unsigned int LEN = v.size();
+
+      double* buffer = (double*)malloc(LEN*sizeof(double)*2);
+
+      if(buffer == NULL){
+	return false;
+      }
+      
+      for(unsigned int i=0;i<LEN;i++){
+	buffer[2*i+0] = v[i].c[0];
+	buffer[2*i+1] = v[i].c[1];
+      }
+
+      cfft_plan plan = make_cfft_plan(LEN);
+      cfft_backward(plan, buffer, 1.0/sqrt(LEN));
+      destroy_cfft_plan(plan);
+
+      for(unsigned int i=0;i<LEN;i++){
+	v[i].c[0] = buffer[2*i+0];
+	v[i].c[1] = buffer[2*i+1];
+      }
+
+      free(buffer);
+      
+
+      return true;
+
+
+      
+#if 0
       const unsigned int LEN = v.size();
 
       shape_t shape { LEN };
@@ -1386,6 +1445,7 @@ namespace whiteice
 	  T(1.0/LEN));
 
       return true;
+#endif
     }
 
 
