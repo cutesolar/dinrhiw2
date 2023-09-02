@@ -8,6 +8,8 @@
 #include "linear_equations.h"
 #include "dataset.h"
 #include "nnetwork.h"
+#include "bayesian_nnetwork.h"
+
 
 namespace whiteice
 {
@@ -201,24 +203,19 @@ namespace whiteice
   template <typename T>
   bool LinearKCluster<T>::save(const std::string& filename) const
   {
-    return false;
-    
-#if 0
     if(filename.size() <= 0) return false;
 
     std::lock_guard<std::mutex> lock(solution_mutex);
     
-    if(A.size() <= 0 || K <= 0) return false;
+    if(K <= 0) return false;
 
     whiteice::dataset<T> data;
     
     if(data.createCluster("K", 1) == false) return false;
-    if(data.createCluster("A", A[0].size()) == false) return false;
-    if(data.createCluster("b", b[0].size()) == false) return false;
     if(data.createCluster("xdata", xdata[0].size()) == false) return false;
     if(data.createCluster("x-cluster-labels", 1) == false) return false;
     if(data.createCluster("model error", 1) == false) return false;
-    
+
     math::vertex<T> v;
 
     {
@@ -228,29 +225,11 @@ namespace whiteice
     }
 
     {
-      v.resize(A[0].size());
-      for(unsigned int k=0;k<K;k++){
-	for(unsigned int i=0;i<v.size();i++)
-	  v[i]= A[k][i];
-
-	if(data.add(1, v) == false) return false;
-      }
-    }
-
-    {
-      v.resize(b[0].size());
-      for(unsigned int k=0;k<K;k++){
-	v = b[k];
-	if(data.add(2, v) == false) return false;
-      }
-    }
-
-    {
       v.resize(xdata[0].size());
 
       for(unsigned int i=0;i<xdata.size();i++){
 	v = xdata[i];
-	if(data.add(3, v) == false) return false;
+	if(data.add(1, v) == false) return false;
       }
     }
 
@@ -259,7 +238,7 @@ namespace whiteice
 
       for(unsigned int i=0;i<xdata.size();i++){
 	v[0] = T(clusterLabels[i]);
-	if(data.add(4, v) == false) return false;
+	if(data.add(2, v) == false) return false;
       }
     }
       
@@ -268,27 +247,49 @@ namespace whiteice
       v.resize(1);
 
       v[0] = T(this->currentError);
-      if(data.add(5, v) == false) return false;
+      if(data.add(3, v) == false) return false;
     }
+
+
+    whiteice::bayesian_nnetwork<T> bn;
     
-    return data.save(filename);
-#endif
+    {
+      std::vector< math::vertex<T> > weights;
+      
+      v.resize(model[0].exportdatasize());
+
+      for(unsigned int i=0;i<model.size();i++){
+	model[i].exportdata(v);
+	weights.push_back(v);
+      }
+
+      if(bn.importSamples(architecture, weights) == false) return false;
+    }
+
+    const std::string bnet_filename = filename + ".nnetworks";
+
+    if(bn.save(bnet_filename) == false) return false;
+    if(data.save(filename) == false) return false;
+    
+    return true;
   }
   
 
   template <typename T>
   bool LinearKCluster<T>::load(const std::string& filename)
   {
-    return false;
-#if 0
     whiteice::dataset<T> data;
+    whiteice::bayesian_nnetwork<T> bn;
+
+    const std::string bnet_filename = filename + ".nnetworks";
 
     if(data.load(filename) == false) return false;
+    if(bn.load(bnet_filename) == false) return false;
 
-    if(data.getNumberOfClusters() != 6) return false;
+    if(data.getNumberOfClusters() != 4) return false;
     if(data.dimension(0) != 1) return false;
     if(data.size(0) != 1) return false;
-    if(data.dimension(5) != 1) return false;
+    if(data.dimension(3) != 1) return false;
 
     unsigned int k = 0; 
 
@@ -304,14 +305,25 @@ namespace whiteice
 
     if(k == 0) return false;
 
-    const unsigned int xsize = data.dimension(3);
-    const unsigned int ysize = data.dimension(2);
-    if(xsize*ysize != data.dimension(1)) return false;
-    if(1 != data.dimension(4)) return false;
+    if(bn.getNumberOfSamples() != k) return false;
+
+    whiteice::nnetwork<T> net;
+    std::vector< math::vertex<T> > weights;
     
-    if(data.size(1) != k) return false;
-    if(data.size(2) != k) return false;
-    if(data.size(5) != 1) return false;
+    {
+      if(bn.exportSamples(net, weights) == false)
+	return false;
+
+      if(weights.size() != k) return false;
+
+      if(net.input_size() != data.dimension(1)) return false;
+    }
+    
+    const unsigned int xsize = data.dimension(1);
+    const unsigned int ysize = net.output_size();
+    if(1 != data.dimension(2)) return false;
+    
+    if(data.size(3) != 1) return false;
 
     if(xsize*ysize > 2000000000) return false; // sanity check, 2 GB max size
 
@@ -320,26 +332,14 @@ namespace whiteice
       std::lock_guard<std::mutex> lock(solution_mutex);
 
       this->K = k;
-      A.resize(k);
-      b.resize(k);
       xdata.clear();
       ydata.clear();
       clusterLabels.clear();
 
-      for(unsigned int k=0;k<K;k++){
-	v = data.access(1, k);
-	A[k].resize(ysize, xsize);
-	for(unsigned int index=0;index<v.size();index++)
-	  A[k][index] = v[index];
-
-	v = data.access(2, k);
-	b[k] = v;
-      }
-
-      for(unsigned int i=0;i<data.size(3);i++){
-	v = data.access(3, i);
+      for(unsigned int i=0;i<data.size(1);i++){
+	v = data.access(1, i);
 	xdata.push_back(v);
-	v = data.access(4, i);
+	v = data.access(2, i);
 	unsigned int k = 0;
 	double kd = 0.0;
 	whiteice::math::convert(kd, v[0][0]);
@@ -348,14 +348,20 @@ namespace whiteice
 	clusterLabels.push_back(k);
       }
 
-      v = data.access(5, 0);
+      v = data.access(3, 0);
       if(v.size() != 1) return false;
       whiteice::math::convert(currentError, v[0]);
+
+      model.resize(K);
+      for(unsigned int k=0;k<K;k++){
+	model[k] = net;
+	if(model[k].importdata(weights[k]) == false)
+	  return false;
+      }
+      architecture = net;
     }
 
-
     return true;
-#endif
   }
 
   template <typename T> 
