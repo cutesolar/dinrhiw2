@@ -3,12 +3,13 @@
  *
  * Code:
  * 0. Assign data points (x,y) randomly to K-Clusters
- * 1. Train/optimize linear model for points assigned to this cluster
+ * 1. Train/optimize linear model for points (x_i,y_i) assigned to this cluster k.
  * 2. Measure error in each cluster model for each datapoint and 
  *    assign datapoints to smallest error cluster.
- * 3. Calculate mean and variance of clusters and reassign datapoints to most probable
- *    cluster based on mean and variance of each cluster
- * 4. Goto 1 if there were signficant changes/no convergence 
+ * 3. Predict code y=f_k(x) finds closest training datapoint x_i and its cluster k which 
+ *    model k is used to predict value of y.
+ * 4. Goto 1 if there were signficant changes/no convergence in assigning of 
+ *    the datapoints x_i to K clusters. 
  *
  */
 
@@ -51,6 +52,8 @@ namespace whiteice
     bool load(const std::string& filename); 
     
   protected:
+
+    const bool verbose = false; // whether to print debugging messages. 
 
     nnetwork<T> architecture;
 

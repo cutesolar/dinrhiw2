@@ -506,6 +506,10 @@ void linear_kcluster_test() // unit tests LinearKCluster class
       }
 
       auto delta = y - ydata[i];
+
+      for(unsigned int d=0;d<delta.size();d++)
+	whiteice::math::convert(delta[d], delta[d][0]); // selects only first dimension of the signal!
+      
       auto n = delta.norm();
 
 

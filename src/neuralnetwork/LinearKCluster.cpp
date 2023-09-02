@@ -478,7 +478,7 @@ namespace whiteice
     
     error /= xdata.size();
     
-    std::cout << "INITIAL ERROR: " << error << std::endl;
+    if(verbose) std::cout << "INITIAL ERROR: " << error << std::endl;
     
     
 
@@ -761,8 +761,11 @@ namespace whiteice
 	}
       }
 
-      error /= xdata.size();
-      //error /= ydata[0].size();
+      // error is error per element in vector
+      error /= xdata.size(); // number of vectors
+      error /= ydata[0].size(); // vector dimensions
+
+      
       
 
       //* 4. Goto 1 if there were significant changes/no convergence 
@@ -802,9 +805,11 @@ namespace whiteice
 	    }
 	  }
 
-	  printf("CLUSTER SIZES:\n");
-	  for(unsigned int k=0;k<K;k++){
-	    printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
+	  if(verbose){
+	    printf("CLUSTER SIZES:\n");
+	    for(unsigned int k=0;k<K;k++){
+	      printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
+	    }
 	  }
 	}
 
@@ -840,7 +845,7 @@ namespace whiteice
 
 	    // std::cout << "convergence: " << conv << std::endl;
 
-	    if(conv < 0.00001) break; // mean error is 0.001% of the mean value
+	    if(conv < 0.0001) break; // mean error is 0.01% of the mean value
 	  }
 	}
 	
@@ -856,9 +861,6 @@ namespace whiteice
 	  }
 
 	  changes /= datacluster.size();
-
-	  std::cout << "DELTAS THIS ITER: " << changes << std::endl;
-	  // if(changes <= 0.10) break;
 	}
 
 	old_datacluster = datacluster;
