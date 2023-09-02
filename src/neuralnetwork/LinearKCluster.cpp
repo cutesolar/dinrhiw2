@@ -54,12 +54,31 @@ namespace whiteice
       currentError = (double)(INFINITY);
       clusterLabels.clear();
 
+      // selects at most 10.000 datapoints
+      {
+	const unsigned int MAXNUMBER = 5000;
+	
+	if(xdata.size() <= MAXNUMBER){
+	  this->xdata = xdata;
+	  this->ydata = ydata;
+	}
+	else{
+	  this->xdata.clear();
+	  this->ydata.clear();
+
+	  while(this->xdata.size() < MAXNUMBER){
+	    const unsigned int index = whiteice::rng.rand() % xdata.size();
+	    this->xdata.push_back(xdata[index]);
+	    this->ydata.push_back(ydata[index]);
+	  }
+	}
+      }
+
+
       if(K == 0){
-	this->K = xdata.size()/100;
+	this->K = this->xdata.size()/50;
 	if(this->K == 0) this->K = 1;
       }
-      this->xdata = xdata;
-      this->ydata = ydata;
     }
 
     thread_running = true;
@@ -499,7 +518,7 @@ namespace whiteice
 	math::matrix<T> Cxx, Cyx;
 	math::vertex<T> mx, my;
 
-	if(x.size() == 0 || p_x <= 1e-4){
+	if(x.size() < 2 || p_x <= 1e-4){
 	  Cxx.resize(xdata[0].size(),xdata[0].size());
 	  Cyx.resize(ydata[0].size(),xdata[0].size());
 	  mx.resize(xdata[0].size());
@@ -528,7 +547,7 @@ namespace whiteice
 	}
 
 	math::matrix<T> INV;
-	T l = T(1e-20);
+	T l = T(1e-10);
 
 	do{
 	  INV = Cxx;
