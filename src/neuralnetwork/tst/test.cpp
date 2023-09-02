@@ -370,7 +370,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
 
   LinearKCluster< math::superresolution< math::blas_complex<> > > model;
 
-  const unsigned int TIME_LIMIT = 300; // 5 minutes
+  const unsigned int TIME_LIMIT = 3600; // 60 minutes
 
   // creates data using random neural network
   std::vector< math::vertex< math::superresolution< math::blas_complex<> > > > xdata, ydata;
@@ -385,7 +385,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
   nn.setArchitecture(arch);
   nn.randomize();
 
-  for(unsigned int n=0;n<500;n++){
+  for(unsigned int n=0;n<5000;n++){
     math::vertex< math::superresolution< math::blas_complex<> > > x, y;
     x.resize(arch[0]);
     y.resize(arch[arch.size()-1]);

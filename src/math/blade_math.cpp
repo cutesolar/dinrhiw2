@@ -1319,9 +1319,10 @@ namespace whiteice
     //////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
 
+    std::mutex plan_mutex;
     unsigned int has_plan = 0;
     cfft_plan basic_fft_plan;  // FIXME: global variable should be free'ed at exit [saves computing time]
-    
+
     // slow arbitrary length signal FFT
     template <typename T>
     bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
@@ -1333,25 +1334,31 @@ namespace whiteice
       if(buffer == NULL){
 	return false;
       }
-      
+
       for(unsigned int i=0;i<LEN;i++){
 	buffer[2*i+0] = v[i].c[0];
 	buffer[2*i+1] = v[i].c[1];
       }
 
-      cfft_plan plan;
+      {
+	std::lock_guard<std::mutex> lock(plan_mutex);
 
-      if(has_plan != LEN){
-	if(has_plan) destroy_cfft_plan(basic_fft_plan);
-	basic_fft_plan = make_cfft_plan(LEN);
-	plan = basic_fft_plan;
-      }
-      else{
-	plan = basic_fft_plan;
+	cfft_plan plan;
+	
+	if(has_plan != LEN){
+	  if(has_plan) destroy_cfft_plan(basic_fft_plan);
+	  basic_fft_plan = make_cfft_plan(LEN);
+	  plan = basic_fft_plan;
+	  has_plan = LEN;
+	}
+	else{
+	  plan = basic_fft_plan;
+	}
+	
+	cfft_forward(plan, buffer, 1.0);
       }
 
-      cfft_forward(plan, buffer, 1.0);
-      
+
       for(unsigned int i=0;i<LEN;i++){
 	v[i].c[0] = buffer[2*i+0];
 	v[i].c[1] = buffer[2*i+1];
@@ -1424,18 +1431,23 @@ namespace whiteice
 
       //double* buffer = (double*)(&(v[0])); 
 
-      cfft_plan plan;
-
-      if(has_plan != LEN){
-	if(has_plan) destroy_cfft_plan(basic_fft_plan);
-	basic_fft_plan = make_cfft_plan(LEN);
-	plan = basic_fft_plan;
+      {
+	std::lock_guard<std::mutex> lock(plan_mutex);
+	
+	cfft_plan plan;
+	
+	if(has_plan != LEN){
+	  if(has_plan) destroy_cfft_plan(basic_fft_plan);
+	  basic_fft_plan = make_cfft_plan(LEN);
+	  plan = basic_fft_plan;
+	  has_plan = LEN;
+	}
+	else{
+	  plan = basic_fft_plan;
+	}
+	
+	cfft_backward(plan, buffer, 1.0/LEN);
       }
-      else{
-	plan = basic_fft_plan;
-      }
-      
-      cfft_backward(plan, buffer, 1.0/LEN);
       
       
       for(unsigned int i=0;i<LEN;i++){
