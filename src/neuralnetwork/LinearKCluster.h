@@ -33,9 +33,9 @@ namespace whiteice
     LinearKCluster();
     virtual ~LinearKCluster();
 
-    bool startTrain(const unsigned int K,
-		    const std::vector< math::vertex<T> >& xdata,
-		    const std::vector< math::vertex<T> >& ydata);
+    bool startTrain(const std::vector< math::vertex<T> >& xdata,
+		    const std::vector< math::vertex<T> >& ydata,
+		    const unsigned int K = 0); // K = 0 automatically tries to detect good K size
 
     bool isRunning() const;
 

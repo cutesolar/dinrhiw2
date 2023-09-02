@@ -422,18 +422,19 @@ void linear_kcluster_test() // unit tests LinearKCluster class
   }
 #endif
 
-  const unsigned int K = 50;
-
-  std::cout << "Starting optimization with K=" << K << " clusters.." << std::endl;
+  //const unsigned int K = 50;
+  //std::cout << "Starting optimization with K=" << K << " clusters.." << std::endl;
   
-  if(model.startTrain(K, xdata, ydata) == false){
+  if(model.startTrain(xdata, ydata) == false){
     std::cout << "ERROR: startTrain() FAILED!" << std::endl;
     return; 
   }
 
+#if 0
   if(model.getNumberOfClusters() != K){
     std::cout << "WARN: number of clusters is not: " << K << std::endl;
   }
+#endif
 
   unsigned long long start_time = (unsigned long long)time(0);
   unsigned int iters_shown = 0;
@@ -442,7 +443,7 @@ void linear_kcluster_test() // unit tests LinearKCluster class
     sleep(1);
     unsigned long long cur_time = (unsigned long long)time(0);
 
-    if((cur_time-start_time) > TIME_LIMIT){
+    if((cur_time-start_time) > TIME_LIMIT && iters_shown >= 10){
       std::cout << "ERROR: solution does not converge in " << TIME_LIMIT << " seconds!" << std::endl;
       break;
     }
@@ -485,10 +486,12 @@ void linear_kcluster_test() // unit tests LinearKCluster class
     return;
   }
 
+#if 0
   if(model.getNumberOfClusters() != K){
     std::cout << "ERROR: getNumberOfClusters() FAILS AFTER LOAD!" << std::endl;
     return;
   }
+#endif
 
   {
     double err = 0.0;

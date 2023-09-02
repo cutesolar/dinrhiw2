@@ -1599,10 +1599,12 @@ namespace whiteice
     whiteice::math::superresolution<T,S> abs(whiteice::math::superresolution<T,S> x)
     {
       whiteice::math::superresolution<T, S> y;
+      y.zero();
       
-      for(unsigned int i=0;i<x.size();i++)
-	y[i] = whiteice::math::abs(x[i]);
-
+      for(unsigned int i=0;i<x.size();i++){
+	y[0] += whiteice::math::abs(x[i]);
+      }
+      
       return y;
     }
     

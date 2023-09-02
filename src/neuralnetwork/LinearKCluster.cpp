@@ -32,13 +32,13 @@ namespace whiteice
 
     this->K = 0;
   }
-
+  
   template <typename T>
-  bool LinearKCluster<T>::startTrain(const unsigned int K,
-				     const std::vector< math::vertex<T> >& xdata,
-				     const std::vector< math::vertex<T> >& ydata)
+  bool LinearKCluster<T>::startTrain(const std::vector< math::vertex<T> >& xdata,
+				     const std::vector< math::vertex<T> >& ydata,
+				     const unsigned int K)
   {
-    if(K< 1 || xdata.size() == 0 ||  ydata.size() == 0) return false;
+    if(xdata.size() == 0 ||  ydata.size() == 0) return false;
     if(xdata.size() != ydata.size()) return false;
     if(K > xdata.size()) return false;
 
@@ -54,15 +54,15 @@ namespace whiteice
       currentError = (double)(INFINITY);
       clusterLabels.clear();
 
-      this->K = K;
+      if(K == 0){
+	this->K = xdata.size()/100;
+	if(this->K == 0) this->K = 1;
+      }
       this->xdata = xdata;
       this->ydata = ydata;
     }
 
     thread_running = true;
-    this->K = K;
-    this->xdata = xdata;
-    this->ydata = ydata;
 
     try{
       if(optimizer_thread){ delete optimizer_thread; optimizer_thread = nullptr; }
@@ -348,8 +348,17 @@ namespace whiteice
 	sump += px[k];
       }
 
-      for(unsigned int k=0;k<px.size();k++)
+      double bestp = 0.0;
+      unsigned int bestk = 0;
+
+      for(unsigned int k=0;k<px.size();k++){
 	if(sump) px[k] /= sump;
+	if(px[k] > bestp){ bestp = px[k]; bestk = k;}
+	px[k]= 0.0;
+      }
+
+      px[bestk] = 1.0;
+
       
       datacluster.push_back(px);
     }
@@ -360,6 +369,82 @@ namespace whiteice
 
     AA.resize(K);
     bb.resize(K);
+
+    // calculates single model solution
+    {
+      std::vector< math::vertex<T> > x, y;
+
+      for(unsigned int i=0;i<xdata.size();i++){
+	x.push_back(xdata[i]);
+	y.push_back(ydata[i]);
+      }
+      
+      math::matrix<T> Cxx, Cyx;
+      math::vertex<T> mx, my;
+      
+      math::mean_covariance_estimate(mx, Cxx, x);
+      math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
+
+      math::matrix<T> INV;
+      T l = T(1e-20);
+      
+      do{
+	INV = Cxx;
+	
+	T trace = T(0.0f);
+	
+	for(unsigned int i=0;(i<(Cxx.xsize()) && (i<Cxx.ysize()));i++){
+	  trace += Cxx(i,i);
+	  INV(i,i) += l; // regularizes Cxx (if needed)
+	}
+	
+	if(Cxx.xsize() < Cxx.ysize())	  
+	  trace /= Cxx.xsize();
+	else
+	  trace /= Cxx.ysize();
+	
+	l += T(0.1)*trace + -T(2.0f)*l; // keeps "scale" of the matrix same
+      }
+      while(whiteice::math::symmetric_inverse(INV) == false);
+
+      {
+	std::lock_guard<std::mutex> lock(solution_mutex);
+	
+	A[0] = Cyx*INV;
+	b[0] = my - A[0]*mx;
+	
+	for(unsigned int k=1;k<K;k++){
+	  A[k] = A[0];
+	  b[k] = b[0];
+	}
+      }
+
+      // calculate solution error
+      double error = 0.0;
+      
+#pragma omp parallel shared(error)
+      {
+	double ei = 0.0;
+	
+#pragma omp for schedule(auto)
+	for(unsigned int i=0;i<xdata.size();i++){
+
+	  auto delta = A[0]*xdata[i] + b[0] - ydata[i];
+	  double e = INFINITY;
+	  whiteice::math::convert(e, delta.norm()[0]);
+	  ei += e;
+	}
+
+#pragma omp critical
+	{
+	  error += ei;
+	}
+      }
+
+      error /= xdata.size();
+
+      std::cout << "INITIAL ERROR: " << error << std::endl;
+    }
     
 
     while(true){
@@ -370,6 +455,7 @@ namespace whiteice
 	  break; // out from the loop and finish
       }
 
+#pragma omp parallel for schedule(auto)
       for(unsigned int k=0;k<K;k++){
 	//* 1. Train/optimize linear model for points assigned to this cluster
 
@@ -377,21 +463,25 @@ namespace whiteice
 	double p_x = (0.0), px_2 = (0.0);
 
 	for(unsigned int i=0;i<datacluster.size();i++){
+	  const double p = datacluster[i][k];
 
-	  auto px = T(datacluster[i][k])*xdata[i];
-	  auto py = T(datacluster[i][k])*ydata[i];
+	  if(p >= 1e-4){
+	    auto px = T(p)*xdata[i];
+	    auto py = T(p)*ydata[i];
 
-	  x.push_back(px);
-	  y.push_back(py);
+	    x.push_back(px);
+	    y.push_back(py);
 
-	  p_x += datacluster[i][k];
-	  px_2 += datacluster[i][k]*datacluster[i][k];
+	    p_x += p;
+	    px_2 += p*p;
+	  }
+	  
 	}
 
 	math::matrix<T> Cxx, Cyx;
 	math::vertex<T> mx, my;
 
-	if(x.size() == 0){
+	if(x.size() == 0 || p_x <= 1e-4){
 	  Cxx.resize(xdata[0].size(),xdata[0].size());
 	  Cyx.resize(ydata[0].size(),xdata[0].size());
 	  mx.resize(xdata[0].size());
@@ -408,10 +498,15 @@ namespace whiteice
 	  math::mean_covariance_estimate(mx, Cxx, x);
 	  math::mean_crosscorrelation_estimate(mx, my, Cyx, x, y);
 
-	  mx /= T(p_x);
-	  my /= T(p_x);
-	  Cxx /= T(px_2);
-	  Cyx /= T(px_2);
+	  if(p_x != 0){
+	    mx /= T(p_x);
+	    my /= T(p_x);
+	  }
+
+	  if(px_2 != 0){
+	    Cxx /= T(px_2);
+	    Cyx /= T(px_2);
+	  }
 	}
 
 	math::matrix<T> INV;
@@ -438,14 +533,22 @@ namespace whiteice
 
 	AA[k] = Cyx*INV;
 	bb[k] = my - AA[k]*mx;
+
+	{
+	  AA[k] = T(0.1)*AA[k] + T(0.9)*A[k];
+	  bb[k] = T(0.1)*bb[k] + T(0.9)*b[k];
+	}
       }
 
       //* 2. Measure error in each cluster model for each datapoint and 
       //*    assign datapoints to the cluster with smallest error.
 
-      datacluster.clear();
-      
+      // datacluster.clear();
+
+#pragma omp parallel for schedule(auto)
       for(unsigned int i=0;i<xdata.size();i++){
+
+	if((whiteice::rng.rand() & 1)) continue; // only 50% of the points are reassigned..
 
 	std::vector<double> errors;
 	
@@ -469,15 +572,27 @@ namespace whiteice
 	  errors[i] /= sump;
 	}
 
-	datacluster.push_back(errors);
+	double bestp = 0.0;
+	unsigned int bestk = 0;
+
+	for(unsigned int i=0;i<errors.size();i++){
+	  if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
+	  errors[i] = 0.0;
+	}
+
+	errors[bestk] = 1.0; 
+
+	datacluster[i] = errors;
       }
-      
+
+#if 0
       // reassign points according to the 5 closest points [reassign datapoints based on cluster mean and variance]
       {
 	auto cluster = datacluster;
 
-	datacluster.clear();
+	// datacluster.clear();
 
+#pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<xdata.size();i++){
 	  
 	  std::multimap<double, unsigned int> distances;
@@ -500,10 +615,8 @@ namespace whiteice
 	  unsigned int counter = 0;
 	  double sump = 0.0;
 
-	  while(iter != distances.end() && counter < 10){
+	  while(iter != distances.end() && counter < 5){
 	    const auto pk = cluster[iter->second];
-
-	    // std::cout << "D: " << iter->first << std::endl;
 
 	    unsigned int k=0;
 	    double bestp = 0.0;
@@ -525,14 +638,19 @@ namespace whiteice
 	  for(unsigned int k=0;k<pe.size();k++)
 	    if(sump) pe[k] /= sump;
 
-	  datacluster.push_back(pe);
+	  datacluster[i] = pe;
 	}
       }
+#endif
 	
       // calculate solution error
       double error = 0.0;
-      
+
+#pragma omp parallel shared(error)
       {
+	double ei = 0.0;
+	
+#pragma omp for schedule(auto)
 	for(unsigned int i=0;i<xdata.size();i++){
 
 	  unsigned int k = 0;
@@ -548,15 +666,21 @@ namespace whiteice
 	  auto delta = AA[k]*xdata[i] + bb[k] - ydata[i];
 	  double e = INFINITY;
 	  whiteice::math::convert(e, delta.norm()[0]);
-	  error += e;
+	  ei += e;
 	}
 
-	error /= xdata.size();
+#pragma omp critical
+	{
+	  error += ei;
+	}
       }
+
+      error /= xdata.size();
 
 
       //* 4. Goto 1 if there were significant changes/no convergence 
       {
+	if(error <= currentError)
 	{
 	  std::lock_guard<std::mutex> lock(solution_mutex);
 	  
@@ -564,8 +688,14 @@ namespace whiteice
 	  b = bb;
 	  currentError = error;
 
-	  clusterLabels.clear();
+	  clusterLabels.resize(datacluster.size());
 
+	  std::vector<unsigned int> cluster_sizes;
+	  cluster_sizes.resize(K);
+	  for(auto& c : cluster_sizes)
+	    c = 0;
+
+#pragma omp parallel for schedule(auto)
 	  for(unsigned int i=0;i<datacluster.size();i++){
 	    unsigned int k = 0;
 	    double bestk = 0.0;
@@ -578,11 +708,23 @@ namespace whiteice
 	      }
 	    }
 
-	    clusterLabels.push_back(k);
+	    clusterLabels[i] = k;
+
+#pragma omp critical
+	    {
+	      cluster_sizes[k]++;
+	    }
 	  }
 
-	  iterations++;
+	  /*
+	  printf("CLUSTER SIZES:\n");
+	  for(unsigned int k=0;k<K;k++){
+	    printf("cluster %d = %d data apoints\n", k, cluster_sizes[k]);
+	  }
+	  */
 	}
+	
+	iterations++;
 
 	if(old_datacluster.size() > 0){
 	  
@@ -598,7 +740,7 @@ namespace whiteice
 
 	  std::cout << "DELTAS THIS ITER: " << changes << std::endl;
 
-	  if(changes <= 0.05){
+	  if(changes <= 0.10){
 	    break;
 	  }
 	}
