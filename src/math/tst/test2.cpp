@@ -689,6 +689,50 @@ void test_pca_tests()
 
 
   std::cout << "SUPERRESOLUTIONAL FASTPCA TESTS" << std::endl;
+
+  try{
+    // high dimensional FastPCA with complex numbers
+    
+    const unsigned int DIMENSIONS = 1500; // initial testing case (150, 50)
+    
+    std::vector< math::vertex< math::superresolution< math::blas_complex<double> > > > sdata;
+
+    for(unsigned int j=0;j<(2*DIMENSIONS);j++){
+      math::vertex< superresolution< math::blas_complex<double> > > sv;
+      sv.resize(DIMENSIONS);
+      
+      for(unsigned int i=0;i<DIMENSIONS;i++){
+	for(unsigned int k=0;k<sv[i].size();k++){
+	  for(unsigned int l=0;l<sv[i][k].size();l++){
+	    sv[i][k][l] = ((2.0f*(float)rand())/((float)RAND_MAX)) - 1.0f; // [-1, 1]
+	  }
+	}
+      }
+
+      sdata.push_back(sv);
+    }
+
+    math::matrix< superresolution< math::blas_complex<double> > > PCA;
+    std::vector< superresolution< math::blas_complex<double> > > eigenvalues;
+
+    std::cout << "ABOUT TO COMPUTE complex-valued fastpca()" << std::endl;
+
+    if(fastpca(sdata, 15, PCA, eigenvalues) == true){
+      printf("Calculation of complex-valued fastpca() algorithm successful!\n");
+    }
+    else{
+      printf("ERROR: superresolutional fastpca() algorithm FAILED.\n");
+
+      return;
+    }
+    
+  }
+  catch(std::exception& e){
+    std::cout << "Error fastpca tests" << std::endl;
+    std::cout << "Unexpected exception: " << e.what() << std::endl;
+    return;  
+  }
+  
   
   try{
     // generates random data and calculates PCA via EVD and 

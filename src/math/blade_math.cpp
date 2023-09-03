@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <stdlib.h>
 
-//#include "pocketfft_hdronly.h" // FFT algorithm
-#include "pocketfft/pocketfft.h"
+#include "pocketfft_hdronly.h" // FFT algorithm
+//#include "pocketfft/pocketfft.h"
 
 
 #include "blade_math.h"
@@ -16,7 +16,7 @@
 #include <math.h>
 #include <gmp.h>
 
-// using namespace pocketfft;
+using namespace pocketfft;
 
 
 
@@ -1319,14 +1319,16 @@ namespace whiteice
     //////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////
 
-    std::mutex plan_mutex;
-    unsigned int has_plan = 0;
-    cfft_plan basic_fft_plan;  // FIXME: global variable should be free'ed at exit [saves computing time]
+    //std::mutex plan_mutex;
+    //unsigned int has_plan = 0;
+    //cfft_plan basic_fft_plan;  // FIXME: global variable should be free'ed at exit [saves computing time]
 
+    
     // slow arbitrary length signal FFT
     template <typename T>
     bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
     {
+#if 0
       const unsigned int LEN = v.size();
 
       double* buffer = (double*)malloc(LEN*sizeof(double)*2);
@@ -1372,9 +1374,9 @@ namespace whiteice
 
 
       return true;
-
+#endif
       
-#if 0
+#if 1
       const unsigned int LEN = v.size();
 
       shape_t shape { LEN };
@@ -1390,6 +1392,7 @@ namespace whiteice
       for(unsigned int i=0;i<shape.size();++i)
 	axes.push_back(i);
 
+#if 0
       std::vector< std::complex<T> > data(LEN);
 
       for(unsigned int i=0;i<LEN;i++){
@@ -1400,16 +1403,18 @@ namespace whiteice
       }
 
       auto res = data;
+#endif
       
 
       c2c(shape, stride, stride, axes, FORWARD,
-	  data.data(), res.data(),
-	  //(std::complex<T>*)&(v[0]),  (std::complex<T>*)&(v[0]),
+	  //data.data(), res.data(),
+	  (std::complex<T>*)&(v[0]),  (std::complex<T>*)&(v[0]),
 	  T(1.0));
 
-      
+#if 0
       for(unsigned int i=0;i<LEN;i++)
 	whiteice::math::convert(v[i], res[i]);
+#endif
 
       return true;
 #endif
@@ -1419,9 +1424,9 @@ namespace whiteice
     template <typename T>
     bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
     {
+#if 0
       const unsigned int LEN = v.size();
-
-
+      
       double* buffer = (double*)malloc(LEN*sizeof(double)*2);
 
       if(buffer == NULL){
@@ -1468,10 +1473,10 @@ namespace whiteice
       
 
       return true;
-
+#endif
 
       
-#if 0
+#if 1
       const unsigned int LEN = v.size();
 
       shape_t shape { LEN };

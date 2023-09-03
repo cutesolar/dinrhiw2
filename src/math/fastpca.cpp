@@ -193,10 +193,13 @@ namespace whiteice
 	    p[0] = whiteice::math::sqrt(p[0]);
 	    dot = p;
 
-	    // std::cout << "convergence = " << p << std::endl;
-
-	    
 	    convergence = whiteice::math::abs(T(1.0f) - dot);
+	    
+	    // std::cout << "convergence = " << p << std::endl;
+	    if(verbose){
+	      std::cout << "Iteration " << iters << " convergence: " << convergence[0] << std::endl;
+	    }
+	    
 	    
 	    gprev = g;
 	    
@@ -211,6 +214,10 @@ namespace whiteice
 	  else{
 	  
 	    convergence = whiteice::math::abs(T(1.0f) - dot);
+	    
+	    if(verbose){
+	      std::cout << "Iteration " << iters << " convergence: " << convergence << std::endl;
+	    }
 	    
 	    gprev = g;
 	    
