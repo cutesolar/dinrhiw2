@@ -1341,6 +1341,7 @@ namespace whiteice
       }
 
       {
+	/*
 	std::lock_guard<std::mutex> lock(plan_mutex);
 
 	cfft_plan plan;
@@ -1354,8 +1355,11 @@ namespace whiteice
 	else{
 	  plan = basic_fft_plan;
 	}
-	
+	*/
+
+	cfft_plan plan = make_cfft_plan(LEN);
 	cfft_forward(plan, buffer, 1.0);
+	destroy_cfft_plan(plan);
       }
 
 
@@ -1432,10 +1436,11 @@ namespace whiteice
       //double* buffer = (double*)(&(v[0])); 
 
       {
+	/*
 	std::lock_guard<std::mutex> lock(plan_mutex);
 	
 	cfft_plan plan;
-	
+
 	if(has_plan != LEN){
 	  if(has_plan) destroy_cfft_plan(basic_fft_plan);
 	  basic_fft_plan = make_cfft_plan(LEN);
@@ -1445,8 +1450,11 @@ namespace whiteice
 	else{
 	  plan = basic_fft_plan;
 	}
-	
+	*/
+
+	cfft_plan plan = make_cfft_plan(LEN);
 	cfft_backward(plan, buffer, 1.0/LEN);
+	destroy_cfft_plan(plan);
       }
       
       
