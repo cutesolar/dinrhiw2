@@ -62,6 +62,8 @@
 
 #include "LinearKCluster.h"
 
+#include "rUHMC.h"
+
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -164,6 +166,8 @@ void compressed_neuralnetwork_test();
 
 void linear_kcluster_test(); // unit tests LinearKCluster class
 
+void r_hmc_test(); // tests recurrent Hamiltonian Monte Carlo sampling.. 
+
 
 
 void createHermiteCurve(std::vector< math::vertex< math::blas_real<double> > >& samples,
@@ -186,6 +190,7 @@ int main()
   whiteice::logging.setOutputFile("testsuite1.log");
   
   try{
+    r_hmc_test(); // tests recurrent Hamiltonian Monte Carlo sampling.. 
 
     linear_kcluster_test(); // unit tests LinearKCluster class
     
@@ -359,6 +364,92 @@ private:
   char* reason;
   
 };
+
+/**********************************************************************/
+
+
+void r_hmc_test() // tests recurrent Hamiltonian Monte Carlo sampling..
+{
+  std::cout << "rUHMC recurrent neural network Hamiltonian Monte Carlo sampling test" << std::endl;
+
+  // generates test case using random neural network
+  whiteice::dataset<> data;
+  whiteice::nnetwork<> net;
+
+  const unsigned int XDIM = 3 + whiteice::rng.rand() % 10;
+  const unsigned int YDIM = 3 + whiteice::rng.rand() % 10;
+  const unsigned int RDIM = 3 + whiteice::rng.rand() % 10;
+
+  data.createCluster("x", XDIM + RDIM);
+  data.createCluster("y", YDIM + RDIM);
+
+  std::vector<unsigned int> arch;
+  arch.push_back(XDIM+RDIM);
+  arch.push_back(3 + whiteice::rng.rand()%10);
+  arch.push_back(3 + whiteice::rng.rand()%10);
+  arch.push_back(YDIM+RDIM);
+
+  net.setArchitecture(arch);
+  net.randomize();
+  
+  whiteice::math::vertex<> x, y, r;
+  x.resize(XDIM+RDIM);
+  y.resize(YDIM+RDIM);
+  r.resize(RDIM);
+  whiteice::rng.normal(x);
+  whiteice::rng.normal(y);
+  whiteice::rng.normal(r);
+
+  for(unsigned int i=0;i<250;i++){
+    if(y.subvertex(r, YDIM, RDIM) == false){
+      printf("ERROR: copying recurrent dimensions from y to x FAILED (1).\n");
+      exit(-1);
+    }
+    
+    whiteice::rng.normal(x);
+    
+    if(x.write_subvertex(r, XDIM) == false){
+      printf("ERROR: copying recurrent dimensions from y to x FAILED (2).\n");
+      exit(-1);
+    }
+
+    net.calculate(x, y);
+
+    data.add(0, x);
+    data.add(1, y);
+  }
+
+  net.randomize();
+
+  whiteice::rUHMC<> sampler(net, data, true);
+
+  if(sampler.startSampler() == false){
+    printf("ERROR: starting rUHMC sampler FAILED.\n");
+    exit(-1);
+  }
+
+  unsigned int counter = 0;
+
+  while(counter < 1000){
+    counter = sampler.getNumberOfSamples();
+    
+    std::cout << "sampling.. samples = "
+	      << sampler.getNumberOfSamples()
+	      << " error = "
+	      << sampler.getMeanError(20)
+	      << std::endl;
+    
+    fflush(stdout);
+    
+    sleep(1);
+  }
+
+  sampler.stopSampler();
+
+  std::cout << "Final error: " << sampler.getMeanError() << std::endl;
+
+  return;
+}
 
 
 /**********************************************************************/
