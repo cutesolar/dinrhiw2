@@ -16,7 +16,7 @@ namespace whiteice
     whiteice::math::LBFGS<T>(overfit),
     net(nn), data(d)
   {
-    assert(data.getNumberOfClusters() == 3);
+    assert(data.getNumberOfClusters() == 3 || data.getNumberOfClusters() == 2);
 
     // checks network has correct architecture
     {
@@ -31,7 +31,8 @@ namespace whiteice
 
     // divides data in episoids to to training and testing sets
     ///////////////////////////////////////////////
-    {
+    if(data.getNumberOfClusters() == 3){
+      
       dtrain = data;
       dtest  = data;
       
@@ -94,6 +95,7 @@ namespace whiteice
 	
       }
       
+      
       // we cannot never have zero training or testing set size
       // in such a small cases (very little data) we just use
       // all the data both for training and testing and overfit
@@ -101,6 +103,33 @@ namespace whiteice
 	dtrain = data;
 	dtest  = data;
       }
+    }
+    else{ // number of clusrers is 2 
+      
+      dtrain = data;
+      dtest  = data;
+
+      dtrain.createCluster("range", 2);
+      dtest.createCluster("range", 2);
+
+      dtrain.clearData(0);
+      dtrain.clearData(1);
+      dtrain.clearData(2);
+      
+      dtest.clearData(0);
+      dtest.clearData(1);
+      dtest.clearData(2);
+      
+      math::vertex<T> range;
+      range.resize(2);
+
+      range[0] = 0.0f;
+      range[1] = data.size(0);
+
+      // FIXME: overfitting, should separate data to 10 step long ranges between dtrain and dtest..
+
+      dtrain.add(2, range, true);
+      dtest.add(2, range, true);
     }
     
   }

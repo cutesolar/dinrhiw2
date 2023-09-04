@@ -31,7 +31,7 @@ namespace whiteice
   {
   public:
     
-    UHMC(const whiteice::nnetwork<T>& net, const whiteice::dataset<T>& ds, bool adaptive=false, T alpha = T(0.5), bool store = true);
+    UHMC(const whiteice::nnetwork<T>& net, const whiteice::dataset<T>& ds, bool adaptive=false, T alpha = T(0.5), bool store = true, bool restart_sampler = true);
     ~UHMC();
     
     bool setTemperature(const T t); // set "temperature" for probability distribution [default T = 1 => no temperature]
@@ -82,7 +82,7 @@ namespace whiteice
     
     bool getAdaptive() const { return adaptive; }
     
-  private:
+  protected:
     // calculates negative phase gradient
     bool negative_phase(const math::vertex<T>& xx, const math::vertex<T>& yy,
 			math::vertex<T>& grad, 
@@ -113,11 +113,19 @@ namespace whiteice
     bool adaptive;
     bool store;
     bool use_minibatch; // only use minibatch of samples to predict expectations (U(), Ugrad())
+    bool restart_sampler = false; // restarts sampler after convergence
     
     // used to calculate statistics when needed
     math::vertex<T> sum_mean;
     // math::matrix<T> sum_covariance;
     unsigned int sum_N;
+
+    // restart sampling variables
+    math::vertex<T> current_sum_mean; // N*E[x]
+    math::vertex<T> current_sum_squared; // N*E[x^2]
+    unsigned int current_sum_N;
+    std::vector<unsigned int> restart_positions;
+
     
     volatile bool running, paused;
     

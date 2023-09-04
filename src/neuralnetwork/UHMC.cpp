@@ -13,57 +13,63 @@
 
 namespace whiteice
 {
-	template <typename T>
-	UHMC<T>::UHMC(const whiteice::nnetwork<T>& net,
-			const whiteice::dataset<T>& ds,
-			bool adaptive, T alpha, bool store) : nnet(net), data(ds)
-	{
-		this->adaptive = adaptive;
-		this->alpha = alpha;
-		this->temperature = T(1.0);
-		this->store = store;
-		this->use_minibatch = false;
+  template <typename T>
+  UHMC<T>::UHMC(const whiteice::nnetwork<T>& net,
+		const whiteice::dataset<T>& ds,
+		bool adaptive, T alpha, bool store,
+		bool restart_sampler) : nnet(net), data(ds)
+  {
+    this->adaptive = adaptive;
+    this->alpha = alpha;
+    this->temperature = T(1.0);
+    this->store = store;
+    this->use_minibatch = false;
+    this->restart_sampler = restart_sampler;
+    
+    sum_N = 0;
+    sum_mean.zero();
+    // sum_covariance.zero();
 
-		sum_N = 0;
-		sum_mean.zero();
-		// sum_covariance.zero();
-
-		running = false;
-		paused = false;
-	}
-
-
-	template <typename T>
-	UHMC<T>::~UHMC()
-	{
-		std::lock_guard<std::mutex> lock(start_lock);
-
-		if(running){
-			running = false;
-
-			for(auto t : sampling_thread){
-				t->join();
-				delete t;
-			}
-
-			sampling_thread.clear();
-		}
-	}
+    current_sum_N = 0;
+    current_sum_mean.zero();
+    current_sum_squared.zero();
+    
+    running = false;
+    paused = false;
+  }
 
 
-	// set "temperature" for probability distribution [default T = 1 => no temperature]
-	template <typename T>
-	bool UHMC<T>::setTemperature(const T t){
-		if(t <= T(0.0)) return false;
-		else temperature = t;
-		return true;
-	}
+  template <typename T>
+  UHMC<T>::~UHMC()
+  {
+    std::lock_guard<std::mutex> lock(start_lock);
+    
+    if(running){
+      running = false;
+      
+      for(auto t : sampling_thread){
+	t->join();
+	delete t;
+      }
+      
+      sampling_thread.clear();
+    }
+  }
+  
 
-	// get "temperature" of probability distribution
-	template <typename T>
-	T UHMC<T>::getTemperature(){
-		return temperature;
-	}
+  // set "temperature" for probability distribution [default T = 1 => no temperature]
+  template <typename T>
+  bool UHMC<T>::setTemperature(const T t){
+    if(t <= T(0.0)) return false;
+    else temperature = t;
+    return true;
+  }
+  
+  // get "temperature" of probability distribution
+  template <typename T>
+  T UHMC<T>::getTemperature(){
+    return temperature;
+  }
   
 
   template <typename T>
@@ -493,178 +499,263 @@ namespace whiteice
 	}
   
   
-	template <typename T>
-	bool UHMC<T>::startSampler()
-	{
-		const unsigned int NUM_THREADS = 1; // only one thread is supported
-
-		std::lock_guard<std::mutex> lock(start_lock);
-
-		if(running)
-			return false; // already running
+  template <typename T>
+  bool UHMC<T>::startSampler()
+  {
+    const unsigned int NUM_THREADS = 1; // only one thread is supported
     
-		if(data.size(0) != data.size(1))
-			return false;
-
-		if(data.size(0) <= 0)
-			return false;
-
-		// nnet.randomize(); // initally random
-		nnet.exportdata(q); // initial position q
+    std::lock_guard<std::mutex> lock(start_lock);
     
-		running = true;
-		paused = false;
-
-		sum_N = 0;
-		sum_mean.zero();
-		
-		sigma2 = T(1.0);
-
-		sampling_thread.clear();
-
-		for(unsigned int i=0;i<NUM_THREADS;i++){
-
-		  try{
-		    std::thread* t = new std::thread(&UHMC<T>::sampler_loop, this);
-		    // t->detach();
-		    sampling_thread.push_back(t);
-		  }
-		  catch(const std::exception& e){
-		    running = false;
-		    paused = false;
-		    
-		    for(auto t : sampling_thread){
-		      t->join();
-		      delete t;
-		    }
-		    
-		    sampling_thread.clear();
-		    
-		    return false;
-		  }
-		}
-
-
-		samples.clear();
-		sum_mean.zero();
-		// sum_covariance.zero();
-		sum_N = 0;
-
-		return true;
-	}
-  
-  
-	template <typename T>
-	bool UHMC<T>::pauseSampler()
-	{
-		if(!running) return false;
-
-		paused = true;
-		return true;
-	}
-
-
-	template <typename T>
-	bool UHMC<T>::continueSampler()
-	{
-		paused = false;
-		return true;
-	}
-  
-  
-	template <typename T>
-	bool UHMC<T>::stopSampler()
-	{
-		std::lock_guard<std::mutex> lock(start_lock);
-
-		if(!running)
-			return false;
-
-		running = false;
-		paused = false;
-
-		for(auto t : sampling_thread){
-			t->join();
-			delete t;
-		}
-
-		sampling_thread.clear();
-		return true;
-	}
-
-
-	template <typename T>
-	bool UHMC<T>::getCurrentSample(math::vertex<T>& s) const
-	{
-		std::lock_guard<std::mutex> lock(updating_sample);
-		s = q;
-		return true;
-	}
-
-
-	template <typename T>
-	bool UHMC<T>::setCurrentSample(const math::vertex<T>& s){
-		std::lock_guard<std::mutex> lock(updating_sample);
-		q = s;
-		return true;
-	}
-  
+    if(running)
+      return false; // already running
     
-	template <typename T>
-	unsigned int UHMC<T>::getSamples(std::vector< math::vertex<T> >& samples) const
-	{
-		std::lock_guard<std::mutex> lock(solution_lock);
+    if(data.size(0) != data.size(1))
+      return false;
+    
+    if(data.size(0) <= 0)
+      return false;
+    
+    // nnet.randomize(); // initally random
+    nnet.exportdata(q); // initial position q
+    
+    running = true;
+    paused = false;
+    
+    sum_N = 0;
+    sum_mean.zero();
 
-		samples = this->samples;
-		unsigned int N = this->samples.size();
-
-		return N;
+    current_sum_N = 0;
+    current_sum_mean.zero();
+    current_sum_squared.zero();
+    restart_positions.clear();
+    
+    sigma2 = T(1.0);
+    
+    sampling_thread.clear();
+    
+    for(unsigned int i=0;i<NUM_THREADS;i++){
+      
+      try{
+	std::thread* t = new std::thread(&UHMC<T>::sampler_loop, this);
+	// t->detach();
+	sampling_thread.push_back(t);
+      }
+      catch(const std::exception& e){
+	running = false;
+	paused = false;
+	
+	for(auto t : sampling_thread){
+	  t->join();
+	  delete t;
 	}
-
-
-	template <typename T>
-	unsigned int UHMC<T>::getNumberOfSamples() const
-	{
-		std::lock_guard<std::mutex> lock(solution_lock);
-		unsigned int N = samples.size();
-
-		return N;
-	}
+	
+	sampling_thread.clear();
+	
+	return false;
+      }
+    }
+    
+    
+    samples.clear();
+    sum_mean.zero();
+    // sum_covariance.zero();
+    sum_N = 0;
+    
+    return true;
+  }
   
   
-	template <typename T>
-	bool UHMC<T>::getNetwork(bayesian_nnetwork<T>& bnn)
-	{
-		std::lock_guard<std::mutex> lock(solution_lock);
+  template <typename T>
+  bool UHMC<T>::pauseSampler()
+  {
+    if(!running) return false;
+    
+    paused = true;
+    return true;
+  }
+  
+  
+  template <typename T>
+  bool UHMC<T>::continueSampler()
+  {
+    paused = false;
+    return true;
+  }
+  
+  
+  template <typename T>
+  bool UHMC<T>::stopSampler()
+  {
+    std::lock_guard<std::mutex> lock(start_lock);
+    
+    if(!running)
+      return false;
+    
+    running = false;
+    paused = false;
+    
+    for(auto t : sampling_thread){
+      t->join();
+      delete t;
+    }
+    
+    sampling_thread.clear();
+    return true;
+  }
+  
+  
+  template <typename T>
+  bool UHMC<T>::getCurrentSample(math::vertex<T>& s) const
+  {
+    std::lock_guard<std::mutex> lock(updating_sample);
+    s = q;
+    return true;
+  }
+  
+  
+  template <typename T>
+  bool UHMC<T>::setCurrentSample(const math::vertex<T>& s){
+    std::lock_guard<std::mutex> lock(updating_sample);
+    q = s;
+    return true;
+  }
+  
+  
+  template <typename T>
+  unsigned int UHMC<T>::getSamples(std::vector< math::vertex<T> >& samples) const
+  {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
+    samples = this->samples;
+    unsigned int N = this->samples.size();
+    
+    return N;
+  }
+  
+  
+  template <typename T>
+  unsigned int UHMC<T>::getNumberOfSamples() const
+  {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    unsigned int N = samples.size();
 
-		if(samples.size() <= 0)
-			return false;
+    return N;
+  }
+  
+  
+  template <typename T>
+  bool UHMC<T>::getNetwork(bayesian_nnetwork<T>& bnn)
+  {
+#if 1
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
+    if(samples.size() <= 0)
+      return false;
+    
+    if(bnn.importSamples(nnet, samples) == false)
+      return false;
+    
+    return true;
+#else
 
-		if(bnn.importSamples(nnet, samples) == false)
-			return false;
-
-		return true;
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
+    if(samples.size() <= 0)
+      return false;
+    
+    if(latestN == 0) latestN = samples.size();
+    
+    if(latestN == samples.size()){
+      
+      if(bnn.importSamples(nnet, samples) == false)
+	return false;
+    }
+    else{
+      std::vector< math::vertex<T> > temp;
+      
+      if(restart_sampler == false){
+	
+	for(unsigned int i=samples.size()-latestN;i<samples.size();i++)
+	  temp.push_back(samples[i]);
+	
+      }
+      else{ // we take N samples from restart positions (convergence points)
+	const unsigned int N = latestN/(1 + restart_positions.size());
+	
+	if(N == 0){
+	  temp = samples;
 	}
-
-
-	template <typename T>
-	math::vertex<T> UHMC<T>::getMean() const
-	{
-		std::lock_guard<std::mutex> lock(solution_lock);
-
-		if(sum_N > 0){
-			T inv = T(1.0f)/T(sum_N);
-			math::vertex<T> m = inv*sum_mean;
-
-			return m;
-		}
-		else{
-			math::vertex<T> m;
-			m.zero();
-
-			return m;
-		}
+	else{
+	  unsigned int index = 0;
+	  while(index <= restart_positions.size()){
+	    
+	    int start = 0;
+	    
+	    if(index == 0 && restart_positions.size() == 0){
+	      start = (int)samples.size()-(int)N;
+	      if(start < 0) start = 0;
+	    }
+	    else{
+	      start = (int)restart_positions[index]-((int)N);
+	      if(start < 0) start = 0;
+	      
+	      if(index == 0){ }
+	      else{
+		if(start < (int)restart_positions[index-1])
+		  start = restart_positions[index-1];
+	      }
+	    }
+	    
+	    int end = samples.size();
+	    
+	    if(index+1 <= restart_positions.size()){
+	      end = samples.size();
+	    }
+	    else{
+	      if(index+1 < restart_positions.size()){
+		end = restart_positions[index+1];
+	      }
+	      else{
+		end = samples.size();
+	      }
+	    }
+	    
+	    for(unsigned int n=(unsigned)start;n<(unsigned)end;n++){
+	      temp.push_back(samples[n]);
+	    }
+	    
+	    index++;
+	  }
 	}
+      }
+      
+      if(bnn.importSamples(nnet, temp) == false)
+	return false;
+    }
+    
+    return true;
+#endif
+  }
+  
+  
+  template <typename T>
+  math::vertex<T> UHMC<T>::getMean() const
+  {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
+    if(sum_N > 0){
+      T inv = T(1.0f)/T(sum_N);
+      math::vertex<T> m = inv*sum_mean;
+      
+      return m;
+    }
+    else{
+      math::vertex<T> m;
+      m.zero();
+      
+      return m;
+    }
+  }
   
 #if 0
   template <typename T>
@@ -695,262 +786,363 @@ namespace whiteice
 #endif
 
 
-    template <typename T>
-    T UHMC<T>::getMeanError(unsigned int latestN) const
-	{
-    	std::lock_guard<std::mutex> lock(solution_lock);
+  template <typename T>
+  T UHMC<T>::getMeanError(unsigned int latestN) const
+  {
+    std::lock_guard<std::mutex> lock(solution_lock);
     
-    	if(!latestN) latestN = samples.size();
-    	if(latestN > samples.size()) latestN = samples.size();
-
-    	T sumErr = T(0.0f);
-
-    	for(unsigned int i=samples.size()-latestN;i<samples.size();i++)
-	{
-	  T E = T(0.0f);
-	  
-	  // E = SUM 0.5*e(i)^2
+    if(!latestN) latestN = samples.size();
+    if(latestN > samples.size()) latestN = samples.size();
+    
+    T sumErr = T(0.0f);
+    
+    for(unsigned int i=samples.size()-latestN;i<samples.size();i++)
+      {
+	T E = T(0.0f);
+	
+	// E = SUM 0.5*e(i)^2
 #pragma omp parallel shared(E)
-	  {
-	    whiteice::nnetwork<T> nnet(this->nnet);
-	    nnet.importdata(samples[i]);
-	    
-	    math::vertex<T> err;
-	    T e = T(0.0f);
-	    
+	{
+	  whiteice::nnetwork<T> nnet(this->nnet);
+	  nnet.importdata(samples[i]);
+	  
+	  math::vertex<T> err;
+	  T e = T(0.0f);
+	  
 #pragma omp for nowait schedule(auto)
-	    for(unsigned int i=0;i<data.size(0);i++){
-	      nnet.input() = data.access(0, i);
-	      nnet.calculate(false);
-	      err = data.access(1, i) - nnet.output();
-	      // T inv = T(1.0f/err.size());
-	      err = (err*err);
-	      e = e  + T(0.5f)*err[0];
-	    }
-	    
-#pragma omp critical (mfgrioewaqw)
-	    {
-	      E = E + e;
-	    }
+	  for(unsigned int i=0;i<data.size(0);i++){
+	    nnet.input() = data.access(0, i);
+	    nnet.calculate(false);
+	    err = data.access(1, i) - nnet.output();
+	    // T inv = T(1.0f/err.size());
+	    err = (err*err);
+	    e = e  + T(0.5f)*err[0];
 	  }
 	  
-	  sumErr += E;
+#pragma omp critical (mfgrioewaqw)
+	  {
+	    E = E + e;
+	  }
 	}
-
-	if(latestN > 0){
-	  sumErr /= T((float)latestN);
-	  sumErr /= T((float)data.size(0));
-	}
-
-    	return sumErr;
-	}
-
-
-    template <typename T>
-    void UHMC<T>::sampler_loop()
+	
+	sumErr += E;
+      }
+    
+    if(latestN > 0){
+      sumErr /= T((float)latestN);
+      sumErr /= T((float)data.size(0));
+    }
+    
+    return sumErr;
+  }
+  
+  
+  template <typename T>
+  void UHMC<T>::sampler_loop()
+  {
+    // q = location, p = momentum, H(q,p) = hamiltonian
+    math::vertex<T> p; // q is global and defined in UHMC class
+    
+    {
+      std::lock_guard<std::mutex> lock(updating_sample);
+      nnet.exportdata(q); // initial position q
+      // (from the input nnetwork weights)
+    }
+    
+    p.resize(q.size()); // momentum is initially zero
+    p.zero();
+    
+    T epsilon = T(0.01f);
+    unsigned int L = 10;
+    
+    // scales epsilon heuristically according to number of datapoints in sum
+    {
+      epsilon /= T(data.size(0)); // gradient sum is now "divided by number of datapoints"
+    }
+    
+    // std::random_device rd;
+    // std::mt19937 gen(rd());
+    // std::normal_distribution<> rngn(0, 1); // N(0,1) variables
+    // auto normalrnd = std::bind(rngn, std::ref(gen));
+    
+    
+    // used to adaptively finetune step length epsilon based on accept rate
+    // the aim of the adaptation is to keep accept rate near optimal 70%
+    // L is fixed to rather large value 20
+    T accept_rate = T(0.0f);
+    unsigned int accept_rate_samples = 0;
+    
+    // heuristics: we don't store any samples until number of accepts
+    // has been 5, this is used to wait for epsilon parameter to adjust
+    // correctly so that the probability of accept per iteration is reasonable
+    // (we don't store rejects during initial epsiln parameter learning)
+    unsigned int number_of_accepts = 0;
+    const unsigned int EPSILON_LEARNING_ACCEPT_LIMIT = 5;
+    
+    const T MAX_EPSILON = T(1.0f);
+    
+    
+    while(running) // keep sampling forever or until stopped
+    {
+      updating_sample.lock();
+      
+      // p = N(0,I)
+      // for(unsigned int i=0;i<p.size();i++)
+      // p[i] = T(normalrnd()); // Normal distribution
+      
+      sample_covariance_matrix(q);
+      
+      rng.normal(p);
+      
+      math::vertex<T> old_q = q;
+      math::vertex<T> current_p = p;
+      
+      p -= T(0.5f) * epsilon * Ugrad(q);
+      
+      for(unsigned int i=0;i<L;i++){
+	q += epsilon * p;
+	if(i != L-1)
+	  p -= epsilon*Ugrad(q);
+      }
+      
+      p -= T(0.5f) * epsilon * Ugrad(q);
+      
+      p = -p;
+      
+      T current_U  = U(old_q);
+      T proposed_U = U(q);
+      
+      T current_K  = T(0.0f);
+      T proposed_K = T(0.0f);
+      
+      for(unsigned int i=0;i<p.size();i++){
+	current_K  += T(0.5f)*current_p[i]*current_p[i];
+	proposed_K += T(0.5f)*p[i]*p[i];
+      }
+      
+      
+      T r = rng.uniform();
+      // T p_accept = exp(current_U-proposed_U+current_K-proposed_K);
+      
+      T p_accept = T(0.0f);
+      T expvalue = current_U-proposed_U+current_K-proposed_K;
+      if(expvalue < T(-10.0f)){ // to work around SIGFPE floating point exceptions
+	p_accept = exp(T(-10.0f));
+      }
+      else if(expvalue > T(+10.0f)){ // to work around SIGFPE floating point exceptions
+	p_accept = exp(T(+10.0f));
+      }
+      else{
+	p_accept = exp(expvalue);
+      }
+      
+      
+      if(r < p_accept && !whiteice::math::isnan(p_accept))
 	{
-    	// q = location, p = momentum, H(q,p) = hamiltonian
-    	math::vertex<T> p; // q is global and defined in UHMC class
+	  // accept (q)
+	  // printf("ACCEPT\n");
+	  
+	  number_of_accepts++;
+	  
+	  if(number_of_accepts > EPSILON_LEARNING_ACCEPT_LIMIT){
+	    solution_lock.lock();
+	    
+	    if(sum_N > 0){
+	      sum_mean += q;
+	      //sum_covariance += q.outerproduct();
+	      sum_N++;
+	    }
+	    else{
+	      sum_mean = q;
+			    // sum_covariance = q.outerproduct();
+	      sum_N++;
+	    }
+	    
+	    if(store || restart_sampler){
+	      samples.push_back(q);
+	      
+	      if(current_sum_N == 0){
+		current_sum_mean.resize(q.size());
+		current_sum_squared.resize(q.size());
+		
+		current_sum_mean.zero();
+		current_sum_squared.zero();
+	      }
+	      
+	      current_sum_mean += q;
+	      for(unsigned int i=0;i<q.size();i++)
+		current_sum_squared[i] += q[i]*q[i];
+	      
+	      current_sum_N++;
+	    }
+	    
+	    solution_lock.unlock();
+	  }
 
-    	{
-    		std::lock_guard<std::mutex> lock(updating_sample);
-    		nnet.exportdata(q); // initial position q
-    		                    // (from the input nnetwork weights)
-    	}
-
-    	p.resize(q.size()); // momentum is initially zero
-    	p.zero();
-
-    	T epsilon = T(0.01f);
-    	unsigned int L = 10;
+	  if(adaptive){
+	    accept_rate++;
+	    accept_rate_samples++;
+	  }
+	  
+	}
+      else{
+	// reject (keep old_q)
+	// printf("REJECT\n");
+	q = old_q;
 	
-	// scales epsilon heuristically according to number of datapoints in sum
+	if(number_of_accepts > EPSILON_LEARNING_ACCEPT_LIMIT){
+	  solution_lock.lock();
+	  
+	  if(sum_N > 0){
+	    sum_mean += q;
+	    // sum_covariance += q.outerproduct();
+	    sum_N++;
+	  }
+	  else{
+	    sum_mean = q;
+	    // sum_covariance = q.outerproduct();
+	    sum_N++;
+	  }
+	  
+	  if(store || restart_sampler){
+	    samples.push_back(q);
+
+	    if(current_sum_N == 0){
+	      current_sum_mean.resize(q.size());
+	      current_sum_squared.resize(q.size());
+	      
+	      current_sum_mean.zero();
+	      current_sum_squared.zero();
+	    }
+	    
+	    current_sum_mean += q;
+	    for(unsigned int i=0;i<q.size();i++)
+	      current_sum_squared[i] += q[i]*q[i];
+	    
+	    current_sum_N++;
+	  }
+	  
+	  solution_lock.unlock();
+	}
+	
+	
+	if(adaptive){
+	  // accept_rate;
+	  accept_rate_samples++;
+	}
+      }
+
+      
+      if(restart_sampler && current_sum_N >= 100){
+	// calculates sampling variance of the current mean
+	
+	math::vertex<T> current_mean;
+	math::vertex<T> current_mean_var;
+	
+	current_mean = current_sum_mean / current_sum_N;
+	current_mean_var = current_sum_squared / current_sum_N;
+	
+	// std::cout << "mean = " << current_mean << std::endl;
+	
+	// current_mean -= sum_mean/sum_N;
+	
+	for(unsigned int i=0;i<current_mean_var.size();i++){
+	  current_mean_var[i] =
+	    whiteice::math::abs(current_mean_var[i] - current_mean[i]*current_mean[i]);
+	  current_mean_var[i] /= current_sum_N; // variance of mean must be divided by N..
+	}
+	
+	
+	// estimates converence = StDev[x]/|E[x]|=Sqrt[Var[x]]/|E[x]|
+	// E[x] zeros are handled vy adding noise term 0.001.
+	
+	math::vertex<T> convergence;
+	convergence.resize(current_mean.size());
+	
+	for(unsigned int i=0;i<convergence.size();i++){
+	  convergence[i] =
+	    whiteice::math::sqrt(current_mean_var[i]) /
+	    (whiteice::math::abs(current_mean[i]) + T(1e-3));
+	}
+	
+	// std::cout << "conv_values = " << convergence << std::endl;
+	
+	T conv_value = T(0.0f);
+	
+	for(unsigned int i=0;i<convergence.size();i++){
+	  conv_value += convergence[i];
+	}
+	
+	conv_value /= convergence.size();
+	
+	//std::cout << "HMC convergence: " << conv_value << std::endl;
+	//fflush(stdout);
+	
+	if(conv_value < T(0.0350)){ //sampling st.dev. is 3.5% of the mean value [=> convergence based on tests]
+	  // printf("CONVERGENCE, RESTART SAMPLER!!!\n");
+	  
+	  current_sum_mean.zero();
+	  current_sum_squared.zero();
+	  current_sum_N = 0;
+	  
+	  restart_positions.push_back(sum_N);
+	  
+	  // RESETS SAMPLING TO START FRESH SAMPLING
+	  // q = location, p = momentum, H(q,p) = hamiltonian
+	  
+	  {
+	    nnet.randomize();
+	    nnet.exportdata(q); // initial position q is RANDOM
+	    // (from the input nnetwork weights)
+	  }
+	  
+	  p.resize(q.size()); // momentum is initially zero
+	  p.zero();
+	}
+	
+      }
+      
+      
+      updating_sample.unlock();
+      
+      
+      if(adaptive){
+	// use accept rate to adapt epsilon
+	// adapt sampling rate every N iteration (sample)
+	if(accept_rate_samples >= 20)
 	{
-	  epsilon /= T(data.size(0)); // gradient sum is now "divided by number of datapoints"
+	  accept_rate /= accept_rate_samples;
+	  
+	  // std::cout << "ACCEPT RATE: " << accept_rate << std::endl;
+	  // changed from 65-85% to 50%
+	  
+	  if(accept_rate < T(0.50f)){
+	    epsilon = T(0.8)*epsilon;
+	    // std::cout << "NEW SMALLER EPSILON: " << epsilon << std::endl;
+	  }
+	  else if(accept_rate > T(0.50f)){
+	    // important, sampler can diverge so we FORCE epsilon to be small (<MAX_EPSILON)
+	    auto new_epsilon = T(1.0/0.8)*epsilon;
+	    if(new_epsilon < MAX_EPSILON)
+	      epsilon = new_epsilon;
+	    
+	    // std::cout << "NEW LARGER  EPSILON: " << epsilon << std::endl;
+	  }
+	  
+	  accept_rate = T(0.0f);
+	  accept_rate_samples = 0;
 	}
-
-	// std::random_device rd;
-	// std::mt19937 gen(rd());
-    	// std::normal_distribution<> rngn(0, 1); // N(0,1) variables
-    	// auto normalrnd = std::bind(rngn, std::ref(gen));
-
-
-    	// used to adaptively finetune step length epsilon based on accept rate
-    	// the aim of the adaptation is to keep accept rate near optimal 70%
-    	// L is fixed to rather large value 20
-    	T accept_rate = T(0.0f);
-    	unsigned int accept_rate_samples = 0;
-	
-	// heuristics: we don't store any samples until number of accepts
-	// has been 5, this is used to wait for epsilon parameter to adjust
-	// correctly so that the probability of accept per iteration is reasonable
-	// (we don't store rejects during initial epsiln parameter learning)
-	unsigned int number_of_accepts = 0;
-	const unsigned int EPSILON_LEARNING_ACCEPT_LIMIT = 5;
-
-	const T MAX_EPSILON = T(1.0f);
-
-	
-    	while(running) // keep sampling forever or until stopped
-    	{
-    		updating_sample.lock();
-
-    		// p = N(0,I)
-		// for(unsigned int i=0;i<p.size();i++)
-		// p[i] = T(normalrnd()); // Normal distribution
-		
-		sample_covariance_matrix(q);
-		
-		rng.normal(p);
-
-    		math::vertex<T> old_q = q;
-    		math::vertex<T> current_p = p;
-
-    		p -= T(0.5f) * epsilon * Ugrad(q);
-
-    		for(unsigned int i=0;i<L;i++){
-    			q += epsilon * p;
-    			if(i != L-1)
-    				p -= epsilon*Ugrad(q);
-    		}
-
-    		p -= T(0.5f) * epsilon * Ugrad(q);
-
-    		p = -p;
-
-    		T current_U  = U(old_q);
-    		T proposed_U = U(q);
-
-    		T current_K  = T(0.0f);
-    		T proposed_K = T(0.0f);
-
-    		for(unsigned int i=0;i<p.size();i++){
-    			current_K  += T(0.5f)*current_p[i]*current_p[i];
-    			proposed_K += T(0.5f)*p[i]*p[i];
-    		}
-
-		
-		T r = rng.uniform();
-		// T p_accept = exp(current_U-proposed_U+current_K-proposed_K);
-
-		T p_accept = T(0.0f);
-		T expvalue = current_U-proposed_U+current_K-proposed_K;
-		if(expvalue < T(-10.0f)){ // to work around SIGFPE floating point exceptions
-		  p_accept = exp(T(-10.0f));
-		}
-		else if(expvalue > T(+10.0f)){ // to work around SIGFPE floating point exceptions
-		  p_accept = exp(T(+10.0f));
-		}
-		else{
-		  p_accept = exp(expvalue);
-		}
-		
-
-    		if(r < p_accept && !whiteice::math::isnan(p_accept))
-    		{
-    			// accept (q)
-		        // printf("ACCEPT\n");
-
-		        number_of_accepts++;
-			
-			if(number_of_accepts > EPSILON_LEARNING_ACCEPT_LIMIT){
-			  solution_lock.lock();
-			  
-			  if(sum_N > 0){
-			    sum_mean += q;
-			    //sum_covariance += q.outerproduct();
-			    sum_N++;
-			  }
-			  else{
-			    sum_mean = q;
-			    // sum_covariance = q.outerproduct();
-			    sum_N++;
-			  }
-	
-			  if(store)
-			    samples.push_back(q);
-			  
-			  solution_lock.unlock();
-			}
-
-    			if(adaptive){
-    				accept_rate++;
-    				accept_rate_samples++;
-    			}
-
-    		}
-    		else{
-    			// reject (keep old_q)
-		        // printf("REJECT\n");
-		        q = old_q;
-			
-			if(number_of_accepts > EPSILON_LEARNING_ACCEPT_LIMIT){
-			  solution_lock.lock();
-
-			  if(sum_N > 0){
-			    sum_mean += q;
-			    // sum_covariance += q.outerproduct();
-			    sum_N++;
-			  }
-			  else{
-			    sum_mean = q;
-			    // sum_covariance = q.outerproduct();
-			    sum_N++;
-			  }
-			  
-			  if(store)
-			    samples.push_back(q);
-			  
-			  solution_lock.unlock();
-			}
-			
-
-    			if(adaptive){
-			  // accept_rate;
-			  accept_rate_samples++;
-    			}
-    		}
-
-    		updating_sample.unlock();
-
-
-    		if(adaptive){
-    			// use accept rate to adapt epsilon
-    			// adapt sampling rate every N iteration (sample)
-    			if(accept_rate_samples >= 20)
-    			{
-    				accept_rate /= accept_rate_samples;
-
-				// std::cout << "ACCEPT RATE: " << accept_rate << std::endl;
-				// changed from 65-85% to 50%
-
-    				if(accept_rate < T(0.50f)){
-    					epsilon = T(0.8)*epsilon;
-					// std::cout << "NEW SMALLER EPSILON: " << epsilon << std::endl;
-    				}
-    				else if(accept_rate > T(0.50f)){
-				        // important, sampler can diverge so we FORCE epsilon to be small (<MAX_EPSILON)
-				        auto new_epsilon = T(1.0/0.8)*epsilon;
-					if(new_epsilon < MAX_EPSILON)
-					  epsilon = new_epsilon;
-					
-					// std::cout << "NEW LARGER  EPSILON: " << epsilon << std::endl;
-    				}
-
-    				accept_rate = T(0.0f);
-    				accept_rate_samples = 0;
-    			}
-    		}
-
-
-    		// printf("SAMPLES: %d\n", samples.size());
-
-    		while(paused && running){ // pause
-    			std::this_thread::sleep_for(std::chrono::milliseconds(500)); // sleep for 500ms
-    		}
-    	}
-
-	}
+      }
+      
+      
+      // printf("SAMPLES: %d\n", samples.size());
+      
+      while(paused && running){ // pause
+	std::this_thread::sleep_for(std::chrono::milliseconds(500)); // sleep for 500ms
+      }
+    }
+    
+  }
   
   
 };

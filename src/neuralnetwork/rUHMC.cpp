@@ -33,16 +33,20 @@ namespace whiteice
 
   // probability functions for hamiltonian MC sampling
   template <typename T>
-  T U(const math::vertex<T>& q, bool useRegulizer) const
+  T rUHMC<T>::U(const math::vertex<T>& q, bool useRegularizer) const
   {
     T e = T(0.0f);
 
     { // recurrent neural network
 
-      whiteice::nnetwork<T> nnet(this->net);
+      whiteice::nnetwork<T> nnet(this->nnet);
       nnet.importdata(q);
 
-      if(use_minibatch){
+      const bool real_error = true;
+
+      if(this->use_minibatch){
+
+	const unsigned int SAMPLES_MINIBATCH = (1000 > this->data.size(0)) ? this->data.size(0) : 1000;
 	
 #pragma omp parallel shared(e)
 	{
@@ -52,15 +56,15 @@ namespace whiteice
 	  math::vertex<T> err, correct;
 	  T esum = T(0.0f);
 	  
-	  const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
-	  const unsigned int OUTPUT_DATA_DIM = dtrain.dimension(1);
-	  const unsigned int RDIM = nnet.output_size() - OUTPUT_DATA_DIM;
+	  const unsigned int INPUT_DATA_DIM = this->data.dimension(0);
+	  const unsigned int OUTPUT_DATA_DIM = this->data.dimension(1);
+	  const unsigned int RDIM = this->nnet.output_size() - OUTPUT_DATA_DIM;
 	  
 	  math::vertex<T> input, output, output_r;
-	  input.resize(dtrain.dimension(0)+RDIM);
-	  output.resize(dtrain.dimension(1)+RDIM);
+	  input.resize(this->data.dimension(0)+RDIM);
+	  output.resize(this->data.dimension(1)+RDIM);
 	  output_r.resize(RDIM);
-	  err.resize(dtrain.dimension(1));
+	  err.resize(this->data.dimension(1));
 	  
 	  // E = SUM 0.5*e(i)^2
 	  //for(unsigned int episode=0;episode<dtrain.size(2);episode++)
@@ -75,29 +79,29 @@ namespace whiteice
 	    //whiteice::math::convert(length, range[1]);
 	    
 	    input.zero();
-	    const unsigned int i = rnd.rand() % dtrain.size();
+	    unsigned int i = rng.rand() % (this->data.size());
 	    
 	    // recurrency: feebacks output back to inputs and
 	    //             calculates error
 #pragma omp for nowait schedule(auto)
 	    for(unsigned int index = 0;index<SAMPLES_MINIBATCH;index++){
 	      
-	      input.write_subvertex(dtrain.access(0, i), 0);
+	      input.write_subvertex(this->data.access(0, i), 0);
 	      
 	      //nnet.input() = input;
 	      //nnet.calculate(false);
 	      nnet.calculate(input, output);
 	      
-	      output.subvertex(output_r, dtrain.dimension(1), RDIM);
+	      output.subvertex(output_r, this->data.dimension(1), RDIM);
 	      assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 	      
-	      output.subvertex(err, 0, dtrain.dimension(1));
+	      output.subvertex(err, 0, this->data.dimension(1));
 	      
-	      correct = dtrain.access(1, i);
+	      correct = this->data.access(1, i);
 	      
 	      if(real_error){
-		dtrain.invpreprocess(1, err);
-		dtrain.invpreprocess(1, correct);
+		this->data.invpreprocess(1, err);
+		this->data.invpreprocess(1, correct);
 	      }
 	      
 	      err -= correct;
@@ -105,7 +109,7 @@ namespace whiteice
 	      esum += T(0.5f)*(err*err)[0];
 
 	      i++;
-	      i = i % dtrain.size();
+	      i = i % (this->data.size());
 	    }
 	    
 	  }
@@ -117,11 +121,11 @@ namespace whiteice
 	  
 	}
 
-	e *= T(((float)data.size(0))/((float)SAMPLES_MINIBATCH));
-	    
-	e /= sigma2;
+	e *= T(((float)this->data.size(0))/((float)SAMPLES_MINIBATCH));
 	
-	e /= temperature;
+	e /= this->sigma2;
+	
+	e /= this->temperature;
       }
       else{
 
@@ -133,24 +137,24 @@ namespace whiteice
 	  math::vertex<T> err, correct;
 	  T esum = T(0.0f);
 	  
-	  const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
-	  const unsigned int OUTPUT_DATA_DIM = dtrain.dimension(1);
+	  const unsigned int INPUT_DATA_DIM = this->data.dimension(0);
+	  const unsigned int OUTPUT_DATA_DIM = this->data.dimension(1);
 	  const unsigned int RDIM = nnet.output_size() - OUTPUT_DATA_DIM;
 	  
 	  math::vertex<T> input, output, output_r;
-	  input.resize(dtrain.dimension(0)+RDIM);
-	  output.resize(dtrain.dimension(1)+RDIM);
+	  input.resize(this->data.dimension(0)+RDIM);
+	  output.resize(this->data.dimension(1)+RDIM);
 	  output_r.resize(RDIM);
-	  err.resize(dtrain.dimension(1));
+	  err.resize(this->data.dimension(1));
 	  
 	  // E = SUM 0.5*e(i)^2
-	  //for(unsigned int episode=0;episode<dtrain.size(2);episode++)
+	  //for(unsigned int episode=0;episode<this->data.size(2);episode++)
 	  {
 	    
-	    //math::vertex<T> range = dtrain.access(2,episode);
+	    //math::vertex<T> range = this->data.access(2,episode);
 	    
 	    unsigned int start = 0; 
-	    unsigned int length = drain.size(0);
+	    unsigned int length = this->data.size(0);
 	    
 	    //whiteice::math::convert(start, range[0]);
 	    //whiteice::math::convert(length, range[1]);
@@ -161,22 +165,22 @@ namespace whiteice
 	    //             calculates error
 #pragma omp for nowait schedule(auto)
 	    for(unsigned int i = start;i<length;i++){
-	      input.write_subvertex(dtrain.access(0, i), 0);
+	      input.write_subvertex(this->data.access(0, i), 0);
 	      
 	      //nnet.input() = input;
 	      //nnet.calculate(false);
 	      nnet.calculate(input, output);
 	      
-	      output.subvertex(output_r, dtrain.dimension(1), RDIM);
+	      output.subvertex(output_r, this->data.dimension(1), RDIM);
 	      assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 	      
-	      output.subvertex(err, 0, dtrain.dimension(1));
+	      output.subvertex(err, 0, this->data.dimension(1));
 	      
-	      correct = dtrain.access(1, i);
+	      correct = this->data.access(1, i);
 	      
 	      if(real_error){
-		dtrain.invpreprocess(1, err);
-		dtrain.invpreprocess(1, correct);
+		this->data.invpreprocess(1, err);
+		this->data.invpreprocess(1, correct);
 	      }
 	      
 	      err -= correct;
@@ -193,9 +197,9 @@ namespace whiteice
 	  
 	}
 
-	e /= sigma2;
+	e /= this->sigma2;
 	
-	e /= temperature;
+	e /= this->temperature;
 	
       }
     }
@@ -204,7 +208,7 @@ namespace whiteice
 #if 1
     if(useRegularizer){
       // regularizer exp(-0.5*||w||^2) term, w ~ Normal(0,I)
-      auto err = T(0.5)*alpha*(q*q)[0];
+      auto err = T(0.5)*(this->alpha)*(q*q)[0];
       e += err;
     }
 #endif
@@ -212,25 +216,28 @@ namespace whiteice
     return (e);    
   }
 
+  
+
   template <typename T>
-  math::vertex<T> rUHMC<T>::Ugrad(const math::vertex<T>& q, bool useRegulizer) const
+  math::vertex<T> rUHMC<T>::Ugrad(const math::vertex<T>& q, bool useRegularizer) const
   {
 
-    if(use_minibatch)
+    if(this->use_minibatch)
     {
+      const unsigned int SAMPLES_MINIBATCH = (1000 > this->data.size(0)) ? this->data.size(0) : 1000;
 
-            // recurrent neural network!
+      // recurrent neural network!
       math::vertex<T> sumgrad;
-      sumgrad = x;
+      sumgrad = q;
       sumgrad.zero();
 
-      const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
-      const unsigned int OUTPUT_DATA_DIM = dtrain.dimension(1);
-      const unsigned int RDIM = net.output_size() - OUTPUT_DATA_DIM;
-      const unsigned int RDIM2 = net.input_size() - INPUT_DATA_DIM;
+      const unsigned int INPUT_DATA_DIM = this->data.dimension(0);
+      const unsigned int OUTPUT_DATA_DIM = this->data.dimension(1);
+      const unsigned int RDIM = this->nnet.output_size() - OUTPUT_DATA_DIM;
+      const unsigned int RDIM2 = this->nnet.input_size() - INPUT_DATA_DIM;
       assert(RDIM == RDIM2);
 
-      whiteice::nnetwork<T> nnet(this->net);
+      whiteice::nnetwork<T> nnet(this->nnet);
       nnet.importdata(q);
 
       unsigned int counter = 0;
@@ -242,41 +249,41 @@ namespace whiteice
 	
 	math::vertex<T> grad, err;
 	math::vertex<T> sgrad;
-	sgrad = x;
+	sgrad = q;
 	sgrad.zero();
-	grad = x;
+	grad = q;
 
 	math::vertex<T> input, output, output_r;
-	input.resize(dtrain.dimension(0)+RDIM);
+	input.resize(this->data.dimension(0)+RDIM);
 	output_r.resize(RDIM);
 
 	math::matrix<T> UGRAD;
-	UGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
+	UGRAD.resize(this->data.dimension(1)+RDIM, nnet.gradient_size());
 
 	math::matrix<T> URGRAD;
 	URGRAD.resize(RDIM, nnet.gradient_size());
 
 	math::matrix<T> UYGRAD;
-	UYGRAD.resize(dtrain.dimension(1), nnet.gradient_size());
+	UYGRAD.resize(this->data.dimension(1), nnet.gradient_size());
 
 	math::matrix<T> FGRAD;
-	FGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
+	FGRAD.resize(this->data.dimension(1)+RDIM, nnet.gradient_size());
 
 	math::matrix<T> FRGRAD;
 	FRGRAD.resize(RDIM, nnet.output_size());
 
 	math::matrix<T> FGRADTMP;
-	FGRADTMP.resize(dtrain.dimension(1)+RDIM, RDIM);
+	FGRADTMP.resize(this->data.dimension(1)+RDIM, RDIM);
 
 	//#pragma omp for nowait schedule(auto)
 	while(counter < SAMPLES_MINIBATCH){
-	  //for(unsigned int episode=0;episode<dtrain.size(2);episode++){
+	  //for(unsigned int episode=0;episode<this->data.size(2);episode++){
 	  
-	  //math::vertex<T> range = dtrain.access(2,episode);
+	  //math::vertex<T> range = this->data.access(2,episode);
 
-	  unsigned int start = rng.rand() % dtrain.size(0); 
+	  unsigned int start = rng.rand() % this->data.size(0); 
 	  unsigned int length = start + 10;
-	  if(length >= dtrain.size(0)) length = dtrain.size(0);
+	  if(length >= this->data.size(0)) length = this->data.size(0);
 
 	  //whiteice::math::convert(start, range[0]);
 	  //whiteice::math::convert(length, range[1]);
@@ -286,28 +293,28 @@ namespace whiteice
 	  input.zero();
 	  
 	  for(unsigned int i=start;i<length;i++){
-	    input.write_subvertex(dtrain.access(0,i), 0);
+	    input.write_subvertex(this->data.access(0,i), 0);
 	      
 	    assert(nnet.jacobian(input, FGRAD) == true);
-	    // df/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
+	    // df/dw (this->data.dimension(1)+RDIM, nnet.gradient_size())
 
 	    {
 	      assert(nnet.gradient_value(input, FGRADTMP) == true);
-	      // df/dinput (dtrain.dimension(1)+RDIM,dtrain.dimension(0)+RDIM)
+	      // df/dinput (this->data.dimension(1)+RDIM,this->data.dimension(0)+RDIM)
 
 	      // df/dr
 	      assert(FGRADTMP.submatrix(FRGRAD,
-					dtrain.dimension(0), 0,
+					this->data.dimension(0), 0,
 					RDIM, nnet.output_size()) == true);
 
 	      // KAPPA_r = I
 
-	      // df/dr (dtrain.dimension(1)+RDIM, RDIM)
-	      // dU/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
+	      // df/dr (this->data.dimension(1)+RDIM, RDIM)
+	      // dU/dw (this->data.dimension(1)+RDIM, nnet.gradient_size())
 
 	      // KAPPA_r operation to UGRAD to select only R terms
 	      assert(UGRAD.submatrix(URGRAD,
-				     0,dtrain.dimension(1),
+				     0,this->data.dimension(1),
 				     nnet.gradient_size(), RDIM) == true);
 	    }
 
@@ -320,21 +327,21 @@ namespace whiteice
 	    
 	    { // calculate error gradient value for E(i=0)..E(N) terms
 	      
-	      output.subvertex(err, 0, dtrain.dimension(1));
-	      err -= dtrain.access(1,i);
+	      output.subvertex(err, 0, this->data.dimension(1));
+	      err -= this->data.access(1,i);
 
 	      // selects only Y terms from UGRAD
 	      assert(UGRAD.submatrix
 		     (UYGRAD,
 		      0,0,
-		      nnet.gradient_size(), dtrain.dimension(1)));
+		      nnet.gradient_size(), this->data.dimension(1)));
 
 	      grad = err*UYGRAD;
 
 	      sgrad += grad;
 	    }
 
-	    assert(output.subvertex(output_r, dtrain.dimension(1), RDIM));
+	    assert(output.subvertex(output_r, this->data.dimension(1), RDIM));
 	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 	  }
 
@@ -352,14 +359,14 @@ namespace whiteice
 	
       }
 
-      sumgrad /= sigma2;
-      sumgrad /= temperature; // scales gradient with temperature
+      sumgrad /= this->sigma2;
+      sumgrad /= this->temperature; // scales gradient with temperature
       
 #if 1
       if(useRegularizer){
 	// regularizer exp(-0.5*||w||^2) term, w ~ Normal(0,I)
 	
-	sumgrad += alpha*x;
+	sumgrad += this->alpha*q;
       }
 #endif
       
@@ -370,16 +377,16 @@ namespace whiteice
     {
       // recurrent neural network!
       math::vertex<T> sumgrad;
-      sumgrad = x;
+      sumgrad = q;
       sumgrad.zero();
 
-      const unsigned int INPUT_DATA_DIM = dtrain.dimension(0);
-      const unsigned int OUTPUT_DATA_DIM = dtrain.dimension(1);
-      const unsigned int RDIM = net.output_size() - OUTPUT_DATA_DIM;
-      const unsigned int RDIM2 = net.input_size() - INPUT_DATA_DIM;
+      const unsigned int INPUT_DATA_DIM = this->data.dimension(0);
+      const unsigned int OUTPUT_DATA_DIM = this->data.dimension(1);
+      const unsigned int RDIM = this->nnet.output_size() - OUTPUT_DATA_DIM;
+      const unsigned int RDIM2 = this->nnet.input_size() - INPUT_DATA_DIM;
       assert(RDIM == RDIM2);
 
-      whiteice::nnetwork<T> nnet(this->net);
+      whiteice::nnetwork<T> nnet(this->nnet);
       nnet.importdata(q);
       
 #pragma omp parallel shared(sumgrad)
@@ -389,39 +396,39 @@ namespace whiteice
 	
 	math::vertex<T> grad, err;
 	math::vertex<T> sgrad;
-	sgrad = x;
+	sgrad = q;
 	sgrad.zero();
-	grad = x;
+	grad = q;
 
 	math::vertex<T> input, output, output_r;
-	input.resize(dtrain.dimension(0)+RDIM);
+	input.resize(this->data.dimension(0)+RDIM);
 	output_r.resize(RDIM);
 
 	math::matrix<T> UGRAD;
-	UGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
+	UGRAD.resize(this->data.dimension(1)+RDIM, nnet.gradient_size());
 
 	math::matrix<T> URGRAD;
 	URGRAD.resize(RDIM, nnet.gradient_size());
 
 	math::matrix<T> UYGRAD;
-	UYGRAD.resize(dtrain.dimension(1), nnet.gradient_size());
+	UYGRAD.resize(this->data.dimension(1), nnet.gradient_size());
 
 	math::matrix<T> FGRAD;
-	FGRAD.resize(dtrain.dimension(1)+RDIM, nnet.gradient_size());
+	FGRAD.resize(this->data.dimension(1)+RDIM, nnet.gradient_size());
 
 	math::matrix<T> FRGRAD;
 	FRGRAD.resize(RDIM, nnet.output_size());
 
 	math::matrix<T> FGRADTMP;
-	FGRADTMP.resize(dtrain.dimension(1)+RDIM, RDIM);
+	FGRADTMP.resize(this->data.dimension(1)+RDIM, RDIM);
 
-	//for(unsigned int episode=0;episode<dtrain.size(2);episode++)
+	//for(unsigned int episode=0;episode<this->data.size(2);episode++)
 	{
 	  
-	  //math::vertex<T> range = dtrain.access(2,episode);
+	  //math::vertex<T> range = this->data.access(2,episode);
 
 	  unsigned int start = 0; 
-	  unsigned int length = dtrain.size(0);
+	  unsigned int length = this->data.size(0);
 
 	  //whiteice::math::convert(start, range[0]);
 	  //whiteice::math::convert(length, range[1]);
@@ -432,28 +439,28 @@ namespace whiteice
 
 #pragma omp for nowait schedule(auto)
 	  for(unsigned int i=start;i<length;i++){
-	    input.write_subvertex(dtrain.access(0,i), 0);
+	    input.write_subvertex(this->data.access(0,i), 0);
 	      
 	    assert(nnet.jacobian(input, FGRAD) == true);
-	    // df/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
+	    // df/dw (this->data.dimension(1)+RDIM, nnet.gradient_size())
 
 	    {
 	      assert(nnet.gradient_value(input, FGRADTMP) == true);
-	      // df/dinput (dtrain.dimension(1)+RDIM,dtrain.dimension(0)+RDIM)
+	      // df/dinput (this->data.dimension(1)+RDIM,this->data.dimension(0)+RDIM)
 
 	      // df/dr
 	      assert(FGRADTMP.submatrix(FRGRAD,
-					dtrain.dimension(0), 0,
+					this->data.dimension(0), 0,
 					RDIM, nnet.output_size()) == true);
 
 	      // KAPPA_r = I
 
-	      // df/dr (dtrain.dimension(1)+RDIM, RDIM)
-	      // dU/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
+	      // df/dr (this->data.dimension(1)+RDIM, RDIM)
+	      // dU/dw (this->data.dimension(1)+RDIM, nnet.gradient_size())
 
 	      // KAPPA_r operation to UGRAD to select only R terms
 	      assert(UGRAD.submatrix(URGRAD,
-				     0,dtrain.dimension(1),
+				     0,this->data.dimension(1),
 				     nnet.gradient_size(), RDIM) == true);
 	    }
 
@@ -466,21 +473,21 @@ namespace whiteice
 	    
 	    { // calculate error gradient value for E(i=0)..E(N) terms
 	      
-	      output.subvertex(err, 0, dtrain.dimension(1));
-	      err -= dtrain.access(1,i);
+	      output.subvertex(err, 0, this->data.dimension(1));
+	      err -= this->data.access(1,i);
 
 	      // selects only Y terms from UGRAD
 	      assert(UGRAD.submatrix
 		     (UYGRAD,
 		      0,0,
-		      nnet.gradient_size(), dtrain.dimension(1)));
+		      nnet.gradient_size(), this->data.dimension(1)));
 
 	      grad = err*UYGRAD;
 
 	      sgrad += grad;
 	    }
 
-	    assert(output.subvertex(output_r, dtrain.dimension(1), RDIM));
+	    assert(output.subvertex(output_r, this->data.dimension(1), RDIM));
 	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
 	  }
 
@@ -493,14 +500,14 @@ namespace whiteice
 	
       }
       
-      sumgrad /= sigma2;
-      sumgrad /= temperature; // scales gradient with temperature
+      sumgrad /= this->sigma2;
+      sumgrad /= this->temperature; // scales gradient with temperature
       
 #if 1
       if(useRegularizer){
 	// regularizer exp(-0.5*||w||^2) term, w ~ Normal(0,I)
 	
-	sumgrad += alpha*x;
+	sumgrad += this->alpha*q;
       }
 #endif
       
@@ -515,10 +522,10 @@ namespace whiteice
   template <typename T>
   T rUHMC<T>::getMeanError(unsigned int latestN) const
   {
-    std::lock_guard<std::mutex> lock(updating_sample);
+    std::lock_guard<std::mutex> lock(this->solution_lock);
     
-    if(latestN == 0) latestN = samples.size();
-    if(latestN > samples.size()) latestN = samples.size();
+    if(latestN == 0) latestN = this->samples.size();
+    if(latestN > this->samples.size()) latestN = this->samples.size();
 
     T error = T(0.0);
 
@@ -527,8 +534,8 @@ namespace whiteice
       T ei = T(0.0);
 
 #pragma omp for nowait schedule(auto)
-      for(int i = samples.size()-latestN;i<samples.size();i++){
-	ei += this->U(samples[i], false);
+      for(int i = this->samples.size()-latestN;i<this->samples.size();i++){
+	ei += this->U(this->samples[i], false);
       }
 
 #pragma omp critical
