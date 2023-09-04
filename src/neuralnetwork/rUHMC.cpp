@@ -527,26 +527,36 @@ namespace whiteice
     if(latestN == 0) latestN = this->samples.size();
     if(latestN > this->samples.size()) latestN = this->samples.size();
 
-    T error = T(0.0);
 
+    if(latestN > 0){
+      
+      T error = T(0.0);
+      
 #pragma omp parallel
-    {
-      T ei = T(0.0);
-
-#pragma omp for nowait schedule(auto)
-      for(unsigned int i = this->samples.size()-latestN;i<this->samples.size();i++){
-	ei += this->U(this->samples[i], false);
-      }
-
-#pragma omp critical
       {
-	error += ei;
+	T ei = T(0.0);
+	
+#pragma omp for nowait schedule(auto)
+	for(unsigned int i = this->samples.size()-latestN;i<this->samples.size();i++){
+	  ei += this->U(this->samples[i], false);
+	}
+	
+#pragma omp critical
+	{
+	  error += ei;
+	}
       }
+
+      error = error/T(latestN);
+
+      return error;
     }
+    else{
+      const T error = T(INFINITY);
 
-    error = error/T(latestN);
-
-    return error;
+      return error;
+    }
+    
   }
   
   
