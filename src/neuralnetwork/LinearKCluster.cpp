@@ -378,522 +378,534 @@ namespace whiteice
   template <typename T> 
   void LinearKCluster<T>::optimizer_loop()
   {
-    if(thread_running == false) return;
-
-    //* 0. Assign data points (x,y) randomly to K-Clusters
-    
-    //* 3. Calculate mean and variance of clusters and reassign datapoints to most probable
-    //*    cluster based on mean and variance of each cluster
-    //* 4. Goto 1 if there were signficant changes/no convergence
-
-    {
-      std::lock_guard<std::mutex> lock(solution_mutex);
+    try{
+      if(thread_running == false) return;
       
-      model.resize(K);
-
-      for(unsigned int k=0;k<model.size();k++){
-	model[k] = this->architecture;
-	model[k].randomize();
-      }
-
-      for(unsigned int i=0;i<xdata.size();i++)
+      {
+	std::lock_guard<std::mutex> lock(solution_mutex);
+      
+	model.resize(K);
+	
+	for(unsigned int k=0;k<model.size();k++){
+	  model[k] = this->architecture;
+	  model[k].randomize();
+	}
+	
+	for(unsigned int i=0;i<xdata.size();i++)
 	clusterLabels.push_back(whiteice::rng.rand()%K);
-
-      iterations = 0;
-      currentError = INFINITY;
-    }
-
-    std::vector< std::vector<double> > datacluster, old_datacluster;
-    
-    for(unsigned int i=0;i<xdata.size();i++){
-      std::vector<double> px;
-      px.resize(K);
-      double sump = (0.0f);
-      
-      for(unsigned int k=0;k<px.size();k++){
-	px[k] = (double)(rng.uniform().c[0]); // random assignment
-	sump += px[k];
+	
+	iterations = 0;
+	currentError = INFINITY;
       }
-
-      double bestp = 0.0;
-      unsigned int bestk = 0;
-
-      for(unsigned int k=0;k<px.size();k++){
-	if(sump) px[k] /= sump;
-	if(px[k] > bestp){ bestp = px[k]; bestk = k;}
-	px[k]= 0.0;
-      }
-
-      px[bestk] = 1.0;
-
       
-      datacluster.push_back(px);
-    }
-
-    // local copy of solutions
-
-    std::vector< whiteice::nnetwork<T> > M;
-
-    M.resize(K);
-
-    {
-      std::lock_guard<std::mutex> lock(solution_mutex);
+      std::vector< std::vector<double> > datacluster, old_datacluster;
       
-      for(unsigned int k=0;k<M.size();k++){
-	M[k] = model[k];
-      }
-    }
-      
-
-    // calculate solution error
-    double error = 0.0;
-      
-#pragma omp parallel shared(error)
-    {
-      double ei = 0.0;
-      
-#pragma omp for schedule(auto)
       for(unsigned int i=0;i<xdata.size();i++){
-
-	const auto& pe = datacluster[i];
-
+	std::vector<double> px;
+	px.resize(K);
+	double sump = (0.0f);
+	
+	for(unsigned int k=0;k<px.size();k++){
+	  px[k] = (double)(rng.uniform().c[0]); // random assignment
+	  sump += px[k];
+	}
+	
 	double bestp = 0.0;
 	unsigned int bestk = 0;
 	
-	for(unsigned int k=0;k<pe.size();k++){
-	  if(pe[k] > bestp){ bestp = pe[k]; bestk = k;}
-	}
-
-	const unsigned int k = bestk;
-
-	math::vertex<T> delta;
-
-	M[k].calculate(xdata[i], delta);
-	delta -= ydata[i];
-
-	// keeps only real part of the error
-	for(unsigned int i=0;i<delta.size();i++){
-	  delta[i] = T(delta[i][0]);
+	for(unsigned int k=0;k<px.size();k++){
+	  if(sump) px[k] /= sump;
+	  if(px[k] > bestp){ bestp = px[k]; bestk = k;}
+	  px[k]= 0.0;
 	}
 	
-	double e = INFINITY;
-	whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
-	ei += e;
+	px[bestk] = 1.0;
+	
+	
+	datacluster.push_back(px);
       }
       
-#pragma omp critical
-      {
-	error += ei;
-      }
-    }
-    
-    error /= xdata.size();
-    
-    if(verbose) std::cout << "INITIAL ERROR: " << error << std::endl;
-    
-    
-
-    // convergence checking code..
-    const unsigned int CONV_LIMIT = 30;
-    std::vector<double> convergence_errors;
-
-    const double lrate = 0.01; // FIXME constant lrate..
-    
-    while(true){
+      // local copy of solutions
+      
+      std::vector< whiteice::nnetwork<T> > M;
+      
+      M.resize(K);
       
       {
-	if(thread_running == false)
-	  break; // out from the loop and finish
-      }
-
-
-#pragma omp parallel for schedule(auto)
-      for(unsigned int k=0;k<K;k++){
-	//* 1. Train/optimize linear model for points assigned to this cluster
-
-	std::vector< math::vertex<T> > x, y;
+	std::lock_guard<std::mutex> lock(solution_mutex);
 	
-	for(unsigned int i=0;i<datacluster.size();i++){
-	  const double p = datacluster[i][k];
-
-	  if(p >= 0.50){
-	    auto px = T(p)*xdata[i];
-	    auto py = T(p)*ydata[i];
-
-	    x.push_back(px);
-	    y.push_back(py);
-	  }
-	}
-
-	math::vertex<T> sumgrad;
-	sumgrad.resize(M[k].exportdatasize());
-	sumgrad.zero();
-	
-
-	for(unsigned int i=0;i<x.size();i++){
-
-	  math::vertex<T> err;
-	  
-	  M[k].calculate(x[i], err);
-	  err -= y[i];
-
-	  math::matrix<T> DF, cDF;
-
-	  M[k].jacobian(x[i], DF);
-	  cDF.resize(DF.ysize(),DF.xsize());
-
-	  for(unsigned int j=0;j<DF.size();j++){
-	    whiteice::math::convert(cDF[j], DF[j]);
-	    cDF[j].fft();
-	  }
-
-	  math::vertex<T> ce, cerr;
-
-	  ce.resize(err.size());
-
-	  for(unsigned int j=0;j<err.size();j++){
-	    whiteice::math::convert(ce[j], err[j]);
-	    ce[j].fft();
-	  }
-
-	  cerr.resize(DF.xsize());
-	  cerr.zero();
-
-	  for(unsigned int j=0;j<DF.xsize();j++){
-	    auto ctmp = ce;
-	    for(unsigned int k=0;k<DF.ysize();k++){
-	      cerr[j] += ctmp[k].circular_convolution(cDF(k,j));
-	    }
-	  }
-
-	  T one;
-	  one.zero();
-	  one = T(1.0);
-	  one.fft();
-
-	  for(unsigned int j=0;j<cerr.size();j++)
-	    cerr[j].circular_convolution(one);
-
-	  err.resize(cerr.size());
-
-	  for(unsigned int j=0;j<err.size();j++){
-	    cerr[j].inverse_fft();
-	    for(unsigned int k=0;k<err[j].size();k++)
-	      whiteice::math::convert(err[j][k], cerr[j][k]);
-	  }
-
-	  const auto& grad = err;
-
-	  sumgrad += grad;
-	}
-
-	
-	if(x.size() > 0){
-	
-	  sumgrad *= T(1.0/x.size());
-
-	  math::vertex<T> w;
-	  
-	  M[k].exportdata(w);
-
-	  for(unsigned int j=0;j<sumgrad.size();j++){
-	    for(unsigned int k=0;k<sumgrad[0].size();k++){
-	      sumgrad[j][k] *= lrate;
-	    }
-	  }
-
-	  w -= sumgrad;
-
-	  M[k].importdata(w);
-	}
-	else{
-	  M[k].randomize();
-	}
-	
-      }
-
-
-      //* 2. Measure error in each cluster model for each datapoint and 
-      //*    assign datapoints to the cluster with smallest error.
-
-      // datacluster.clear();
-
-#pragma omp parallel for schedule(auto)
-      for(unsigned int i=0;i<xdata.size();i++){
-
-	if((whiteice::rng.rand() & 1)) continue; // only 50% of the points are reassigned..
-
-	std::vector<double> errors;
-	
-	for(unsigned int k=0;k<K;k++){
-
-	  math::vertex<T> delta;
-	  M[k].calculate(xdata[i], delta);
-	  delta -= ydata[i];;
-	  
-	  for(unsigned int i=0;i<delta.size();i++)
-	    delta[i] = T(delta[i][0]);
-	  
-	  auto err = whiteice::math::abs(delta.norm()[0]);
-	  
-	  double e = INFINITY;
-	  whiteice::math::convert(e, err);
-
-	  errors.push_back(e);
-	}
-
-	double sump = 0.0; 
-
-	for(unsigned int i=0;i<errors.size();i++){
-	  if(errors[i] < 100.0) 
-	    errors[i] = whiteice::math::exp(-errors[i]);
-	  else
-	    errors[i] = whiteice::math::exp(-100.0);
-	  
-	  sump += errors[i];
-	}
-
-	for(unsigned int i=0;i<errors.size();i++){
-	  errors[i] /= sump;
-	}
-
-	sump = 0.0;
-	unsigned int bestk = 0;
-
-	double r = whiteice::rng.uniform().c[0];
-
-	for(unsigned int i=0;i<errors.size();i++){
-	  sump += errors[i];
-
-	  if(r <= sump){ bestk = i; break; }
-	  
-	  //if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
-	}
-
-	for(unsigned int i=0;i<errors.size();i++)
-	  errors[i] = 0.0;
-
-	errors[bestk] = 1.0; 
-
-	datacluster[i] = errors;
-      }
-
-#if 0
-      // reassign points according to the 5 closest points [reassign datapoints based on cluster mean and variance]
-      {
-	auto cluster = datacluster;
-
-	// datacluster.clear();
-
-#pragma omp parallel for schedule(auto)
-	for(unsigned int i=0;i<xdata.size();i++){
-	  
-	  std::multimap<double, unsigned int> distances;
-
-	  for(unsigned int j=0;j<xdata.size();j++){
-	    if(j == i) continue;
-	    
-	    auto delta = xdata[i] - xdata[j];
-	    double d = INFINITY;
-
-	    whiteice::math::convert(d, whiteice::math::abs(delta.norm())[0]);
-
-	    distances.insert(std::pair<double,unsigned int>(d, j));
-	  }
-
-	  std::vector<double> pe;
-	  pe.resize(K);
-	  
-	  auto iter = distances.begin();
-	  unsigned int counter = 0;
-	  double sump = 0.0;
-
-	  while(iter != distances.end() && counter < 5){
-	    const auto pk = cluster[iter->second];
-
-	    unsigned int k=0;
-	    double bestp = 0.0;
-	    for(unsigned int ii=0;ii<K;ii++){
-	      if(pk[ii] > bestp){
-		k = ii;
-		bestp = pk[ii];
-	      }
-	    }
-
-	    
-	    double p = 0.0;
-	    if(iter->first < 100.0)
-	      p = whiteice::math::exp(-(iter->first));
-	    else
-	      p = whiteice::math::exp(-100.0);
-	    
-	    pe[k] += p;
-	    sump += p;
-	    
-	    iter++;
-	    counter++;
-	  }
-
-	  for(unsigned int k=0;k<pe.size();k++)
-	    if(sump) pe[k] /= sump;
-
-	  datacluster[i] = pe;
+	for(unsigned int k=0;k<M.size();k++){
+	  M[k] = model[k];
 	}
       }
-#endif
-	
+      
+      
       // calculate solution error
       double error = 0.0;
-
+      
 #pragma omp parallel shared(error)
       {
 	double ei = 0.0;
 	
 #pragma omp for schedule(auto)
 	for(unsigned int i=0;i<xdata.size();i++){
-
-	  unsigned int k = 0;
-	  double bestp = 0.0;
-
-	  for(unsigned int j=0;j<datacluster[i].size();j++)
-	    if(datacluster[i][j] > bestp){
-	      k = j;
-	      bestp = datacluster[i][j];
-	    }
 	  
-
+	  const auto& pe = datacluster[i];
+	  
+	  double bestp = 0.0;
+	  unsigned int bestk = 0;
+	  
+	  for(unsigned int k=0;k<pe.size();k++){
+	    if(pe[k] > bestp){ bestp = pe[k]; bestk = k;}
+	  }
+	  
+	  const unsigned int k = bestk;
+	  
 	  math::vertex<T> delta;
+	  
 	  M[k].calculate(xdata[i], delta);
 	  delta -= ydata[i];
 	  
-	  double e = INFINITY;
-
+	  // keeps only real part of the error
 	  for(unsigned int i=0;i<delta.size();i++){
 	    delta[i] = T(delta[i][0]);
 	  }
 	  
+	  double e = INFINITY;
 	  whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
 	  ei += e;
 	}
-
+	
 #pragma omp critical
 	{
 	  error += ei;
 	}
       }
-
-      // error is error per element in vector
-      error /= xdata.size(); // number of vectors
-      error /= ydata[0].size(); // vector dimensions
-
+      
+      error /= xdata.size();
+      
+      if(verbose) std::cout << "INITIAL ERROR: " << error << std::endl;
       
       
-
-      //* 4. Goto 1 if there were significant changes/no convergence 
-      {
-	if(error <= currentError)
+      
+      // convergence checking code..
+      const unsigned int CONV_LIMIT = 30;
+      std::vector<double> convergence_errors;
+      
+      const double lrate = 0.01; // FIXME constant lrate..
+      
+      while(true){
+	
 	{
-	  std::lock_guard<std::mutex> lock(solution_mutex);
-
-	  model = M;
-	  currentError = error;
-
-	  clusterLabels.resize(datacluster.size());
-
-	  std::vector<unsigned int> cluster_sizes;
-	  cluster_sizes.resize(K);
-	  for(auto& c : cluster_sizes)
-	    c = 0;
-
+	  if(thread_running == false)
+	    break; // out from the loop and finish
+	}
+	
+	
 #pragma omp parallel for schedule(auto)
+	for(unsigned int k=0;k<K;k++){
+	  //* 1. Train/optimize linear model for points assigned to this cluster
+	  
+	  std::vector< math::vertex<T> > x, y;
+	  
 	  for(unsigned int i=0;i<datacluster.size();i++){
-	    unsigned int k = 0;
-	    double bestk = 0.0;
-	    auto pk = datacluster[i];
-
-	    for(unsigned int kk=0;kk<pk.size();kk++){
-	      if(pk[kk] > bestk){
-		bestk = pk[kk];
-		k = kk;
+	    const double p = datacluster[i][k];
+	    
+	    if(p >= 0.50){
+	      auto px = T(p)*xdata[i];
+	      auto py = T(p)*ydata[i];
+	      
+	      x.push_back(px);
+	      y.push_back(py);
+	    }
+	  }
+	  
+	  math::vertex<T> sumgrad;
+	  sumgrad.resize(M[k].exportdatasize());
+	  sumgrad.zero();
+	  
+	  
+	  for(unsigned int i=0;i<x.size();i++){
+	    
+	    math::vertex<T> err;
+	    
+	    M[k].calculate(x[i], err);
+	    err -= y[i];
+	    
+	    math::matrix<T> DF, cDF;
+	    
+	    M[k].jacobian(x[i], DF);
+	    cDF.resize(DF.ysize(),DF.xsize());
+	    
+	    for(unsigned int j=0;j<DF.size();j++){
+	      whiteice::math::convert(cDF[j], DF[j]);
+	      cDF[j].fft();
+	    }
+	    
+	    math::vertex<T> ce, cerr;
+	    
+	    ce.resize(err.size());
+	    
+	    for(unsigned int j=0;j<err.size();j++){
+	      whiteice::math::convert(ce[j], err[j]);
+	      ce[j].fft();
+	    }
+	    
+	    cerr.resize(DF.xsize());
+	    cerr.zero();
+	    
+	    for(unsigned int j=0;j<DF.xsize();j++){
+	      auto ctmp = ce;
+	      for(unsigned int k=0;k<DF.ysize();k++){
+		cerr[j] += ctmp[k].circular_convolution(cDF(k,j));
 	      }
 	    }
-
-	    clusterLabels[i] = k;
-
-#pragma omp critical
-	    {
-	      cluster_sizes[k]++;
+	    
+	    T one;
+	    one.zero();
+	    one = T(1.0);
+	    one.fft();
+	    
+	    for(unsigned int j=0;j<cerr.size();j++)
+	    cerr[j].circular_convolution(one);
+	    
+	    err.resize(cerr.size());
+	    
+	    for(unsigned int j=0;j<err.size();j++){
+	      cerr[j].inverse_fft();
+	      for(unsigned int k=0;k<err[j].size();k++)
+		whiteice::math::convert(err[j][k], cerr[j][k]);
 	    }
+	    
+	    const auto& grad = err;
+	    
+	    sumgrad += grad;
 	  }
-
-	  if(verbose){
-	    printf("CLUSTER SIZES:\n");
-	    for(unsigned int k=0;k<K;k++){
-	      printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
+	  
+	  
+	  if(x.size() > 0){
+	    
+	    sumgrad *= T(1.0/x.size());
+	    
+	    math::vertex<T> w;
+	    
+	    M[k].exportdata(w);
+	    
+	    for(unsigned int j=0;j<sumgrad.size();j++){
+	      for(unsigned int k=0;k<sumgrad[0].size();k++){
+		sumgrad[j][k] *= lrate;
+	      }
 	    }
+	    
+	    w -= sumgrad;
+	    
+	    M[k].importdata(w);
+	  }
+	  else{
+	    M[k].randomize();
+	  }
+	  
+	}
+	
+	
+	//* 2. Measure error in each cluster model for each datapoint and 
+	//*    assign datapoints to the cluster with smallest error.
+	
+	// datacluster.clear();
+	
+#pragma omp parallel for schedule(auto)
+	for(unsigned int i=0;i<xdata.size();i++){
+	  
+	  if((whiteice::rng.rand() & 1)) continue; // only 50% of the points are reassigned..
+	  
+	  std::vector<double> errors;
+	  
+	  for(unsigned int k=0;k<K;k++){
+	    
+	    math::vertex<T> delta;
+	    M[k].calculate(xdata[i], delta);
+	    delta -= ydata[i];;
+	    
+	    for(unsigned int i=0;i<delta.size();i++)
+	      delta[i] = T(delta[i][0]);
+	    
+	    auto err = whiteice::math::abs(delta.norm()[0]);
+	    
+	    double e = INFINITY;
+	    whiteice::math::convert(e, err);
+	    
+	    errors.push_back(e);
+	  }
+	  
+	  double sump = 0.0; 
+	  
+	  for(unsigned int i=0;i<errors.size();i++){
+	    if(errors[i] < 100.0) 
+	      errors[i] = whiteice::math::exp(-errors[i]);
+	    else
+	      errors[i] = whiteice::math::exp(-100.0);
+	    
+	    sump += errors[i];
+	  }
+	  
+	  for(unsigned int i=0;i<errors.size();i++){
+	    errors[i] /= sump;
+	  }
+	  
+	  sump = 0.0;
+	  unsigned int bestk = 0;
+	  
+	  double r = whiteice::rng.uniform().c[0];
+	  
+	  for(unsigned int i=0;i<errors.size();i++){
+	    sump += errors[i];
+	    
+	    if(r <= sump){ bestk = i; break; }
+	    
+	    //if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
+	  }
+	  
+	  for(unsigned int i=0;i<errors.size();i++)
+	    errors[i] = 0.0;
+	  
+	  errors[bestk] = 1.0; 
+	  
+	  datacluster[i] = errors;
+	}
+	
+#if 0
+	// reassign points according to the 5 closest points [reassign datapoints based on cluster mean and variance]
+	{
+	  auto cluster = datacluster;
+	  
+	  // datacluster.clear();
+	  
+#pragma omp parallel for schedule(auto)
+	  for(unsigned int i=0;i<xdata.size();i++){
+	    
+	    std::multimap<double, unsigned int> distances;
+	    
+	    for(unsigned int j=0;j<xdata.size();j++){
+	      if(j == i) continue;
+	      
+	      auto delta = xdata[i] - xdata[j];
+	      double d = INFINITY;
+	      
+	      whiteice::math::convert(d, whiteice::math::abs(delta.norm())[0]);
+	      
+	      distances.insert(std::pair<double,unsigned int>(d, j));
+	    }
+	    
+	    std::vector<double> pe;
+	    pe.resize(K);
+	    
+	    auto iter = distances.begin();
+	    unsigned int counter = 0;
+	    double sump = 0.0;
+	    
+	    while(iter != distances.end() && counter < 5){
+	      const auto pk = cluster[iter->second];
+	      
+	      unsigned int k=0;
+	      double bestp = 0.0;
+	      for(unsigned int ii=0;ii<K;ii++){
+		if(pk[ii] > bestp){
+		  k = ii;
+		  bestp = pk[ii];
+		}
+	      }
+	      
+	      
+	      double p = 0.0;
+	      if(iter->first < 100.0)
+		p = whiteice::math::exp(-(iter->first));
+	      else
+		p = whiteice::math::exp(-100.0);
+	      
+	      pe[k] += p;
+	      sump += p;
+	      
+	      iter++;
+	      counter++;
+	    }
+	    
+	    for(unsigned int k=0;k<pe.size();k++)
+	      if(sump) pe[k] /= sump;
+	    
+	    datacluster[i] = pe;
 	  }
 	}
-
-
-	iterations++;
-
-	// converegence detection
+#endif
+	
+	// calculate solution error
+	double error = 0.0;
+	
+#pragma omp parallel shared(error)
 	{
-	  convergence_errors.push_back(currentError);
+	  double ei = 0.0;
 	  
-	  while(convergence_errors.size() > CONV_LIMIT){
-	    convergence_errors.erase(convergence_errors.begin());
-	  }
-
-	  if(convergence_errors.size() >= CONV_LIMIT){
-	    double m = 0.0, s = 0.0;
+#pragma omp for schedule(auto)
+	  for(unsigned int i=0;i<xdata.size();i++){
 	    
-	    for(const auto& c : convergence_errors){
-	      m += fabs(c);
-	      s += c*c;
+	    unsigned int k = 0;
+	    double bestp = 0.0;
+	    
+	    for(unsigned int j=0;j<datacluster[i].size();j++)
+	      if(datacluster[i][j] > bestp){
+		k = j;
+		bestp = datacluster[i][j];
+	      }
+	    
+
+	    math::vertex<T> delta;
+	    M[k].calculate(xdata[i], delta);
+	    delta -= ydata[i];
+	    
+	    double e = INFINITY;
+	    
+	    for(unsigned int i=0;i<delta.size();i++){
+	      delta[i] = T(delta[i][0]);
 	    }
-
-	    // mean and variance of the data
-	    m /= convergence_errors.size();
-	    s /= convergence_errors.size();
-	    s = fabs(s - m*m);
-
-	    // mean estimator st.dev.
-	    s /= convergence_errors.size();
-	    s = whiteice::math::sqrt(s); 
 	    
-	    const double conv = s/(m + 1e-3);
-
-	    // std::cout << "convergence: " << conv << std::endl;
-
-	    if(conv < 0.0001) break; // mean error is 0.01% of the mean value
+	    whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
+	    ei += e;
+	  }
+	  
+#pragma omp critical
+	  {
+	    error += ei;
 	  }
 	}
 	
-
-	if(old_datacluster.size() > 0){
+	// error is error per element in vector
+	error /= xdata.size(); // number of vectors
+	error /= ydata[0].size(); // vector dimensions
+	
+	
+	
+	
+	//* 4. Goto 1 if there were significant changes/no convergence 
+	{
+	  if(error <= currentError)
+	    {
+	      std::lock_guard<std::mutex> lock(solution_mutex);
+	      
+	      model = M;
+	      currentError = error;
+	      
+	      clusterLabels.resize(datacluster.size());
+	      
+	      std::vector<unsigned int> cluster_sizes;
+	      cluster_sizes.resize(K);
+	      for(auto& c : cluster_sizes)
+		c = 0;
+	      
+#pragma omp parallel for schedule(auto)
+	      for(unsigned int i=0;i<datacluster.size();i++){
+		unsigned int k = 0;
+		double bestk = 0.0;
+		auto pk = datacluster[i];
+		
+		for(unsigned int kk=0;kk<pk.size();kk++){
+		  if(pk[kk] > bestk){
+		    bestk = pk[kk];
+		    k = kk;
+		  }
+		}
+		
+		clusterLabels[i] = k;
+		
+#pragma omp critical
+		{
+		  cluster_sizes[k]++;
+		}
+	      }
+	      
+	      if(verbose){
+		printf("CLUSTER SIZES:\n");
+		for(unsigned int k=0;k<K;k++){
+		  printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
+		}
+	      }
+	    }
 	  
-	  double changes = 0.0;
 	  
-	  for(unsigned int i=0;i<datacluster.size();i++){
-	    for(unsigned int k=0;k<K;k++){
-	      changes += whiteice::math::abs(datacluster[i][k]-old_datacluster[i][k]);
+	  iterations++;
+	  
+	  // converegence detection
+	  {
+	    convergence_errors.push_back(currentError);
+	    
+	    while(convergence_errors.size() > CONV_LIMIT){
+	      convergence_errors.erase(convergence_errors.begin());
+	    }
+	    
+	    if(convergence_errors.size() >= CONV_LIMIT){
+	      double m = 0.0, s = 0.0;
+	      
+	      for(const auto& c : convergence_errors){
+		m += fabs(c);
+		s += c*c;
+	      }
+	      
+	      // mean and variance of the data
+	      m /= convergence_errors.size();
+	      s /= convergence_errors.size();
+	      s = fabs(s - m*m);
+	      
+	      // mean estimator st.dev.
+	      s /= convergence_errors.size();
+	      s = whiteice::math::sqrt(s); 
+	      
+	      const double conv = s/(m + 1e-3);
+	      
+	      // std::cout << "convergence: " << conv << std::endl;
+	      
+	      if(conv < 0.0001) break; // mean error is 0.01% of the mean value
 	    }
 	  }
-
-	  changes /= datacluster.size();
+	  
+	  
+	  if(old_datacluster.size() > 0){
+	    
+	    double changes = 0.0;
+	    
+	    for(unsigned int i=0;i<datacluster.size();i++){
+	      for(unsigned int k=0;k<K;k++){
+		changes += whiteice::math::abs(datacluster[i][k]-old_datacluster[i][k]);
+	      }
+	    }
+	    
+	    changes /= datacluster.size();
+	  }
+	  
+	  old_datacluster = datacluster;
 	}
-
-	old_datacluster = datacluster;
+      }
+      
+      
+      {
+	if(thread_running){
+	  std::lock_guard<std::mutex> lock(thread_mutex);
+	  thread_running = false;
+	}
       }
     }
-
-
-    {
-      if(thread_running){
-	std::lock_guard<std::mutex> lock(thread_mutex);
-	thread_running = false;
-      }
+    catch(std::bad_alloc& e){
+      std::cout << "ERROR: LinearKCluster optimizer out of memory: " << e.what() << "." << std::endl;
+      thread_running = false;
+      this->K = 0;
+      xdata.clear();
+      ydata.clear();
+      model.clear();
+    }
+    catch(std::exception& e){
+      std::cout << "ERROR: LinearKCluster exception: " << e.what() << "." << std::endl;
+      thread_running = false;
+      this->K = 0;
+      xdata.clear();
+      ydata.clear();
+      model.clear();
     }
   }
 
