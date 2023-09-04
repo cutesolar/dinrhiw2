@@ -53,62 +53,73 @@ namespace whiteice
 				     const std::vector< math::vertex<T> >& ydata,
 				     const unsigned int K)
   {
-    if(xdata.size() == 0 ||  ydata.size() == 0) return false;
-    if(xdata.size() != ydata.size()) return false;
-    if(K > xdata.size()) return false;
-
-    std::lock_guard<std::mutex> lock(thread_mutex);
-
-    if(thread_running) return false;
-
-    {
-      std::lock_guard<std::mutex> lock(solution_mutex);
-      this->K = 0;
-      this->model.clear();
-      currentError = (double)(INFINITY);
-      clusterLabels.clear();
-
-      // selects at most 10.000 datapoints
+    try{
+      if(xdata.size() == 0 ||  ydata.size() == 0) return false;
+      if(xdata.size() != ydata.size()) return false;
+      if(K > xdata.size()) return false;
+      
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      
+      if(thread_running) return false;
+      
       {
-	const unsigned int MAXNUMBER = 5000;
+	std::lock_guard<std::mutex> lock(solution_mutex);
+	this->K = 0;
+	this->model.clear();
+	currentError = (double)(INFINITY);
+	clusterLabels.clear();
 	
-	if(xdata.size() <= MAXNUMBER){
-	  this->xdata = xdata;
-	  this->ydata = ydata;
-	}
-	else{
-	  this->xdata.clear();
-	  this->ydata.clear();
-
-	  while(this->xdata.size() < MAXNUMBER){
-	    const unsigned int index = whiteice::rng.rand() % xdata.size();
-	    this->xdata.push_back(xdata[index]);
-	    this->ydata.push_back(ydata[index]);
+	// selects at most 10.000 datapoints
+	{
+	  const unsigned int MAXNUMBER = 5000;
+	  
+	  if(xdata.size() <= MAXNUMBER){
+	    this->xdata = xdata;
+	    this->ydata = ydata;
+	  }
+	  else{
+	    this->xdata.clear();
+	    this->ydata.clear();
+	    
+	    while(this->xdata.size() < MAXNUMBER){
+	      const unsigned int index = whiteice::rng.rand() % xdata.size();
+	      this->xdata.push_back(xdata[index]);
+	      this->ydata.push_back(ydata[index]);
+	    }
 	  }
 	}
+	
+	
+	if(K == 0){
+	  this->K = this->xdata.size()/50;
+	  if(this->K == 0) this->K = 2;
+	  
+	  std::cout << "Using K=" << this->K << " cluster(s) in optimization." << std::endl;
+	}
       }
-
-
-      if(K == 0){
-	this->K = this->xdata.size()/50;
-	if(this->K == 0) this->K = 2;
-
-	std::cout << "Using K=" << this->K << " cluster(s) in optimization." << std::endl;
+      
+      thread_running = true;
+      
+      try{
+	if(optimizer_thread){ delete optimizer_thread; optimizer_thread = nullptr; }
+	optimizer_thread = new std::thread(std::bind(&LinearKCluster<T>::optimizer_loop, this));
+      }
+      catch(std::exception& e){
+	thread_running = false;
+	optimizer_thread = nullptr;
+	return false;
       }
     }
-
-    thread_running = true;
-
-    try{
-      if(optimizer_thread){ delete optimizer_thread; optimizer_thread = nullptr; }
-      optimizer_thread = new std::thread(std::bind(&LinearKCluster<T>::optimizer_loop, this));
-    }
-    catch(std::exception& e){
+    catch(std::bad_alloc& e){
       thread_running = false;
       optimizer_thread = nullptr;
+      this->xdata.clear();
+      this->ydata.clear();
+      this->K = 0;
+
       return false;
     }
-    
+      
     return true;
     
   }
