@@ -39,7 +39,11 @@ namespace whiteice
   
 };
 
-
+namespace whiteice
+{
+  extern template class rUHMC< math::blas_real<float> >;
+  extern template class rUHMC< math::blas_real<double> >;
+};
 
 
 #endif

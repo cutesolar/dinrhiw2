@@ -79,7 +79,7 @@ namespace whiteice
 	    //whiteice::math::convert(length, range[1]);
 	    
 	    input.zero();
-	    unsigned int i = rng.rand() % (this->data.size());
+	    unsigned int i = rng.rand() % (this->data.size(0));
 	    
 	    // recurrency: feebacks output back to inputs and
 	    //             calculates error
@@ -109,7 +109,7 @@ namespace whiteice
 	      esum += T(0.5f)*(err*err)[0];
 
 	      i++;
-	      i = i % (this->data.size());
+	      i = i % (this->data.size(0));
 	    }
 	    
 	  }
@@ -534,7 +534,7 @@ namespace whiteice
       T ei = T(0.0);
 
 #pragma omp for nowait schedule(auto)
-      for(int i = this->samples.size()-latestN;i<this->samples.size();i++){
+      for(unsigned int i = this->samples.size()-latestN;i<this->samples.size();i++){
 	ei += this->U(this->samples[i], false);
       }
 
@@ -550,4 +550,11 @@ namespace whiteice
   }
   
   
+};
+
+
+namespace whiteice
+{
+  template class rUHMC< math::blas_real<float> >;
+  template class rUHMC< math::blas_real<double> >;
 };
