@@ -636,14 +636,21 @@ namespace whiteice
 	    
 	    errors.push_back(e);
 	  }
+
+	  double mean_errors = 0.0;
 	  
-	  double sump = 0.0; 
+	  for(const auto& e : errors)
+	    mean_errors += e;
 	  
+	  mean_errors /= errors.size();
+	  
+	  double sump = 0.0;
+
 	  for(unsigned int i=0;i<errors.size();i++){
-	    if(errors[i] < 100.0) 
-	      errors[i] = whiteice::math::exp(-errors[i]);
+	    if((errors[i]-mean_errors) < 500.0) 
+	      errors[i] = whiteice::math::exp(-(errors[i]-mean_errors));
 	    else
-	      errors[i] = whiteice::math::exp(-100.0);
+	      errors[i] = whiteice::math::exp(-500.0);
 	    
 	    sump += errors[i];
 	  }
