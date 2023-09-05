@@ -379,7 +379,7 @@ namespace whiteice
   void LinearKCluster<T>::optimizer_loop()
   {
     try{
-      if(thread_running == false) return;
+      if(thread_running == false || K == 0) return;
       
       {
 	std::lock_guard<std::mutex> lock(solution_mutex);
@@ -467,8 +467,8 @@ namespace whiteice
 	  delta -= ydata[i];
 	  
 	  // keeps only real part of the error
-	  for(unsigned int i=0;i<delta.size();i++){
-	    delta[i] = T(delta[i][0]);
+	  for(unsigned int n=0;n<delta.size();n++){
+	    delta[n] = T(delta[n][0]);
 	  }
 	  
 	  double e = INFINITY;
@@ -512,8 +512,8 @@ namespace whiteice
 	    const double p = datacluster[i][k];
 	    
 	    if(p >= 0.50){
-	      auto px = T(p)*xdata[i];
-	      auto py = T(p)*ydata[i];
+	      auto px = xdata[i];
+	      auto py = ydata[i];
 	      
 	      x.push_back(px);
 	      y.push_back(py);
@@ -535,6 +535,7 @@ namespace whiteice
 	    math::matrix<T> DF, cDF;
 	    
 	    M[k].jacobian(x[i], DF);
+	    DF.conj(); // ADDED..
 	    cDF.resize(DF.ysize(),DF.xsize());
 	    
 	    for(unsigned int j=0;j<DF.size();j++){
@@ -556,8 +557,8 @@ namespace whiteice
 	    
 	    for(unsigned int j=0;j<DF.xsize();j++){
 	      auto ctmp = ce;
-	      for(unsigned int k=0;k<DF.ysize();k++){
-		cerr[j] += ctmp[k].circular_convolution(cDF(k,j));
+	      for(unsigned int l=0;l<DF.ysize();l++){
+		cerr[j] += ctmp[l].circular_convolution(cDF(l,j));
 	      }
 	    }
 	    
@@ -573,8 +574,8 @@ namespace whiteice
 	    
 	    for(unsigned int j=0;j<err.size();j++){
 	      cerr[j].inverse_fft();
-	      for(unsigned int k=0;k<err[j].size();k++)
-		whiteice::math::convert(err[j][k], cerr[j][k]);
+	      for(unsigned int l=0;l<err[j].size();l++)
+		whiteice::math::convert(err[j][l], cerr[j][l]);
 	    }
 	    
 	    const auto& grad = err;
@@ -585,17 +586,11 @@ namespace whiteice
 	  
 	  if(x.size() > 0){
 	    
-	    sumgrad *= T(1.0/x.size());
+	    sumgrad *= T(lrate/((double)x.size()));
 	    
 	    math::vertex<T> w;
 	    
 	    M[k].exportdata(w);
-	    
-	    for(unsigned int j=0;j<sumgrad.size();j++){
-	      for(unsigned int k=0;k<sumgrad[0].size();k++){
-		sumgrad[j][k] *= lrate;
-	      }
-	    }
 	    
 	    w -= sumgrad;
 	    
@@ -647,10 +642,10 @@ namespace whiteice
 	  double sump = 0.0;
 
 	  for(unsigned int i=0;i<errors.size();i++){
-	    if((errors[i]-mean_errors) < 500.0) 
+	    if((errors[i]-mean_errors) < 100.0) 
 	      errors[i] = whiteice::math::exp(-(errors[i]-mean_errors));
 	    else
-	      errors[i] = whiteice::math::exp(-500.0);
+	      errors[i] = whiteice::math::exp(-100.0);
 	    
 	    sump += errors[i];
 	  }
