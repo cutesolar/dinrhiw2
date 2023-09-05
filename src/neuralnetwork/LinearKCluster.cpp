@@ -375,6 +375,48 @@ namespace whiteice
     return true;
   }
 
+
+  template <typename T>
+  double LinearKCluster<T>::calculateError(const std::vector< math::vertex<T> >& x,
+					   const std::vector< math::vertex<T> >& y,
+					   const whiteice::nnetwork<T>& model) const
+  {
+    double error = 0.0;
+    
+#pragma omp parallel shared(error)
+    {
+      double ei = 0.0;
+      
+#pragma omp for schedule(auto)
+      for(unsigned int i=0;i<x.size();i++){
+	math::vertex<T> delta;
+	  
+	model.calculate(x[i], delta);
+	delta -= y[i];
+	
+	// keeps only real part of the error
+	for(unsigned int n=0;n<delta.size();n++){
+	  delta[n] = T(delta[n][0]);
+	}
+	
+	double e = INFINITY;
+	whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
+	ei += e;
+      }
+      
+#pragma omp critical
+      {
+	error += ei;
+      }
+    }
+    
+    error /= x.size();
+    error /= y[0].size();
+
+    return error;
+  }
+  
+
   template <typename T> 
   void LinearKCluster<T>::optimizer_loop()
   {
@@ -492,7 +534,7 @@ namespace whiteice
       const unsigned int CONV_LIMIT = 30;
       std::vector<double> convergence_errors;
       
-      const double lrate = 0.01; // FIXME constant lrate..
+      
       
       while(true){
 	
@@ -585,16 +627,40 @@ namespace whiteice
 	  
 	  
 	  if(x.size() > 0){
+
+	    sumgrad *= T(1.0/((double)x.size()));
+
+	    auto err0 = calculateError(x, y, M[k]);
+	    auto m = M[k];
+
+	    double lrate = 0.01;
+	    unsigned int counter = 0;
+
+	    while(counter <= 30){
+	      auto grad = sumgrad*T(lrate);
 	    
-	    sumgrad *= T(lrate/((double)x.size()));
+	      math::vertex<T> w;
+	      
+	      M[k].exportdata(w);
+	      
+	      w -= grad;
 	    
-	    math::vertex<T> w;
+	      m.importdata(w);
+
+	      auto err = calculateError(x, y, m);
+
+	      if(err < err0){
+		M[k] = m;
+		break;
+	      }
+	      else{
+		lrate /= 2.0;
+		counter++;
+	      }
+	    }
+
+	    // does nothing if counter has reached maximum value
 	    
-	    M[k].exportdata(w);
-	    
-	    w -= sumgrad;
-	    
-	    M[k].importdata(w);
 	  }
 	  else{
 	    M[k].randomize();

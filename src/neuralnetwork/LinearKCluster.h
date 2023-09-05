@@ -53,6 +53,11 @@ namespace whiteice
     
   protected:
 
+    double calculateError(const std::vector< math::vertex<T> >& x,
+			  const std::vector< math::vertex<T> >& y,
+			  const whiteice::nnetwork<T>& model) const;
+
+    
     const bool verbose = false; // whether to print debugging messages. 
 
     nnetwork<T> architecture;
