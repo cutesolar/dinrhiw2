@@ -276,21 +276,35 @@ namespace whiteice
 	for(unsigned int i=0;i<pca.size();i++)
 	  eigenvalues[i] = T(0.0f);
 	
-	
-	for(const auto& di : data){
-	  delta = (di - m);
+#pragma omp parallel
+	{
+	  std::vector<T> e;
+	  e.resize(eigenvalues.size());
+	  for(auto& ei : e) ei = T(0.0f);
 
-	  for(unsigned int i=0;i<pca.size();i++){
-	    const auto& p = pca[i];
-	    auto cp = p;
-	    auto cdelta = delta;
-	    cp.conj();
-	    cdelta.conj();
+#pragma omp for schedule(auto) nowait
+	  for(unsigned int d=0;d<data.size();d++){
+	    const auto& di = data[d];
+	    delta = (di - m);
 	    
-	    //auto squared = p*delta;
-	    //eigenvalues[i] += (squared*squared)[0];
+	    for(unsigned int i=0;i<pca.size();i++){
+	      const auto& p = pca[i];
+	      auto cp = p;
+	      auto cdelta = delta;
+	      cp.conj();
+	      cdelta.conj();
+	      
+	      //auto squared = p*delta;
+	      //eigenvalues[i] += (squared*squared)[0];
+	      
+	      e[i] += ((cp*delta)*(cdelta*p))[0];
+	    }
+	  }
 
-	    eigenvalues[i] += ((cp*delta)*(cdelta*p))[0];
+#pragma omp critical
+	  {
+	    for(unsigned int i=0;i<eigenvalues.size();i++)
+	      eigenvalues[i] += e[i];
 	  }
 	}
 
