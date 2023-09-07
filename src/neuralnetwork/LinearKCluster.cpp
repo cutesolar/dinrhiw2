@@ -440,31 +440,10 @@ namespace whiteice
 	currentError = INFINITY;
       }
       
-      std::vector< std::vector<double> > datacluster, old_datacluster;
+      std::vector< unsigned int> datacluster;
       
       for(unsigned int i=0;i<xdata.size();i++){
-	std::vector<double> px;
-	px.resize(K);
-	double sump = (0.0f);
-	
-	for(unsigned int k=0;k<px.size();k++){
-	  px[k] = (double)(rng.uniform().c[0]); // random assignment
-	  sump += px[k];
-	}
-	
-	double bestp = 0.0;
-	unsigned int bestk = 0;
-	
-	for(unsigned int k=0;k<px.size();k++){
-	  if(sump) px[k] /= sump;
-	  if(px[k] > bestp){ bestp = px[k]; bestk = k;}
-	  px[k]= 0.0;
-	}
-	
-	px[bestk] = 1.0;
-	
-	
-	datacluster.push_back(px);
+	datacluster.push_back(rng.rand() % this->K);
       }
       
       // local copy of solutions
@@ -492,16 +471,7 @@ namespace whiteice
 #pragma omp for schedule(auto)
 	for(unsigned int i=0;i<xdata.size();i++){
 	  
-	  const auto& pe = datacluster[i];
-	  
-	  double bestp = 0.0;
-	  unsigned int bestk = 0;
-	  
-	  for(unsigned int k=0;k<pe.size();k++){
-	    if(pe[k] > bestp){ bestp = pe[k]; bestk = k;}
-	  }
-	  
-	  const unsigned int k = bestk;
+	  const unsigned int k = datacluster[i];
 	  
 	  math::vertex<T> delta;
 	  
@@ -525,6 +495,7 @@ namespace whiteice
       }
       
       error /= xdata.size();
+      error /= ydata[0].size();
       
       if(verbose) std::cout << "INITIAL ERROR: " << error << std::endl;
       
@@ -551,14 +522,9 @@ namespace whiteice
 	  std::vector< math::vertex<T> > x, y;
 	  
 	  for(unsigned int i=0;i<datacluster.size();i++){
-	    const double p = datacluster[i][k];
-	    
-	    if(p >= 0.50){
-	      auto px = xdata[i];
-	      auto py = ydata[i];
-	      
-	      x.push_back(px);
-	      y.push_back(py);
+	    if(datacluster[i] == k){
+	      x.push_back(xdata[i]);
+	      y.push_back(ydata[i]);
 	    }
 	  }
 	  
@@ -665,6 +631,9 @@ namespace whiteice
 	  else{
 	    M[k].randomize();
 	  }
+
+	  x.clear();
+	  y.clear();
 	  
 	}
 	
@@ -733,77 +702,8 @@ namespace whiteice
 	    //if(errors[i] > bestp){ bestp = errors[i]; bestk = i; }
 	  }
 	  
-	  for(unsigned int i=0;i<errors.size();i++)
-	    errors[i] = 0.0;
-	  
-	  errors[bestk] = 1.0; 
-	  
-	  datacluster[i] = errors;
+	  datacluster[i] = bestk;
 	}
-	
-#if 0
-	// reassign points according to the 5 closest points [reassign datapoints based on cluster mean and variance]
-	{
-	  auto cluster = datacluster;
-	  
-	  // datacluster.clear();
-	  
-#pragma omp parallel for schedule(auto)
-	  for(unsigned int i=0;i<xdata.size();i++){
-	    
-	    std::multimap<double, unsigned int> distances;
-	    
-	    for(unsigned int j=0;j<xdata.size();j++){
-	      if(j == i) continue;
-	      
-	      auto delta = xdata[i] - xdata[j];
-	      double d = INFINITY;
-	      
-	      whiteice::math::convert(d, whiteice::math::abs(delta.norm())[0]);
-	      
-	      distances.insert(std::pair<double,unsigned int>(d, j));
-	    }
-	    
-	    std::vector<double> pe;
-	    pe.resize(K);
-	    
-	    auto iter = distances.begin();
-	    unsigned int counter = 0;
-	    double sump = 0.0;
-	    
-	    while(iter != distances.end() && counter < 5){
-	      const auto pk = cluster[iter->second];
-	      
-	      unsigned int k=0;
-	      double bestp = 0.0;
-	      for(unsigned int ii=0;ii<K;ii++){
-		if(pk[ii] > bestp){
-		  k = ii;
-		  bestp = pk[ii];
-		}
-	      }
-	      
-	      
-	      double p = 0.0;
-	      if(iter->first < 100.0)
-		p = whiteice::math::exp(-(iter->first));
-	      else
-		p = whiteice::math::exp(-100.0);
-	      
-	      pe[k] += p;
-	      sump += p;
-	      
-	      iter++;
-	      counter++;
-	    }
-	    
-	    for(unsigned int k=0;k<pe.size();k++)
-	      if(sump) pe[k] /= sump;
-	    
-	    datacluster[i] = pe;
-	  }
-	}
-#endif
 	
 	// calculate solution error
 	double error = 0.0;
@@ -815,15 +715,7 @@ namespace whiteice
 #pragma omp for schedule(auto)
 	  for(unsigned int i=0;i<xdata.size();i++){
 	    
-	    unsigned int k = 0;
-	    double bestp = 0.0;
-	    
-	    for(unsigned int j=0;j<datacluster[i].size();j++)
-	      if(datacluster[i][j] > bestp){
-		k = j;
-		bestp = datacluster[i][j];
-	      }
-	    
+	    const unsigned int k = datacluster[i];
 
 	    math::vertex<T> delta;
 	    M[k].calculate(xdata[i], delta);
@@ -860,41 +752,7 @@ namespace whiteice
 	      
 	      model = M;
 	      currentError = error;
-	      
-	      clusterLabels.resize(datacluster.size());
-	      
-	      std::vector<unsigned int> cluster_sizes;
-	      cluster_sizes.resize(K);
-	      for(auto& c : cluster_sizes)
-		c = 0;
-	      
-#pragma omp parallel for schedule(auto)
-	      for(unsigned int i=0;i<datacluster.size();i++){
-		unsigned int k = 0;
-		double bestk = 0.0;
-		auto pk = datacluster[i];
-		
-		for(unsigned int kk=0;kk<pk.size();kk++){
-		  if(pk[kk] > bestk){
-		    bestk = pk[kk];
-		    k = kk;
-		  }
-		}
-		
-		clusterLabels[i] = k;
-		
-#pragma omp critical
-		{
-		  cluster_sizes[k]++;
-		}
-	      }
-	      
-	      if(verbose){
-		printf("CLUSTER SIZES:\n");
-		for(unsigned int k=0;k<K;k++){
-		  printf("cluster %d = %d datapoints\n", k, cluster_sizes[k]);
-		}
-	      }
+	      clusterLabels = datacluster;
 	    }
 	  
 	  
@@ -933,22 +791,8 @@ namespace whiteice
 	    }
 	  }
 	  
-	  
-	  if(old_datacluster.size() > 0){
-	    
-	    double changes = 0.0;
-	    
-	    for(unsigned int i=0;i<datacluster.size();i++){
-	      for(unsigned int k=0;k<K;k++){
-		changes += whiteice::math::abs(datacluster[i][k]-old_datacluster[i][k]);
-	      }
-	    }
-	    
-	    changes /= datacluster.size();
-	  }
-	  
-	  old_datacluster = datacluster;
 	}
+	
       }
       
       
