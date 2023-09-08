@@ -863,7 +863,7 @@ namespace whiteice
 	    var *= extra;
 
 	    // scales higher dimensions in superresolutional numbers to be smaller..
-	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float alpha = 1.0f; // SUPERRESOLUTION_METRIC_SCALING_FACTOR;
 	    float factor = 1.0f;
 	    
 	    for(unsigned int k=0;k<W[l][i].size();k++){
@@ -913,7 +913,7 @@ namespace whiteice
 	    var *= extra;
 
 	    // scales higher dimensions in superresolutional numbers to be smaller..
-	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float alpha = 1.0f; // SUPERRESOLUTION_METRIC_SCALING_FACTOR;
 	    float factor = 1.0f;
 
 	    for(unsigned int k=0;k<b[l][i].size();k++){
