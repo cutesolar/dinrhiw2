@@ -2444,14 +2444,14 @@ namespace whiteice
       {
 	T output = input;
 
-	output.fft();
+	//output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
+	  if(input[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 
-	output.inverse_fft();
+	//output.inverse_fft();
 
 	
 	if(batchnorm && layer != getLayers()-1){
@@ -2835,16 +2835,16 @@ namespace whiteice
       {
 	T output = input;
 
-	output.fft();
+	//output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
+	  if(input[0].real() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
 	}
 
-	output.inverse_fft();
+	//output.inverse_fft();
 
 	
 	if(batchnorm && layer != getLayers()-1){
@@ -3131,14 +3131,14 @@ namespace whiteice
       {
 	T output = input;
 
-	output.fft();
+	//output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
+	  if(input[0].real() < 0.0f)
 	    output[i] *= RELUcoef;
 	}
 
-	output.inverse_fft();
+	//output.inverse_fft();
 
 	
 	if(batchnorm && layer != getLayers()-1){
@@ -3450,16 +3450,16 @@ namespace whiteice
       {
 	T output = input;
 
-	output.fft();
+	//output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
+	  if(input[0].real() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
 	}
 
-	output.inverse_fft();
+	//output.inverse_fft();
 
 
 	if(batchnorm && layer != getLayers()-1){
@@ -3585,14 +3585,14 @@ namespace whiteice
 				  whiteice::math::blas_complex<double>,
 				  whiteice::math::modular<unsigned int> >))
       {
-	output.fft();
+	//output.fft();
 
 	for(unsigned int i=0;i<output.size();i++){
-	  if(input[0].real() < 0.0f || input[0].imag() < 0.0f)
+	  if(input[0].real() < 0.0f)
 	    output[i] /= RELUcoef;
 	}
 
-	output.inverse_fft();
+	//output.inverse_fft();
 
 	for(unsigned int i=0;i<output.size();i++){
 	  if(output[i].real() < -10.0f) output[i] = -10.0f;
