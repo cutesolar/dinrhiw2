@@ -677,10 +677,12 @@ namespace whiteice
 	  double sump = 0.0;
 
 	  for(unsigned int i=0;i<errors.size();i++){
-	    if((errors[i]-mean_errors) < 100.0) 
+	    if((errors[i]-mean_errors) < 600.0 && (errors[i]-mean_errors) > -600.0) 
 	      errors[i] = whiteice::math::exp(-(errors[i]-mean_errors));
+	    else if((errors[i]-mean_errors) < -600.0)
+	      errors[i] = whiteice::math::exp(600.0);
 	    else
-	      errors[i] = whiteice::math::exp(-100.0);
+	      errors[i] = whiteice::math::exp(-600.0);
 	    
 	    sump += errors[i];
 	  }
