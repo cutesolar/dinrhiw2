@@ -269,8 +269,6 @@ namespace whiteice
       }
       else{ // no Cxx, need to estimate from the data
 
-	auto delta = m;
-	
 	eigenvalues.resize(pca.size());
 	
 	for(unsigned int i=0;i<pca.size();i++)
@@ -278,6 +276,8 @@ namespace whiteice
 	
 #pragma omp parallel
 	{
+	  auto delta = m;
+	  
 	  std::vector<T> e;
 	  e.resize(eigenvalues.size());
 	  for(auto& ei : e) ei = T(0.0f);
