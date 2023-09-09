@@ -394,7 +394,7 @@ void RNG<T>::cpuid(unsigned int leaf, unsigned int subleaf, unsigned int regs[4]
 
   // template and constant class
 
-  class RNG< whiteice::math::blas_real<float> > rng(false); // DON'T USE HARDWARE RNG (SLOW)
+  class RNG< whiteice::math::blas_real<float> > rng(true); // DON'T USE HARDWARE RNG (SLOW) [software is not necessarily thread-safe!]
   
   template class RNG< float >;
   template class RNG< double >;

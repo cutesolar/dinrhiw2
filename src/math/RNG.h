@@ -1,6 +1,8 @@
 /*
  * RNG.h
  *
+ * NOTE: with pseudorandom number generator, RNG may not be thread-safe!
+ *
  *  Created on: 28.6.2015
  *      Author: Tomas Ukkonen
  */
