@@ -2,7 +2,9 @@
 #include "fastpca.h"
 #include "correlation.h"
 #include "linear_ETA.h"
+#include "RNG.h"
 
+using namespace whiteice;
 
 
 namespace whiteice
@@ -76,8 +78,8 @@ namespace whiteice
 	  for(unsigned int i=0;i<g.size();i++){
 	    for(unsigned int j=0;j<g[i].size();j++){
 	      for(unsigned int k=0;k<g[i][j].size();k++){
-		gprev[i][j][k] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-		g[i][j][k] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+		gprev[i][j][k] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
+		g[i][j][k] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
 	      }
 	    }
 	  }
@@ -88,16 +90,16 @@ namespace whiteice
 
 	  for(unsigned int i=0;i<g.size();i++){
 	    for(unsigned int j=0;j<g[i].size();j++){
-	      gprev[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	      g[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	      gprev[i][j] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
+	      g[i][j] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
 	    }
 	  }
 	  
 	}
 	else{
 	  for(unsigned int i=0;i<g.size();i++){
-	    gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	    g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    gprev[i] = T((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
+	    g[i] = T((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
 	  }
 	}
 	
@@ -206,7 +208,7 @@ namespace whiteice
 	    iters++;
 	    
 	    if(iters > 10){
-	      if(convergence[0].real() < epsilon[0].real() || iters >= 2000)
+	      if(convergence[0].real() < epsilon[0].real() || iters >= 250)
 		break;
 	    }
 
@@ -224,7 +226,7 @@ namespace whiteice
 	    iters++;
 	    
 	    if(iters > 10){
-	      if(convergence < epsilon || iters >= 2000)
+	      if(convergence < epsilon || iters >= 250)
 		break;
 	    }
 	    
@@ -232,7 +234,7 @@ namespace whiteice
 	}
 
 	
-	if(iters >= 2000)
+	if(iters >= 250)
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 	
 	pca.push_back(g);
@@ -408,16 +410,16 @@ namespace whiteice
 	  
 	  for(unsigned int i=0;i<g.size();i++){
 	    for(unsigned int j=0;j<g[i].size();j++){
-	      gprev[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	      g[i][j] = (2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	      gprev[i][j] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
+	      g[i][j] = ((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
 	    }
 	  }
 	  
 	}
 	else{
 	  for(unsigned int i=0;i<g.size();i++){
-	    gprev[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
-	    g[i] = T(2.0f*(float)rand()/((float)RAND_MAX) - 1.0f); // [-1,1]
+	    gprev[i] = T((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
+	    g[i] = T((2.0f*rng.uniform().c[0]) - 1.0f); // [-1,1]
 	  }
 	}
 	
@@ -504,13 +506,13 @@ namespace whiteice
 	  iters++;
 
 	  if(iters > 10){
-	    if(convergence[0].real() < epsilon[0].real() || iters >= 2000)
+	    if(convergence[0].real() < epsilon[0].real() || iters >= 250)
 	      break;
 	  }
 	}
 	
 	
-	if(iters >= 2000)
+	if(iters >= 250)
 	  std::cout << "WARN: fastpca maximum number of iterations reached without convergence." << std::endl;
 
 	// calculate variance of the found component [
