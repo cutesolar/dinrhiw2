@@ -10,10 +10,14 @@
 #include <time.h>
 
 #include "AssociationRuleFinder.h"
+#include "FrequentSetsFinder.h"
 #include "list_source.h"
+#include "RNG.h"
 
 
 void test_associationrulefinder();
+
+void test_frequent_sets();
 
 
 using namespace whiteice;
@@ -25,9 +29,45 @@ int main()
   
   srand(time(0));
   
-  test_associationrulefinder();
+  // test_associationrulefinder();
+
+  test_frequent_sets();
   
   return 0;
+}
+
+
+void test_frequent_sets()
+{
+  printf("TEST FREQUENT SETS FINDER\n");
+
+  std::vector<dynamic_bitset> data;
+  list_source<dynamic_bitset>* source;
+
+  datamining::FrequentSetsFinder* fsfinder;
+  std::vector<dynamic_bitset> fset;
+
+  for(unsigned int i=0;i<5000;i++){
+    dynamic_bitset x;
+    x.resize(10);
+
+    for(unsigned int i=0;i<x.size();i++)
+      x.set(i, (bool)(rng.rand()&1));
+
+    data.push_back(x);
+  }
+
+  source = new list_source<dynamic_bitset>(data);
+  fsfinder = new datamining::FrequentSetsFinder(*source, fset, 0.10);
+
+  fsfinder->find();
+
+  std::cout << "Frequent sets found: " << fset.size() << std::endl;
+
+  for(unsigned int i=0;i<fset.size();i++){
+    std::cout << fset[i] << std::endl;
+  }
+  
 }
 
 
