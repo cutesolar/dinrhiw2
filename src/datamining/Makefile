@@ -9,7 +9,7 @@ CFLAGS += $(OPTIMIZE) -Wall -g -I. -I.. -I../../ -I../neuralnetwork -I../math -I
 CXXFLAGS += $(CFLAGS) -I@atlas_headerpath@
 
 
-OBJECTS = AssociationRuleFinder.o FrequentSetsFinder.o test/tst.o
+OBJECTS = AssociationRuleFinder.o FrequentSetsFinder.o discretize.o test/tst.o
 
 EXTRA_OBJECTS = ../dynamic_bitset.o ../timed_boolean.o ../Log.o ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
