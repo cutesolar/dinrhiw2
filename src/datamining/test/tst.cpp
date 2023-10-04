@@ -103,7 +103,7 @@ void test_enrich_data()
 
   std::vector< std::vector<double> > results;
 
-  if(whiteice::enrich_data(bindata, results, 0.05) == false){
+  if(whiteice::enrich_data(bindata, results, 0.01) == false){
     std::cout << "ERROR 3" << std::endl;
     return;
   }
@@ -112,12 +112,27 @@ void test_enrich_data()
   if(results.size() > 0)
     std::cout << "variables per row: " << results[0].size() << std::endl;
 
-  for(unsigned int i=0;i<100;i++){
+  std::vector<double> counts;
+  counts.resize(results[0].size());
+
+  for(auto& c : counts)
+    c = 0.0;
+
+  for(unsigned int i=0;i<results.size();i++){
     for(unsigned int k=0;k<results[i].size();k++){
       std::cout << (int)results[i][k];
+
+      if(results[i][k]) counts[k]++;
     }
+    
     std::cout << std::endl;
   }
+
+  
+  for(unsigned int k=0;k<counts.size();k++)
+    std::cout << counts[k] << " ";
+  
+  std::cout << std::endl;
 }
 
 
