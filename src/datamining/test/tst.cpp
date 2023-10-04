@@ -12,12 +12,15 @@
 #include "AssociationRuleFinder.h"
 #include "FrequentSetsFinder.h"
 #include "list_source.h"
+#include "discretize.h"
 #include "RNG.h"
 
 
 void test_associationrulefinder();
 
 void test_frequent_sets();
+
+void test_enrich_data();
 
 
 using namespace whiteice;
@@ -31,9 +34,90 @@ int main()
   
   // test_associationrulefinder();
 
-  test_frequent_sets();
+  // test_frequent_sets();
+
+  test_enrich_data();
   
   return 0;
+}
+
+
+void test_enrich_data()
+{
+  printf("TEST DISCRETIZATION\n");
+
+  std::vector< std::vector<std::string> > data;
+  
+  for(unsigned int i=0;i<5000;i++){
+
+    std::vector<std::string> vec;
+    
+    for(unsigned int k=0;k<10;k++){
+      float v = whiteice::rng.normal().c[0];
+      
+      char buffer[80];
+      sprintf(buffer, "%f", v);
+
+      vec.push_back(std::string(buffer));
+    }
+
+    data.push_back(vec);
+  }
+
+
+  std::vector<struct whiteice::discretization> disc;
+
+  if(whiteice::calculate_discretize(data, disc) == false){
+    std::cout << "ERROR 1" << std::endl;
+    return;
+  }
+
+  /*
+  for(unsigned int k=0;k<disc.size();k++){
+    std::cout << "k = " << k << " : " << disc[k].TYPE << std::endl;
+    std::cout << "bins = " << disc[k].bins.size() << std::endl;
+    
+    for(unsigned int l=0;l<disc[k].bins.size();l++){
+      std::cout << disc[k].bins[l] << std::endl;
+    }
+  }
+  */
+
+  std::vector< std::vector<double> > bindata;
+  
+  if(whiteice::binarize(data, disc, bindata) == false){
+    std::cout << "ERROR 2" << std::endl;
+    return;
+  }
+
+  std::cout << "binarized variables: " << bindata[0].size() << std::endl;
+
+  /*
+  for(unsigned int i=0;i<100;i++){
+    for(unsigned int k=0;k<bindata[i].size();k++){
+      std::cout << (int)bindata[i][k];
+    }
+    std::cout << std::endl;
+  }
+  */
+
+  std::vector< std::vector<double> > results;
+
+  if(whiteice::enrich_data(bindata, results, 0.05) == false){
+    std::cout << "ERROR 3" << std::endl;
+    return;
+  }
+
+  std::cout << "rows in dataset: " << results.size() << std::endl;
+  if(results.size() > 0)
+    std::cout << "variables per row: " << results[0].size() << std::endl;
+
+  for(unsigned int i=0;i<100;i++){
+    for(unsigned int k=0;k<results[i].size();k++){
+      std::cout << (int)results[i][k];
+    }
+    std::cout << std::endl;
+  }
 }
 
 

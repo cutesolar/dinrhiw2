@@ -180,9 +180,10 @@ namespace whiteice
       for(const auto& d : data){
 	dynamic_bitset x;
 	x.resize(data[0].size());
+	x.reset();
 	
 	for(unsigned int i=0;i<d.size();i++){
-	  if(d[i]) x.set(i, true);
+	  if(d[i] != 0.0) x.set(i, true);
 	  else x.set(i, false);
 	}
 	
@@ -202,10 +203,12 @@ namespace whiteice
     // extend datasets to all subsets of frequent sets
     std::set<dynamic_bitset> f;
     
+    
     {
       for(unsigned int i=0;i<fset.size();i++){
-	const unsigned int BITS = fset[i].count();
 
+	const unsigned int BITS = fset[i].count();
+	
 	dynamic_bitset b;
 	b.resize(BITS);
 	b.reset();
@@ -248,14 +251,13 @@ namespace whiteice
 
 	for(const auto& b : f){
 
-	  unsigned int counter = 0;
-	  
+	  bool fdata = true;
+
 	  for(unsigned int i=0;i<b.size();i++){
-	    if(b[i] && data[j][i] != 0.0) counter++;
-	    if(b[i] == false && data[j][i] == 0.0) counter++;
+	    if(b[i] && data[j][i] == 0.0){ fdata = false; break; }
 	  }
 
-	  if(counter == b.size()) value.set(index, true);
+	  if(fdata) value.set(index, true);
 	  else value.set(index, false);
 
 	  index++;
