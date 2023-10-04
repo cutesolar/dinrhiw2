@@ -103,7 +103,7 @@ void test_enrich_data()
 
   std::vector< std::vector<double> > results;
 
-  if(whiteice::enrich_data(bindata, results, 0.01) == false){
+  if(whiteice::enrich_data(bindata, results) == false){
     std::cout << "ERROR 3" << std::endl;
     return;
   }

@@ -166,10 +166,14 @@ namespace whiteice
   // creates dataset with frequent sets added as extra-variables
   bool enrich_data(const std::vector< std::vector<double> >& data,
 		   std::vector< std::vector<double> >& result,
-		   const double freq_limit)
+		   double freq_limit)
   {
     if(data.size() == 0) return false;
-    if(freq_limit <= 0.0 || freq_limit >= 1.0) return false;
+    if(freq_limit < 0.0 || freq_limit >= 1.0) return false;
+
+    if(freq_limit == 0.0){
+      freq_limit = 50.0/data.size(); // 50 cases for each variable minimum
+    }
 
     std::vector<dynamic_bitset> fset;
 

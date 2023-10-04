@@ -37,7 +37,7 @@ namespace whiteice
   // creates dataset with frequent sets added as extra-variables
   bool enrich_data(const std::vector< std::vector<double> >& binary_data,
 		   std::vector< std::vector<double> >& result,
-		   const double freq_limit = 0.10);
+		   double freq_limit = 0.00); // 0 = automatic freq limit 
 
 
   
