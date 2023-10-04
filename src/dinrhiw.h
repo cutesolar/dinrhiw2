@@ -27,6 +27,11 @@
 #include "Log.h"
 #include "LoggingInterface.h"
 
+#include "AssociationRuleFinder.h"
+#include "FrequentSetsFinder.h"
+#include "discretize.h"
+
+
 #include "VisualizationInterface.h"
 
 #include "fastpca.h"
