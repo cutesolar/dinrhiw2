@@ -23,6 +23,7 @@ SOURCES = tst/test.cpp tst/pso_main.cpp tst/somtest.cpp tst/gene_main.cpp tst/st
 	SGD_snet.cpp pretrain.cpp \
 	globaloptimum.cpp KMBoosting.cpp WeightingOptimizer.cpp \
 	LinearKCluster.cpp rUHMC.cpp \
+	GeneralKCluster.cpp \
 	DiffEQ_HMC.cpp neuro-diffeqs/diffeqs.cpp neuro-diffeqs/HMC_diffeq.cpp \
 	../math/fastpca.cpp ../math/vertex.cpp ../math/matrix.cpp ../dataset.cpp \
 	../math/modular.cpp ../math/superresolution.cpp ../math/quaternion.cpp \
@@ -45,6 +46,7 @@ OBJECTS= activation_function.o odd_sigmoid.o identity_activation.o multidimensio
 	SGD_snet.o pretrain.o \
 	globaloptimum.o KMBoosting.o WeightingOptimizer.o \
 	LinearKCluster.o rUHMC.o \
+	GeneralKCluster.o \
 	DiffEQ_HMC.o neuro-diffeqs/diffeqs.o neuro-diffeqs/HMC_diffeq.o
 
 EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
@@ -54,7 +56,8 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
-	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o \
+	../datamining/discretize.o ../datamining/FrequentSetsFinder.o ../timed_boolean.o
 
 
 TARGET1_OBJECTS=tst/test.o 
