@@ -88,6 +88,7 @@ namespace whiteice
     
     dynamic_bitset operator~() const; // returns flipped bitset
     bool operator!() const; // returns true if no bits are set (iszero)
+    bool operator<(const dynamic_bitset& rh) const;
     
     // shifts bitset cyclically (pos > 0: left shift, pos < 0: right shift)
     void cyclicshift(int pos) ;

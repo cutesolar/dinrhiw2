@@ -23,14 +23,24 @@ namespace whiteice
     
   };
 
-  
+
+  // calculates discretization of data
   bool calculate_discretize(const std::vector< std::vector<std::string> >& data,
 			    std::vector<struct discretization>& disc);
 
   // discretizes data and creates one-hot-encoding of discrete value in binary
   bool binarize(const std::vector< std::vector<std::string> >& data,
 		const std::vector<struct discretization>& disc,
-		std::vector< std::vector<double> >& result); 
+		std::vector< std::vector<double> >& result);
+
+
+  // creates dataset with frequent sets added as extra-variables
+  bool enrich_data(const std::vector< std::vector<double> >& data,
+		   std::vector< std::vector<double> >& result,
+		   const double freq_limit = 0.10);
+
+
+  
   
 };
 

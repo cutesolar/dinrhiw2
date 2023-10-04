@@ -382,6 +382,15 @@ namespace whiteice
     return copy;
   }
   
+  bool dynamic_bitset::operator<(const dynamic_bitset& rh) const
+  {
+    whiteice::math::integer i, j;
+
+    i = this->to_integer();
+    j = rh.to_integer();
+
+    return (i < j);
+  }
   
 
   dynamic_bitset& dynamic_bitset::set()   // sets all bits

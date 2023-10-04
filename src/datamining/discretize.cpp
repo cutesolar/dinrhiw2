@@ -3,10 +3,15 @@
 
 #include <set>
 
+#include "dynamic_bitset.h"
+#include "FrequentSetsFinder.h"
+#include "list_source.h"
+
+
 
 namespace whiteice
 {
-
+  //////////////////////////////////////////////////////////////////////
 
   bool calculate_discretize(const std::vector< std::vector<std::string> >& data,
 			    std::vector<struct discretization>& disc)
@@ -81,7 +86,10 @@ namespace whiteice
     
     return (disc.size() > 0);
   }
+
   
+  //////////////////////////////////////////////////////////////////////
+
   
   // discretizes data and creates one-hot-encoding of discrete value in binary
   bool binarize(const std::vector< std::vector<std::string> >& data,
@@ -150,5 +158,127 @@ namespace whiteice
     return (result.size() > 0); 
   }
 
+  //////////////////////////////////////////////////////////////////////
+
+  using namespace whiteice;
+
+  
+  // creates dataset with frequent sets added as extra-variables
+  bool enrich_data(const std::vector< std::vector<double> >& data,
+		   std::vector< std::vector<double> >& result,
+		   const double freq_limit)
+  {
+    if(data.size() == 0) return false;
+    if(freq_limit <= 0.0 || freq_limit >= 1.0) return false;
+
+    std::vector<dynamic_bitset> fset;
+
+    // calculates frequent itemsets
+    {
+      std::vector<dynamic_bitset> dbdata;
+      
+      for(const auto& d : data){
+	dynamic_bitset x;
+	x.resize(data[0].size());
+	
+	for(unsigned int i=0;i<d.size();i++){
+	  if(d[i]) x.set(i, true);
+	  else x.set(i, false);
+	}
+	
+	dbdata.push_back(x);
+      }
+      
+      list_source<dynamic_bitset>* source = new list_source<dynamic_bitset>(dbdata);
+      
+      
+      whiteice::datamining::FrequentSetsFinder fsfinder(*source, fset, freq_limit);
+      
+      fsfinder.find();
+
+      delete source;
+    }
+
+    // extend datasets to all subsets of frequent sets
+    std::set<dynamic_bitset> f;
+    
+    {
+      for(unsigned int i=0;i<fset.size();i++){
+	const unsigned int BITS = fset[i].count();
+
+	dynamic_bitset b;
+	b.resize(BITS);
+	b.reset();
+
+	b.inc();
+
+	while(b.none() == false){
+
+	  dynamic_bitset c;
+	  c.resize(fset[i].size());
+	  c.reset();
+
+	  unsigned int k = 0;
+
+	  for(unsigned int l=0;l<fset[i].size();l++){
+	    if(fset[i][l]){
+
+	      if(b[k]) c.set(l, true);
+	      
+	      k++;
+	    }
+	  }
+
+	  f.insert(c);
+
+	  b.inc();
+	}
+	
+      }
+    }
+
+    // generates all frequent itemsets dataset
+    {
+      for(unsigned int j=0;j<data.size();j++){
+	dynamic_bitset value;
+	value.resize(f.size());
+	value.reset();
+
+	unsigned int index = 0;
+
+	for(const auto& b : f){
+
+	  unsigned int counter = 0;
+	  
+	  for(unsigned int i=0;i<b.size();i++){
+	    if(b[i] && data[j][i] != 0.0) counter++;
+	    if(b[i] == false && data[j][i] == 0.0) counter++;
+	  }
+
+	  if(counter == b.size()) value.set(index, true);
+	  else value.set(index, false);
+
+	  index++;
+	}
+
+	// now we have one frequent item
+
+	std::vector<double> r;
+	r.resize(value.size());
+
+	for(unsigned int i=0;i<r.size();i++){
+	  if(value[i]) r[i] = 1.0;
+	  else r[i] = 0.0;
+	}
+
+	result.push_back(r);
+      }
+    }
+    
+    if(result.size() == 0) return false;
+    if(result[0].size() == 0) return false;
+
+    return true;
+  }
   
 };
