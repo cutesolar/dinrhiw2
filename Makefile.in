@@ -19,7 +19,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@/dinrhiw
 
-LIBOBJECTS = src/*.o src/math/*.o src/neuralnetwork/*.o src/crypto/*.o src/hmm/*.o \
+LIBOBJECTS = src/*.o src/math/*.o src/neuralnetwork/*.o src/crypto/*.o src/hmm/*.o src/datamining/*.o \
 	src/math/pocketfft/pocketfft.o \
 	src/reinforcement/*.o src/rnn/*.o src/neuralnetwork/neuro-diffeqs/*.o
 # src/huge_linear/*.o src/huge_linear/FP-growth/src/fptree.o
@@ -58,6 +58,7 @@ depend:
 make_objects:
 	$(CD) src && $(MAKE) all
 	$(CD) src/math && $(MAKE) all
+	$(CD) src/datamining && $(MAKE) all
 	$(CD) src/crypto && $(MAKE) all
 	$(CD) src/neuralnetwork && $(MAKE) all
 	$(CD) src/hmm && $(MAKE) all
@@ -68,6 +69,7 @@ make_objects:
 clean: 
 	$(CD) src && $(MAKE) clean
 	$(CD) src/math && $(MAKE) clean
+	$(CD) src/datamining && $(MAKE) clean
 	$(CD) src/crypto && $(MAKE) clean
 	$(CD) src/neuralnetwork && $(MAKE) clean
 	$(CD) tools && $(MAKE) clean
@@ -82,6 +84,7 @@ realclean: clean removelib
 	$(CD) src/math && $(MAKE) realclean
 	$(CD) src/crypto && $(MAKE) realclean
 	$(CD) src/neuralnetwork && $(MAKE) realclean
+	$(CD) src/datamining && $(MAKE) realclean
 	$(CD) src/hmm && $(MAKE) realclean
 	$(CD) src/reinforcement && $(MAKE) realclean
 	$(CD) src/rnn && $(MAKE) realclean
@@ -119,6 +122,7 @@ makelib:
 	$(CP) src/neuralnetwork/*.h lib/
 	$(CP) src/hmm/*.h lib/
 	$(CP) src/reinforcement/*.h lib/
+	$(CP) src/datamining/*.h lib/
 	$(CP) src/rnn/*.h lib/
 #	$(CP) src/huge_linear/*.h lib/
 	$(CP) config.h lib/

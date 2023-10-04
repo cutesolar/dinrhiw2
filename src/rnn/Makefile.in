@@ -36,7 +36,7 @@ OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
 
 TARGET= testsuite
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../reinforcement -I../crypto $(OPTIMIZE)
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../reinforcement -I../crypto -I../datamining $(OPTIMIZE)
 
 LIBS= @EXTRA_LIBPATHS@ -lgmp @EXTRA_LIBS@
 

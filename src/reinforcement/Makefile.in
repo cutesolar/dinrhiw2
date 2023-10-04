@@ -80,7 +80,7 @@ TARGET4A=testsuite4a
 TARGET5=minihack_test
 TARGET6=minihack2_test
 
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto -I../datamining $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
 
 LIBS=@EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 

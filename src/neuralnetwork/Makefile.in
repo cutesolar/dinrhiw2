@@ -72,7 +72,7 @@ TARGET5=testsuite5
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
 
-CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -Ineuro-diffeqs -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn $(OPTIMIZE)
+CXXFLAGS=-Wall $(CFLAGS) @CXXFLAGS@ -g -Ineuro-diffeqs -I. -I.. -I../.. -I../math -I../crypto -I../hmm -I../reinforcement -I../rnn -I../datamining $(OPTIMIZE)
 
 LIBS= @EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
