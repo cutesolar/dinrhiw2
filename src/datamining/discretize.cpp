@@ -165,6 +165,7 @@ namespace whiteice
   
   // creates dataset with frequent sets added as extra-variables
   bool enrich_data(const std::vector< std::vector<double> >& data,
+		   std::set<whiteice::dynamic_bitset>& f, // frequent sets
 		   std::vector< std::vector<double> >& result,
 		   double freq_limit)
   {
@@ -205,7 +206,7 @@ namespace whiteice
     }
 
     // extend datasets to all subsets of frequent sets
-    std::set<dynamic_bitset> f;
+    // std::set<dynamic_bitset> f;
     
     
     {
@@ -286,5 +287,55 @@ namespace whiteice
 
     return true;
   }
+
+
+  // creates dataset with frequent sets added as extra-variables
+  bool enrich_data_again(const std::vector< std::vector<double> >& data,
+			 const std::set<whiteice::dynamic_bitset>& f, // frequent sets
+			 std::vector< std::vector<double> >& result)
+  {
+
+    // generates all frequent itemsets dataset
+    {
+      for(unsigned int j=0;j<data.size();j++){
+	dynamic_bitset value;
+	value.resize(f.size());
+	value.reset();
+
+	unsigned int index = 0;
+
+	for(const auto& b : f){
+
+	  bool fdata = true;
+
+	  for(unsigned int i=0;i<b.size();i++){
+	    if(b[i] && data[j][i] == 0.0){ fdata = false; break; }
+	  }
+
+	  if(fdata) value.set(index, true);
+	  else value.set(index, false);
+
+	  index++;
+	}
+
+	// now we have one frequent item
+
+	std::vector<double> r;
+	r.resize(value.size());
+
+	for(unsigned int i=0;i<r.size();i++){
+	  if(value[i]) r[i] = 1.0;
+	  else r[i] = 0.0;
+	}
+
+	result.push_back(r);
+      }
+    }
+    
+    if(result.size() == 0) return false;
+    if(result[0].size() == 0) return false;
+
+    return true;
+  } 
   
 };

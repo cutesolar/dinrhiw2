@@ -102,8 +102,9 @@ void test_enrich_data()
   */
 
   std::vector< std::vector<double> > results;
+  std::set<whiteice::dynamic_bitset> f;
 
-  if(whiteice::enrich_data(bindata, results) == false){
+  if(whiteice::enrich_data(bindata, f, results) == false){
     std::cout << "ERROR 3" << std::endl;
     return;
   }

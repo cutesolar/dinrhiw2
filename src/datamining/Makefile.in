@@ -11,7 +11,7 @@ CXXFLAGS += $(CFLAGS) -I@atlas_headerpath@
 
 OBJECTS = AssociationRuleFinder.o FrequentSetsFinder.o discretize.o test/tst.o
 
-EXTRA_OBJECTS = ../timed_boolean.o ../Log.o ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
+EXTRA_OBJECTS = ../timed_boolean.o ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math/integer.o \
 	../math/matrix_rotations.o ../math/eig.o ../math/correlation.o ../math/blade_math.o \
 	../math/real.o 	../dataset.o ../conffile.o ../linear_ETA.o \
 	../dynamic_bitset.o ../math/ica.o ../math/BFGS.o ../math/LBFGS.o ../math/linear_algebra.o \

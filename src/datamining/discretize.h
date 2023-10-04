@@ -4,6 +4,9 @@
 
 #include <vector>
 #include <string>
+#include <set>
+
+#include "dynamic_bitset.h"
 
 
 namespace whiteice
@@ -36,8 +39,14 @@ namespace whiteice
 
   // creates dataset with frequent sets added as extra-variables
   bool enrich_data(const std::vector< std::vector<double> >& binary_data,
+		   std::set<whiteice::dynamic_bitset>& f, // frequent sets
 		   std::vector< std::vector<double> >& result,
-		   double freq_limit = 0.00); // 0 = automatic freq limit 
+		   double freq_limit = 0.00); // 0 = automatic freq limit
+  
+  // creates dataset with frequent sets added as extra-variables
+  bool enrich_data_again(const std::vector< std::vector<double> >& binary_data,
+			 const std::set<whiteice::dynamic_bitset>& f, // frequent sets
+			 std::vector< std::vector<double> >& result);
 
 
   
