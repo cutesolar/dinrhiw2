@@ -57,7 +57,8 @@ EXTRA_OBJECTS = ../math/vertex.o ../math/matrix.o ../math/ownexception.o ../math
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
 	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o \
-	../datamining/discretize.o ../datamining/FrequentSetsFinder.o ../timed_boolean.o
+	../datamining/discretize.o ../datamining/FrequentSetsFinder.o ../datamining/fpgrowth.o \
+	../timed_boolean.o
 
 
 TARGET1_OBJECTS=tst/test.o 
