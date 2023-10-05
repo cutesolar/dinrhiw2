@@ -15,6 +15,8 @@
 #include "discretize.h"
 #include "RNG.h"
 
+#include "fpgrowth.h"
+
 
 void test_associationrulefinder();
 
@@ -22,6 +24,7 @@ void test_frequent_sets();
 
 void test_enrich_data();
 
+void test_fpgrowth();
 
 using namespace whiteice;
 
@@ -36,9 +39,43 @@ int main()
 
   // test_frequent_sets();
 
-  test_enrich_data();
+  test_fpgrowth();
+
+  // test_enrich_data();
   
   return 0;
+}
+
+
+void test_fpgrowth()
+{
+  std::vector< std::set<long long> > data;
+  std::set< std::set<long long> > fset;
+
+  data.push_back({1, 6});
+  data.push_back({1, 2, 3});
+  data.push_back({1, 3, 5});
+  data.push_back({1, 2, 6});
+  data.push_back({1, 2, 3});
+  data.push_back({1, 4, 7});
+  data.push_back({1, 4, 9});
+
+  if(whiteice::frequent_items(data, fset, 2.0/data.size()) == false){
+    std::cout << "mining frequent itemsets FAILED!" << std::endl;
+    return;
+  }
+
+  std::cout << "frequent items" << std::endl;
+
+  for(const auto& s : fset){
+
+    for(const auto& i : s){
+      std::cout << i << " ";
+    }
+
+    std::cout << std::endl;
+  }
+  
 }
 
 
