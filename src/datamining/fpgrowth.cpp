@@ -146,7 +146,7 @@ namespace whiteice
     long long minfreq = (long long)round(min_support*data.size());
     if(minfreq <= 0) return false;
 
-    std::cout << "minfreq = " << minfreq << std::endl;
+    // std::cout << "minfreq = " << minfreq << std::endl;
 
     /*
      * database pass, calculates and orders frequent items

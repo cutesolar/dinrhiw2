@@ -10,6 +10,8 @@
 #include "FrequentSetsFinder.h"
 #include "timed_boolean.h"
 
+#include "fpgrowth.h"
+
 
 namespace whiteice
 {
@@ -53,6 +55,42 @@ namespace whiteice
     // (finished() returns true).
     bool FrequentSetsFinder::find(float TIME_LIMIT)
     {
+      if(data.size() < 0) return false;
+
+      std::vector< std::set<long long> > fdata;
+      std::set< std::set<long long> > freq_sets;
+
+      for(unsigned long long i=0;i<data.size();i++){
+	std::set<long long> d;
+
+	for(unsigned long long k=0;k<data[i].size();k++)
+	  if(data[i][k]) d.insert(k);
+
+	fdata.push_back(d);
+      }
+
+      if(whiteice::frequent_items(fdata, freq_sets, freq_limit) == false)
+	return false;
+
+      if(freq_sets.size() == 0) return false;
+
+      for(const auto& f : freq_sets){
+	whiteice::dynamic_bitset b;
+	b.resize(data[0].size());
+	b.reset();
+
+	for(const auto& fi : f){
+	  b.set(fi, true);
+	}
+
+	freqset.push_back(b);
+      }
+
+
+      return true;
+
+      
+#if 0
       if(data.size() < 0) return false;
       
       timed_boolean timeout(TIME_LIMIT, false);
@@ -221,6 +259,7 @@ namespace whiteice
 	
       
       return (freqset.size() > 0);
+#endif
     }
     
     
