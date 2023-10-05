@@ -59,6 +59,16 @@ namespace whiteice
      */
     template <typename T>
       bool linlsqsolve(matrix<T>& A, const vertex<T>& b, vertex<T>& x) ;
+
+
+    /* 
+     * solves linear optimization problem, min(A,b) E_xy{0.5*(y-Ax-b)^2}
+     * regularizes matrixes if they are singular to get solution.
+     */
+    template <typename T>
+    bool linear_optimization(const std::vector< vertex<T> >& x,
+			     const std::vector< vertex<T> >& y,
+			     matrix<T>& A, vertex<T>& b, T& error);
    
     
     /* calculates cholesky factorization of symmetric
@@ -111,6 +121,19 @@ namespace whiteice
       (matrix<float>& A, const vertex<float>& b, vertex<float>& x) ;
     extern template bool linlsqsolve<double>
       (matrix<double>& A, const vertex<double>& b, vertex<double>& x) ;
+
+
+    extern template bool linear_optimization(const std::vector< vertex< blas_real<float> > >& x,
+					     const std::vector< vertex< blas_real<float> > >& y,
+					     matrix< blas_real<float> >& A,
+					     vertex< blas_real<float> >& b,
+					     blas_real<float>& error);
+    
+    extern template bool linear_optimization(const std::vector< vertex< blas_real<double> > >& x,
+					     const std::vector< vertex< blas_real<double> > >& y,
+					     matrix< blas_real<double> >& A,
+					     vertex< blas_real<double> >& b,
+					     blas_real<double>& error);
     
     
     extern template bool cholesky_factorization< blas_real<float> >

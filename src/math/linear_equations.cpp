@@ -61,6 +61,19 @@ namespace whiteice
     (matrix<double>& A, 
      const vertex<double>& b, 
      vertex<double>& x) ;
+
+
+    template bool linear_optimization(const std::vector< vertex< blas_real<float> > >& x,
+				      const std::vector< vertex< blas_real<float> > >& y,
+				      matrix< blas_real<float> >& A,
+				      vertex< blas_real<float> >& b,
+				      blas_real<float>& error);
+    
+    template bool linear_optimization(const std::vector< vertex< blas_real<double> > >& x,
+				      const std::vector< vertex< blas_real<double> > >& y,
+				      matrix< blas_real<double> >& A,
+				      vertex< blas_real<double> >& b,
+				      blas_real<double>& error);
     
     
     
@@ -325,6 +338,97 @@ namespace whiteice
 	
 	return true;
       }
+
+
+    /* 
+     * solves linear optimization problem, min(A,b) E_xy{0.5*(y-Ax-b)^2}
+     * regularizes matrixes if they are singular to get solution.
+     */
+    template <typename T>
+    bool linear_optimization(const std::vector< vertex<T> >& x,
+			     const std::vector< vertex<T> >& y,
+			     matrix<T>& A, vertex<T>& b, T& error)
+    {
+      if(x.size() != y.size()) return false;
+      if(x.size() == 0 || y.size() == 0) return false;
+
+      matrix<T> Cxx, Cxy;
+      vertex<T> mx, my;
+
+      Cxx.resize(x[0].size(), x[0].size());
+      Cxy.resize(x[0].size(), y[0].size());
+      mx.resize(x[0].size());
+      my.resize(y[0].size());
+
+      Cxx.zero();
+      Cxy.zero();
+      mx.zero();
+      my.zero();
+      
+      for(unsigned int i=0;i<x.size();i++){
+	Cxx += x[i].outerproduct();
+	Cxy += x[i].outerproduct(y[i]);
+	mx += x[i];
+	my += y[i];
+      }
+
+      Cxx /= T(x.size());
+      Cxy /= T(y.size());
+      mx /= T(x.size());
+      my /= T(y.size());
+
+      Cxx -= mx.outerproduct();
+      Cxy -= mx.outerproduct(my);
+
+      // matrix inverse
+
+      matrix<T> INV;
+      T l = T(10e-20);
+
+      do{
+	INV = Cxx;
+
+	T trace = T(0.0f);
+
+	for(unsigned int i=0;i<Cxx.xsize();i++){
+	  trace += Cxx(i,i);
+	  INV(i,i) += l;  
+	}
+
+	trace /= Cxx.size();
+
+	l += T(0.1)*trace + T(2.0)*l;
+      }
+      while(whiteice::math::symmetric_inverse(INV) == false);
+
+      A = (Cxy.transpose() * INV);
+      b = (my - A*mx);
+
+      // calculates error
+
+      T err, e;
+      err.zero();
+
+      for(unsigned int i=0;i<x.size();i++){
+	auto delta = A*x[i] + b - y[i];
+
+	e.zero();
+
+	for(unsigned int d=0;d<delta.size();d++)
+	  e += delta[d][0].abs();
+
+	e /= T(delta.size());
+
+	err += e;
+      }
+
+      err /= T(x.size());
+
+      error = err;
+
+      return true;
+    }
+
     
     
     // calculates cholesky factorization of symmetric
