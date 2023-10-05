@@ -43,7 +43,18 @@ namespace whiteice
     disc.resize(data[0].size());
 
     for(unsigned int i=0;i<disc.size();i++){
-      if(is_numeric[i] == data.size()){
+      if(elems[i].size() <= 20){
+	disc[i].TYPE = 1;
+	disc[i].elem.resize(elems[i].size());
+
+	unsigned int index = 0;
+
+	for(const auto& s : elems[i]){
+	  disc[i].elem[index] = s;
+	  index++;
+	}
+      }
+      else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
 	disc[i].bins.resize(10);
 
@@ -66,17 +77,6 @@ namespace whiteice
 	  disc[i].bins[j] = -binstart/2.0 + binwide*j;
 	}
 	
-      }
-      else if(elems[i].size() <= 20){
-	disc[i].TYPE = 1;
-	disc[i].elem.resize(elems[i].size());
-
-	unsigned int index = 0;
-
-	for(const auto& s : elems[i]){
-	  disc[i].elem[index] = s;
-	  index++;
-	}
       }
       else{
 	disc[i].TYPE = 2;
