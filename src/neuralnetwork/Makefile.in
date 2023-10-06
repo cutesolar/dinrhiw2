@@ -66,12 +66,14 @@ TARGET2_OBJECTS=tst/pso_main.o
 TARGET3_OBJECTS=tst/somtest.o 
 TARGET4_OBJECTS=tst/gene_main.o
 TARGET5_OBJECTS=tst/stest.o
+TARGET6_OBJECTS=tst/globaltest.o
 
 TARGET1=testsuite1
 TARGET2=testsuite2
 TARGET3=testsuite3
 TARGET4=testsuite4
 TARGET5=testsuite5
+TARGET6=testsuite6
 
 OPTIMIZE=@optimization_flags@
 CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
@@ -82,7 +84,7 @@ LIBS= @EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
 ##################################################
 
-all: test1 test2 test3 test4 test5
+all: test1 test2 test3 test4 test5 test6
 
 test1: $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TARGET1_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
@@ -99,10 +101,13 @@ test4: $(TARGET4_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 test5: $(TARGET5_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TARGET5_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
 
+test6: $(TARGET6_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET6) $(TARGET6_OBJECTS) $(OBJECTS) $(EXTRA_OBJECTS) $(LIBS)
+
 clean:
 	$(RM) $(OBJECTS)
-	$(RM) $(TARGET1_OBJECTS) $(TARGET2_OBJECTS) $(TARGET3_OBJECTS) $(TARGET4_OBJECTS) $(TARGET5_OBJECTS)
-	$(RM) $(TARGET1) $(TARGET2) $(TARGET3) $(TARGET4) $(TARGET5)
+	$(RM) $(TARGET1_OBJECTS) $(TARGET2_OBJECTS) $(TARGET3_OBJECTS) $(TARGET4_OBJECTS) $(TARGET5_OBJECTS) $(TARGET6_OBJECTS)
+	$(RM) $(TARGET1) $(TARGET2) $(TARGET3) $(TARGET4) $(TARGET5) $(TARGET6)
 	$(RM) *~
 
 realclean: clean
