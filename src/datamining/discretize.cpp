@@ -2,11 +2,16 @@
 #include "discretize.h"
 
 #include <set>
+#include <vector>
+#include <chrono>
+#include <thread>
 
 #include "dynamic_bitset.h"
 #include "FrequentSetsFinder.h"
 #include "list_source.h"
+#include "KMeans.h"
 
+using namespace std::chrono_literals;
 
 
 namespace whiteice
@@ -19,7 +24,7 @@ namespace whiteice
     if(data.size() == 0) return false;
 
     std::vector< std::set<std::string> > elems;
-    std::vector< std::set<double> > numbers;
+    std::vector< std::vector<double> > numbers;
     std::vector<unsigned int> is_numeric;
     
 
@@ -35,7 +40,7 @@ namespace whiteice
 	double value = strtod(data[i][j].c_str(), &p);
 	if(p != NULL && p != data[i][j].c_str()){
 	  is_numeric[j]++;
-	  numbers[j].insert(value);
+	  numbers[j].push_back(value);
 	}
       }
     }
@@ -56,8 +61,49 @@ namespace whiteice
       }
       else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
-	disc[i].bins.resize(10);
 
+	unsigned int BINS = data.size() / 200;
+	if(BINS < 2) BINS = 2;
+	else if(BINS > 50) BINS = 50;
+	
+	disc[i].bins.resize(BINS);
+
+	whiteice::KMeans<double> km;
+
+	std::vector< std::vector<double> > data;
+
+	for(const auto& n : numbers[i]){
+	  std::vector<double> nn;
+	  nn.push_back(n);
+	  data.push_back(nn);
+	}
+
+	km.startTrain(BINS, data);
+
+	while(km.isRunning()){
+	  std::this_thread::sleep_for(100ms);
+	}
+
+	km.stopTrain();
+
+	std::set<double> numset; // ordered list from smallest to largest
+
+	for(unsigned long long k=0;k<km.size();k++){
+	  numset.insert(km[k][0]);
+	}
+	
+	//std::cout << "BINS: ";
+	unsigned long long index = 0;
+	for(const auto& n : numset){
+	  disc[i].bins[index] = n;
+	  //std::cout << n << " ";
+	  index++;
+	}
+	//std::cout << std::endl;
+
+	
+
+	/*
 	double mean = 0.0;
 	double stdev = 0.0;
 
@@ -71,11 +117,12 @@ namespace whiteice
 	stdev -= mean*mean;
 
 	double binstart = 6.0*stdev;
-	double binwide = binstart/10.0;
+	double binwide = binstart/(BINS/2);
 
-	for(unsigned int j=0;j<10;j++){
+	for(unsigned int j=0;j<(BINS/2);j++){
 	  disc[i].bins[j] = -binstart/2.0 + binwide*j;
 	}
+	*/
 	
       }
       else{
