@@ -37,11 +37,13 @@ namespace whiteice
   
   template <typename T>
   bool GlobalOptimizer<T>::startTrain(const std::vector< math::vertex<T> >& xdata,
-				      const std::vector< math::vertex<T> >& ydata)
+				      const std::vector< math::vertex<T> >& ydata,
+				      T levelOfDetailFreq)
   {
     try{
       if(xdata.size() == 0 ||  ydata.size() == 0) return false;
       if(xdata.size() != ydata.size()) return false;
+      if(levelOfDetailFreq < 0.0 || levelOfDetailFreq >= 1.0) return false;
       
       std::lock_guard<std::mutex> lock(thread_mutex);
       
@@ -53,6 +55,7 @@ namespace whiteice
 	currentError = (double)(INFINITY);
 	this->A.resize(1,1);
 	this->b.resize(1);
+	this->levelOfDetailFreq = levelOfDetailFreq;
 	
 	// selects at most 100.000 datapoints
 	{
@@ -487,8 +490,11 @@ namespace whiteice
 	}
 
 	if(thread_running == false) return;
+
+	double freq_limit = 0.0;
+	whiteice::math::convert(freq_limit, this->levelOfDetailFreq);
 	
-	if(whiteice::enrich_data(bindata, this->f_itemset, xresults) == false){
+	if(whiteice::enrich_data(bindata, this->f_itemset, xresults, freq_limit) == false){
 	  return;
 	}
 	

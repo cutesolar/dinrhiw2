@@ -34,7 +34,8 @@ namespace whiteice
     virtual ~GlobalOptimizer();
 
     bool startTrain(const std::vector< math::vertex<T> >& xdata,
-		    const std::vector< math::vertex<T> >& ydata);
+		    const std::vector< math::vertex<T> >& ydata,
+		    T levelOfDetailFreq = T(0.0));
 		    
     bool isRunning() const;
 
@@ -65,6 +66,7 @@ namespace whiteice
     math::matrix<T> A;
     math::vertex<T> b;
 
+    T levelOfDetailFreq;
     T currentError;
     
     // running
