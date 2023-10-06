@@ -18,7 +18,8 @@ EXTRA_OBJECTS = ../timed_boolean.o ../math/vertex.o ../math/matrix.o ../math/own
 	../math/correlation.o ../math/ica.o ../math/linear_equations.o ../math/norms.o ../math/RNG.o \
 	../math/modular.o ../math/superresolution.o \
 	../math/outerproduct.o ../math/fastpca.o ../Log.o ../VisualizationInterface.o \
-	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o 
+	../math/quaternion.o ../math/SGD.o ../math/RungeKutta.o ../math/pocketfft/pocketfft.o \
+	../neuralnetwork/KMeans.o
 
 
 SOURCES = AssociationRuleFinder.cpp FrequentSetsFinder.cpp discretize.cpp fpgrowth.cpp test/tst.cpp ../math/RNG.cpp \

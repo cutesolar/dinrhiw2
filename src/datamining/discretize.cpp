@@ -62,9 +62,17 @@ namespace whiteice
       else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
 
-	unsigned int BINS = data.size() / 200;
+	double B = data.size()/20;
+	B = 6.0*pow(B, 1.0/disc.size());
+
+	unsigned int BINS = (unsigned int)round(B);
+	
 	if(BINS < 2) BINS = 2;
 	else if(BINS > 50) BINS = 50;
+
+	//unsigned int BINS = data.size() / 200;
+	//if(BINS < 2) BINS = 2;
+	//else if(BINS > 50) BINS = 50;
 	
 	disc[i].bins.resize(BINS);
 
@@ -94,11 +102,19 @@ namespace whiteice
 	
 	//std::cout << "BINS: ";
 	unsigned long long index = 0;
+	double prev = -INFINITY;
 	for(const auto& n : numset){
-	  disc[i].bins[index] = n;
+	  if(prev > -INFINITY){
+	    disc[i].bins[index] = (n+prev)/2.0;
+	    index++;
+	  }
+	  prev = n;
+	  
 	  //std::cout << n << " ";
-	  index++;
 	}
+
+	disc[i].bins[index] = INFINITY; // last bin 
+	
 	//std::cout << std::endl;
 
 	

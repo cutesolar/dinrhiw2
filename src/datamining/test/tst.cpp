@@ -37,11 +37,11 @@ int main()
   
   // test_associationrulefinder();
 
-  test_frequent_sets();
+  // test_frequent_sets();
 
-  test_fpgrowth();
+  // test_fpgrowth();
 
-  // test_enrich_data();
+  test_enrich_data();
   
   return 0;
 }
