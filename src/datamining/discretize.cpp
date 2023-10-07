@@ -62,17 +62,18 @@ namespace whiteice
       else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
 
-	double B = data.size()/20;
-	B = 6.0*pow(B, 1.0/disc.size());
+	//double B = data.size()/25;
+	//B = sqrt(B);
+	//
+	//unsigned int BINS = (unsigned int)round(B);
+	//
+	//if(BINS < 2) BINS = 2;
+	//else if(BINS > 100) BINS = 100;
 
-	unsigned int BINS = (unsigned int)round(B);
+	unsigned int BINS = data.size() / 150; // was 200, 300, 500 don't work
 	
 	if(BINS < 2) BINS = 2;
-	else if(BINS > 50) BINS = 50;
-
-	//unsigned int BINS = data.size() / 200;
-	//if(BINS < 2) BINS = 2;
-	//else if(BINS > 50) BINS = 50;
+	else if(BINS > 100) BINS = 100;
 	
 	disc[i].bins.resize(BINS);
 
