@@ -436,8 +436,19 @@ namespace whiteice
     }
 
     thread_running = true;
-    this->data = data;
     this->verbose = true;
+
+    if(data.size() <= 50000){ // 50.000 points
+      this->data = data;
+    }
+    else{
+      this->data.clear();
+      for(unsigned int i=0;i<50000;i++){ // samples 50.000 points from data.
+	const unsigned int index = rng.rand() % data.size();
+	this->data.push_back(data[index]);
+      }
+    }
+
 
     try{
       if(optimizer_thread){ delete optimizer_thread; optimizer_thread = nullptr; }
