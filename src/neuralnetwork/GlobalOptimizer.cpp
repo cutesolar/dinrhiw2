@@ -57,9 +57,9 @@ namespace whiteice
 	this->b.resize(1);
 	this->levelOfDetailFreq = levelOfDetailFreq;
 	
-	// selects at most 100.000 datapoints
+	// selects at most 1.000.000 datapoints
 	{
-	  const unsigned int MAXNUMBER = 100000;
+	  const unsigned int MAXNUMBER = 1000000;
 	  
 	  if(xdata.size() <= MAXNUMBER){
 	    this->xdata = xdata;
@@ -518,6 +518,9 @@ namespace whiteice
 
       // don't normalize y data
 
+      std::cout << "xdata: " << xdata.size() << " " << xdata[0].size() << std::endl;
+      std::cout << "ydata: " << ydata.size() << " " << ydata[0].size() << std::endl;
+
 
       //////////////////////////////////////////////////////////////////////
       // now we have preprocessed data, calculates linear model.. 
@@ -529,6 +532,8 @@ namespace whiteice
 	
 	if(linear_optimization(this->xdata, this->ydata,
 			       this->A, this->b, this->currentError) == false){
+	  currentError = (double)(INFINITY);
+	  std::cout << "WARN: linear_optimization FAILED." << std::endl;
 	  return;
 	}
       }

@@ -364,13 +364,60 @@ namespace whiteice
       Cxy.zero();
       mx.zero();
       my.zero();
+
+      bool not_ok = false;
       
-      for(unsigned int i=0;i<x.size();i++){
-	Cxx += x[i].outerproduct();
-	Cxy += x[i].outerproduct(y[i]);
-	mx += x[i];
-	my += y[i];
+#pragma omp parallel
+      {
+	matrix<T> Cxx_, Cxy_;
+	vertex<T> mx_, my_;
+	
+	Cxx_.resize(x[0].size(), x[0].size());
+	Cxy_.resize(x[0].size(), y[0].size());
+	mx_.resize(x[0].size());
+	my_.resize(y[0].size());
+	
+	Cxx_.zero();
+	Cxy_.zero();
+	mx_.zero();
+	my_.zero();
+
+
+#pragma omp for
+	for(unsigned int i=0;i<x.size();i++){
+
+	  if(not_ok) continue;
+	  
+	  // Cxx += x[i].outerproduct();
+	  if(addouterproduct(Cxx_, T(1.0), x[i], x[i]) == false){
+	    not_ok = true;
+	  }
+	  
+	  // Cxy += x[i].outerproduct(y[i]);
+	  if(addouterproduct(Cxy_, T(1.0), x[i], y[i]) == false){
+	    not_ok = true;
+	  }
+
+	  if((i % 1000) == 0){
+	    std::cout << i << std::endl;
+	  }
+	  
+	  mx_ += x[i];
+	  my_ += y[i];
+	}
+
+#pragma omp critical
+	{
+	  Cxx += Cxx_;
+	  Cxy += Cxy_;
+
+	  mx += mx_;
+	  my += my_;
+	}
+	
       }
+
+      if(not_ok) return false;
 
       Cxx /= T(x.size());
       Cxy /= T(y.size());
@@ -383,9 +430,10 @@ namespace whiteice
       // matrix inverse
 
       matrix<T> INV;
-      T l = T(10e-20);
+      T l = T(0.0);
 
       do{
+	std::cout << "calculating matrix-inverse: " << l << std::endl;
 	INV = Cxx;
 
 	T trace = T(0.0f);
@@ -395,11 +443,11 @@ namespace whiteice
 	  INV(i,i) += l;  
 	}
 
-	trace /= Cxx.size();
+	trace /= Cxx.xsize();
 
-	l += T(0.1)*trace + T(2.0)*l;
+	l += T(1e-20)*trace + T(2.0)*l; 
       }
-      while(whiteice::math::symmetric_inverse(INV) == false);
+      while(INV.symmetric_pseudoinverse() == false);
 
       A = (Cxy.transpose() * INV);
       b = (my - A*mx);
@@ -412,12 +460,25 @@ namespace whiteice
       for(unsigned int i=0;i<x.size();i++){
 	auto delta = A*x[i] + b - y[i];
 
+	e = T(0.0);
+
+	for(unsigned int d=0;d<delta.size();d++){
+	  e += whiteice::math::abs(delta[d][0]);
+	}
+	
+	e /= T(delta.size());
+	
+
+	// e = delta.norm()/delta.size();
+	
+	/*
 	e.zero();
 
 	for(unsigned int d=0;d<delta.size();d++)
 	  e += delta[d][0].abs();
 
 	e /= T(delta.size());
+	*/
 
 	err += e;
       }

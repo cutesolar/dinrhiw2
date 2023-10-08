@@ -62,18 +62,24 @@ namespace whiteice
       else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
 
-	//double B = data.size()/25;
-	//B = sqrt(B);
-	//
-	//unsigned int BINS = (unsigned int)round(B);
-	//
-	//if(BINS < 2) BINS = 2;
-	//else if(BINS > 100) BINS = 100;
+	const double ROWS = 25.0;
+	const double DIV = sqrt(ROWS*data.size());
 
-	unsigned int BINS = data.size() / 150; // was 200, 300, 500 don't work
+	double B = data.size()/DIV; // 4000.0;
+	//B = math::pow(B, 1.0/2.0); 
+
+	unsigned int BINS = (unsigned int)round(B);
+	std::cout << "BINS: " << BINS << std::endl;
 	
 	if(BINS < 2) BINS = 2;
 	else if(BINS > 100) BINS = 100;
+
+	/*
+	unsigned int BINS = data.size() / 1000; // was 200, 300, 500 don't work
+	
+	if(BINS < 2) BINS = 2;
+	else if(BINS > 100) BINS = 100;
+	*/
 	
 	disc[i].bins.resize(BINS);
 

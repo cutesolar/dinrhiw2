@@ -79,6 +79,8 @@ namespace whiteice
 	b.resize(data[0].size());
 	b.reset();
 
+	// if(f.size() > 1) continue; // only keep max 2,3 item size sets..
+
 	for(const auto& fi : f){
 	  b.set(fi, true);
 	}

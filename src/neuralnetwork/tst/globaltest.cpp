@@ -101,12 +101,12 @@ int main()
   data2.add(1, outputs2);
 
   // do not do [now: enabled]
-  //data2.preprocess(0);
-  //data2.preprocess(1);
+  data2.preprocess(0);
+  data2.preprocess(1);
 
   if(data2.save("simpleproblem.ds") == false){
     printf("ERROR: saving data to file failed!\n");
-    exit(-1);
+    exit(-1); 
   }
 
   
@@ -197,7 +197,11 @@ int main()
   data2.getData(0, xxdata);
   data2.getData(1, yydata);
 
-  math::blas_real<double> min_support = 50.0/xxdata.size();
+  double minrows = 50.0;
+
+  math::blas_real<double> min_support = minrows/xxdata.size();
+
+  std::cout << "min rows: " << minrows << std::endl;
 
   if(optimizer.startTrain(xxdata, yydata, min_support) == false){
     std::cout << "optimizer failed!" << std::endl;

@@ -83,7 +83,7 @@ namespace whiteice
   }
   
 
-#if 0
+#if 1
 
   struct fptree_item
   {
@@ -190,6 +190,7 @@ namespace whiteice
   };
 
 
+#if 0
   bool contains_single_path(fptree* tree){
     if(tree->children.size() == 0) return true;
     else if(tree->children.size() > 1) return false;
@@ -288,18 +289,17 @@ namespace whiteice
       
       
     }
-    
-      
-    
   }
+  
+#endif
   
   
   /*
    * datamines frequent itemsets using FP-Growth algorithm
    */ 
-  bool frequent_items(const std::vector< std::set<long long> >& data,
-		      std::map< std::set<long long>, long long >& freq_sets,
-		      double min_support)
+  bool frequent_items2(const std::vector< std::set<long long> >& data,
+		       std::set< std::set<long long> >& freq_sets,
+		       double min_support)
   {
     if(data.size() == 0) return false;
     if(min_support < 0.0 || min_support > 1.0) return false;
@@ -391,11 +391,11 @@ namespace whiteice
     }
 
 
-    std::multimap<long long, std::set<long long> > fsets;
+    //std::multimap<long long, std::set<long long> > fsets;
 
-    if(fptree_growth(root, itemfreq, fsets) == false) return false;
+    //if(fptree_growth(root, itemfreq, fsets) == false) return false;
     
-#if 0
+#if 1
 
 
     /*

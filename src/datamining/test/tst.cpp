@@ -37,11 +37,11 @@ int main()
   
   // test_associationrulefinder();
 
-  // test_frequent_sets();
+  test_frequent_sets();
 
   // test_fpgrowth();
 
-  test_enrich_data();
+  // test_enrich_data();
   
   return 0;
 }
@@ -184,8 +184,9 @@ void test_frequent_sets()
   datamining::FrequentSetsFinder* fsfinder;
   std::vector<dynamic_bitset> fset;
 
+  /*
   for(unsigned int i=0;i<5000;i++){
-    dynamic_bitset x;
+  dynamic_bitset x;
     x.resize(10);
 
     for(unsigned int i=0;i<x.size();i++)
@@ -193,9 +194,246 @@ void test_frequent_sets()
 
     data.push_back(x);
   }
+  */
+
+  /*
+  {
+    dynamic_bitset x;
+    x.resize(6);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(3, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    data.push_back(x);
+  }
+  */
+
+  /*
+  {
+    dynamic_bitset x;
+    x.resize(5);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(2, true);
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(3, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(1, true);
+    x.set(2, true);
+    x.set(4, true);
+    data.push_back(x);
+  }
+  */
+
+  /*
+  {
+    dynamic_bitset x;
+    x.resize(5);
+    
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(1, true);
+    x.set(2, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(0, true);
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    x.set(4, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(1, true);
+    x.set(2, true);
+    x.set(3, true);
+    data.push_back(x);
+  }
+  */
+  {
+    dynamic_bitset x;
+    x.resize(17);
+
+    /*
+      { f, a, c, d, g, i, m, p },
+      { a, b, c, f, l, m, o },
+      { b, f, h, j, o },
+      { b, c, k, s, p },
+      { a, f, c, e, l, p, m, n }
+    */
+
+    const int a = 0;
+    const int b = 1;
+    const int c = 2;
+    const int d = 3;
+    const int e = 4;
+    const int f = 5;
+    const int g = 6;
+    const int h = 7;
+    const int i = 8;
+    const int j = 9;
+    const int k = 10;
+    const int l = 11;
+    const int m = 12;
+    const int n = 13;
+    const int o = 14;
+    const int p = 15;
+    const int s = 16;
+    
+    x.reset();
+    x.set(f, true);
+    x.set(a, true);
+    x.set(c, true);
+    x.set(d, true);
+    x.set(g, true);
+    x.set(i, true);
+    x.set(m, true);
+    x.set(p, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(a, true);
+    x.set(b, true);
+    x.set(c, true);
+    x.set(f, true);
+    x.set(l, true);
+    x.set(m, true);
+    x.set(o, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(b, true);
+    x.set(f, true);
+    x.set(h, true);
+    x.set(j, true);
+    x.set(o, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(b, true);
+    x.set(c, true);
+    x.set(k, true);
+    x.set(s, true);
+    x.set(p, true);
+    data.push_back(x);
+
+    x.reset();
+    x.set(a, true);
+    x.set(f, true);
+    x.set(c, true);
+    x.set(e, true);
+    x.set(l, true);
+    x.set(p, true);
+    x.set(m, true);
+    x.set(n, true);
+    data.push_back(x);
+  }
 
   source = new list_source<dynamic_bitset>(data);
-  fsfinder = new datamining::FrequentSetsFinder(*source, fset, 0.10);
+  fsfinder = new datamining::FrequentSetsFinder(*source, fset, 3.0/data.size());
 
   fsfinder->find();
 
@@ -203,6 +441,90 @@ void test_frequent_sets()
 
   for(unsigned int i=0;i<fset.size();i++){
     std::cout << fset[i] << std::endl;
+  }
+
+
+
+  {
+    std::set<whiteice::dynamic_bitset> f; // frequent sets
+
+    {
+      for(unsigned int i=0;i<fset.size();i++){
+
+	const unsigned int BITS = fset[i].count();
+	
+	dynamic_bitset b;
+	b.resize(BITS);
+	b.reset();
+
+	b.inc();
+
+	while(b.none() == false){
+
+	  dynamic_bitset c;
+	  c.resize(fset[i].size());
+	  c.reset();
+
+	  unsigned int k = 0;
+
+	  for(unsigned int l=0;l<fset[i].size();l++){
+	    if(fset[i][l]){
+
+	      if(b[k]) c.set(l, true);
+	      
+	      k++;
+	    }
+	  }
+
+	  std::cout << "fsubset = " << c << std::endl;
+	  f.insert(c);
+
+	  b.inc();
+	}
+	
+      }
+    }
+
+    
+#if 0
+    // generates all frequent itemsets dataset
+    {
+      for(unsigned int j=0;j<data.size();j++){
+	dynamic_bitset value;
+	value.resize(f.size());
+	value.reset();
+
+	unsigned int index = 0;
+
+	for(const auto& b : f){
+
+	  bool fdata = true;
+
+	  for(unsigned int i=0;i<b.size();i++){
+	    if(b[i] && data[j][i] == 0.0){ fdata = false; break; }
+	  }
+
+	  if(fdata) value.set(index, true);
+	  else value.set(index, false);
+
+	  index++;
+	}
+
+	// now we have one frequent item
+
+	std::vector<double> r;
+	r.resize(value.size());
+
+	for(unsigned int i=0;i<r.size();i++){
+	  if(value[i]) r[i] = 1.0;
+	  else r[i] = 0.0;
+	}
+
+	result.push_back(r);
+      }
+    }
+#endif    
+    
   }
   
 }

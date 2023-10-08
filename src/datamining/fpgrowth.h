@@ -22,6 +22,11 @@ namespace whiteice
   bool frequent_items(const std::vector< std::set<long long> >& data,
 		      std::set< std::set<long long> >& freq_sets,
 		      double min_support = 0.0);
+
+
+  bool frequent_items2(const std::vector< std::set<long long> >& data,
+		       std::set< std::set<long long> >& freq_sets,
+		       double min_support = 0.0);
   
 };
 
