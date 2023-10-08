@@ -49,6 +49,8 @@ namespace whiteice
       std::vector< std::vector<double> > bindata;
       std::vector< std::vector<double> > xresults;
 
+      std::cout << xdata.size() << std::endl;
+
       for(unsigned int i=0;i<xdata.size();i++){
 	std::vector<std::string> row;
 	row.resize(xdata[i].size());
@@ -56,7 +58,7 @@ namespace whiteice
 	for(unsigned int k=0;k<row.size();k++){
 	  char buffer[80];
 	  sprintf(buffer, "%f", xdata[i][k].c[0]);
-	  row.push_back(std::string(buffer));
+	  row[k] = std::string(buffer);
 	}
 
 	data.push_back(row);
@@ -87,7 +89,32 @@ namespace whiteice
 	this->xdata[i] = x;
       }
 
-      this->ydata = ydata;
+      
+      // zero means and unit variances y-data
+      if(0){
+	dataset<T> dset;
+	dset.createCluster("y", ydata[0].size());
+	dset.add(0, ydata);
+	dset.preprocess(0);
+	dset.getData(0, this->ydata);
+      }
+      else{
+	this->ydata = ydata;
+      }
+      
+#if 0
+      // reports linear optimization error 
+      {
+	math::matrix<T> A;
+	math::vertex<T> b;
+	T error = T(0.0);
+	
+	if(linear_optimization(this->xdata, this->ydata,
+			       A, b, error)){
+	  std::cout << "Linear optimization error is: " << error << std::endl;
+	}
+      }
+#endif
 
       const unsigned int XSIZE = this->xdata[0].size();
       const unsigned int YSIZE = this->ydata[0].size();
@@ -98,6 +125,8 @@ namespace whiteice
       }
       
       model = new LinearKCluster<T>(XSIZE, YSIZE);
+      
+      model->setEarlyStopping(false);
 
       model->startTrain(this->xdata, this->ydata);
     }
@@ -244,7 +273,7 @@ namespace whiteice
 	  v[k] = disc[i].bins[k-1];
 	}
 
-	if(data.add(3, v) == false) return false;
+	if(data.add(4, v) == false) return false;
       }
     }
 
@@ -262,7 +291,7 @@ namespace whiteice
 	  index += disc[i].elem[k].size();
 	}
 
-	if(data.add(4, v) == false) return false;
+	if(data.add(5, v) == false) return false;
       }
     }
 

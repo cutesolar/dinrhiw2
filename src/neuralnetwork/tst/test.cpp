@@ -466,7 +466,7 @@ void general_kcluster_test() // unit tests GeneralKCluster class
 
   GeneralKCluster<> model; // (20, 5);
 
-  const unsigned int TIME_LIMIT = 3600; // 60 minutes
+  const unsigned int TIME_LIMIT = 24*3600; // 24 hours..
 
   // creates data using random neural network
   std::vector< math::vertex<> > xdata, ydata;
@@ -481,7 +481,7 @@ void general_kcluster_test() // unit tests GeneralKCluster class
   nn.setArchitecture(arch);
   nn.randomize();
 
-  for(unsigned int n=0;n<5000;n++){
+  for(unsigned int n=0;n<10000;n++){
     math::vertex<> x, y;
     x.resize(arch[0]);
     y.resize(arch[arch.size()-1]);

@@ -48,6 +48,12 @@ namespace whiteice
     
     bool predict(const math::vertex<T>& x, math::vertex<T>& y) const;
 
+    void setEarlyStopping(bool enabled = true){
+      early_stopping = enabled;
+    }
+
+    bool getEarlyStopping(){ return early_stopping; }
+
     bool save(const std::string& filename) const;
     bool load(const std::string& filename); 
     
@@ -58,7 +64,8 @@ namespace whiteice
 			  const whiteice::nnetwork<T>& model) const;
 
     
-    const bool verbose = false; // whether to print debugging messages. 
+    const bool verbose = false; // whether to print debugging messages.
+    bool early_stopping = true;
 
     nnetwork<T> architecture;
 

@@ -69,9 +69,9 @@ namespace whiteice
 	currentError = (double)(INFINITY);
 	clusterLabels.clear();
 	
-	// selects at most 10.000 datapoints
+	// selects at most 50.000 datapoints
 	{
-	  const unsigned int MAXNUMBER = 5000;
+	  const unsigned int MAXNUMBER = 50000;
 	  
 	  if(xdata.size() <= MAXNUMBER){
 	    this->xdata = xdata;
@@ -91,7 +91,7 @@ namespace whiteice
 	
 	
 	if(K == 0){
-	  this->K = this->xdata.size()/50;
+	  this->K = this->xdata.size()/1000;
 	  if(this->K == 0) this->K = 2;
 	  
 	  std::cout << "Using K=" << this->K << " cluster(s) in optimization." << std::endl;
@@ -788,8 +788,9 @@ namespace whiteice
 	      const double conv = s/(m + 1e-3);
 	      
 	      // std::cout << "convergence: " << conv << std::endl;
-	      
-	      if(conv < 0.0001) break; // mean error is 0.01% of the mean value
+
+	      if(early_stopping)
+		if(conv < 0.0001) break; // mean error is 0.01% of the mean value
 	    }
 	  }
 	  

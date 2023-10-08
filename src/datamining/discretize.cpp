@@ -62,7 +62,9 @@ namespace whiteice
       else if(is_numeric[i] == data.size()){
 	disc[i].TYPE = 0;
 
-	const double ROWS = 25.0;
+	// pairs of items has on average 10.0 rows/freq
+	// [not enough of frequent item which is 20.0] 
+	const double ROWS = 20.0; 
 	const double DIV = sqrt(ROWS*data.size());
 
 	double B = data.size()/DIV; // 4000.0;
