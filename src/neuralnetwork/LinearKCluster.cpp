@@ -724,12 +724,14 @@ namespace whiteice
 	    delta -= ydata[i];
 	    
 	    double e = INFINITY;
+
+	    T sume = T(0.0);
 	    
 	    for(unsigned int i=0;i<delta.size();i++){
-	      delta[i] = T(delta[i][0]);
+	      sume += whiteice::math::abs(T(delta[i][0]));
 	    }
 	    
-	    whiteice::math::convert(e, whiteice::math::abs(delta.norm()[0]));
+	    whiteice::math::convert(e, sume);
 	    ei += e;
 	  }
 	  

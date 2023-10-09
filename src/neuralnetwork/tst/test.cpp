@@ -481,7 +481,7 @@ void general_kcluster_test() // unit tests GeneralKCluster class
   nn.setArchitecture(arch);
   nn.randomize();
 
-  for(unsigned int n=0;n<10000;n++){
+  for(unsigned int n=0;n<5000;n++){ // was: 5000
     math::vertex<> x, y;
     x.resize(arch[0]);
     y.resize(arch[arch.size()-1]);

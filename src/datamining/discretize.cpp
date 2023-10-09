@@ -64,7 +64,7 @@ namespace whiteice
 
 	// pairs of items has on average 10.0 rows/freq
 	// [not enough of frequent item which is 20.0] 
-	const double ROWS = 20.0; 
+	const double ROWS = 50.0;  // was: 50
 	const double DIV = sqrt(ROWS*data.size());
 
 	double B = data.size()/DIV; // 4000.0;
@@ -321,7 +321,7 @@ namespace whiteice
     {
       for(unsigned int j=0;j<data.size();j++){
 	dynamic_bitset value;
-	value.resize(f.size());
+	value.resize(f.size()*2);
 	value.reset();
 
 	unsigned int index = 0;
@@ -329,14 +329,27 @@ namespace whiteice
 	for(const auto& b : f){
 
 	  bool fdata = true;
+	  bool or_data = false;
 
 	  for(unsigned int i=0;i<b.size();i++){
-	    if(b[i] && data[j][i] == 0.0){ fdata = false; break; }
+	    if(b[i] && data[j][i] == 0.0){ fdata = false; }
+	    if(b[i] && data[j][i] != 0.0){ or_data = true; }
 	  }
 
-	  if(fdata) value.set(index, true);
-	  else value.set(index, false);
+	  if(fdata) value.set(2*index, true);
+	  else value.set(2*index, false);
+	  
+	  if(or_data) value.set(2*index + 1, true);
+	  else value.set(2*index + 1, false);
 
+	  /*
+	  if(fdata) value.set(4*index + 2, false);
+	  else value.set(4*index + 2, true);
+	  
+	  if(or_data) value.set(4*index + 3, false);
+	  else value.set(4*index + 3, true);
+	  */
+	  
 	  index++;
 	}
 
@@ -371,7 +384,7 @@ namespace whiteice
     {
       for(unsigned int j=0;j<data.size();j++){
 	dynamic_bitset value;
-	value.resize(f.size());
+	value.resize(f.size()*2);
 	value.reset();
 
 	unsigned int index = 0;
@@ -379,13 +392,26 @@ namespace whiteice
 	for(const auto& b : f){
 
 	  bool fdata = true;
+	  bool or_data = false;
 
 	  for(unsigned int i=0;i<b.size();i++){
-	    if(b[i] && data[j][i] == 0.0){ fdata = false; break; }
+	    if(b[i] && data[j][i] == 0.0){ fdata = false; }
+	    if(b[i] && data[j][i] != 0.0){ or_data = true; }
 	  }
 
-	  if(fdata) value.set(index, true);
-	  else value.set(index, false);
+	  if(fdata) value.set(2*index, true);
+	  else value.set(2*index, false);
+	  
+	  if(or_data) value.set(2*index + 1, true);
+	  else value.set(2*index + 1, false);
+
+	  /*
+	  if(fdata) value.set(4*index + 2, false);
+	  else value.set(4*index + 2, true);
+	  
+	  if(or_data) value.set(4*index + 3, false);
+	  else value.set(4*index + 3, true);
+	  */
 
 	  index++;
 	}
