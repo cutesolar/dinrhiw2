@@ -11,7 +11,8 @@
 #include "dataset.h"
 #include "RNG.h"
 
-
+#include <chrono>
+#include <thread> 
 
 
 #undef __STRICT_ANSI__
@@ -209,7 +210,9 @@ int main()
   }
 
   while(optimizer.isRunning()){
-    sleep(1);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
     printf(".");
     fflush(stdout);
   }
