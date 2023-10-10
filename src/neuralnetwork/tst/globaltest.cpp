@@ -190,13 +190,14 @@ int main()
   std::cout << "data2.size(0): " << data2.size(0) << std::endl;
   std::cout << "data2.size(1): " << data2.size(1) << std::endl;
 
-  GlobalOptimizer< math::blas_real<double> > optimizer;
-
   std::vector< math::vertex< math::blas_real<double> > > xxdata;
   std::vector< math::vertex< math::blas_real<double> > > yydata;
 
   data2.getData(0, xxdata);
   data2.getData(1, yydata);
+
+  /*
+  GlobalOptimizer< math::blas_real<double> > optimizer;
 
   double minrows = 50.0;
 
@@ -208,6 +209,7 @@ int main()
     std::cout << "optimizer failed!" << std::endl;
     return -1;
   }
+  
 
   while(optimizer.isRunning()){
 
@@ -223,6 +225,28 @@ int main()
   optimizer.getSolutionError(error);
 
   std::cout << "MODEL ERROR: " << error << std::endl;
+  */
+
+
+  
+  LinearKCluster< math::blas_real<double> > optimizer(xxdata[0].size(), yydata[0].size());
+  
+  unsigned int iters = 0;
+
+  while(optimizer.isRunning()){
+    unsigned int i=0;
+    double error = -1.0;
+
+    if(optimizer.getolutionError(error, i)){
+      if(i > iters){
+	std::cout << "Solution error: " << error << std::endl;
+	iters = i; 
+      }
+    }
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  }
+
   
 
   //////////////////////////////////////////////////////////////////////
