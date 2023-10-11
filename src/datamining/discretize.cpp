@@ -321,6 +321,7 @@ namespace whiteice
     {
       for(unsigned int j=0;j<data.size();j++){
 	dynamic_bitset value;
+	//value.resize(f.size()*1);
 	value.resize(f.size()*2);
 	value.reset();
 

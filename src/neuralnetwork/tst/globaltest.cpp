@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "GlobalOptimizer.h"
+#include "GeneralKCluster.h"
 #include "dataset.h"
 #include "RNG.h"
 
@@ -63,7 +64,7 @@ int main()
   math::vertex< math::blas_real<double> > x, y;
   
   
-  const unsigned int NUMDATAPOINTS = 5000; // was: 1000, 100 for testing purposes
+  const unsigned int NUMDATAPOINTS = 10000; // was: 1000, 100 for testing purposes
 
   for(unsigned int i=0;i<NUMDATAPOINTS;i++){
 
@@ -229,17 +230,19 @@ int main()
 
 
   
-  LinearKCluster< math::blas_real<double> > optimizer(xxdata[0].size(), yydata[0].size());
+  GeneralKCluster< math::blas_real<double> > optimizer;
   
+  optimizer.startTrain(xxdata, yydata);
+
   unsigned int iters = 0;
 
   while(optimizer.isRunning()){
     unsigned int i=0;
     double error = -1.0;
 
-    if(optimizer.getolutionError(error, i)){
+    if(optimizer.getSolutionError(i, error)){
       if(i > iters){
-	std::cout << "Solution error: " << error << std::endl;
+	std::cout << "Solution " << i << " error: " << error << std::endl;
 	iters = i; 
       }
     }
