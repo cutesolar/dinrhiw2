@@ -3735,7 +3735,7 @@ namespace whiteice
 	(*this) = V*S*U.hermite();
       }
 
-      return *this;
+      return true;
 #endif
 #endif
     }

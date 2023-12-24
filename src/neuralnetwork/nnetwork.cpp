@@ -770,7 +770,7 @@ namespace whiteice
   {
     // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
     // 0.25 was used as default for 2 layers! (no problem)
-    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.75f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
+    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
     
     if(type == 0){
       const whiteice::math::blas_complex<double> ar(2.0f,0.0f), br(1.0f, 0.0f);
@@ -863,7 +863,7 @@ namespace whiteice
 	    var *= extra;
 
 	    // scales higher dimensions in superresolutional numbers to be smaller..
-	    float alpha = 1.0f; // SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
 	    float factor = 1.0f;
 	    
 	    for(unsigned int k=0;k<W[l][i].size();k++){
@@ -913,7 +913,7 @@ namespace whiteice
 	    var *= extra;
 
 	    // scales higher dimensions in superresolutional numbers to be smaller..
-	    float alpha = 1.0f; // SUPERRESOLUTION_METRIC_SCALING_FACTOR;
+	    float alpha = SUPERRESOLUTION_METRIC_SCALING_FACTOR;
 	    float factor = 1.0f;
 
 	    for(unsigned int k=0;k<b[l][i].size();k++){
@@ -2837,12 +2837,21 @@ namespace whiteice
 
 	//output.fft();
 
+	// auto output = input;
+	
+	if(input[0].real() < 0.0f)
+	  output = T(RELUcoef);
+	else
+	  output = T(1.0f);
+
+	/*
 	for(unsigned int i=0;i<output.size();i++){
 	  if(input[0].real() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
 	}
+	*/
 
 	//output.inverse_fft();
 
@@ -3425,7 +3434,7 @@ namespace whiteice
 	// WRONG BUT WORKS BETTER!
 	
 	T output;
-
+	
 	if(input[0].real() < 0.0f){
 	  output = T(RELUcoef);
 	}
@@ -3452,12 +3461,21 @@ namespace whiteice
 
 	//output.fft();
 
+	if(input[0].real() < 0.0f){
+	  output = T(RELUcoef);
+	}
+	else{
+	  output = T(1.0f);
+	}
+
+	/*
 	for(unsigned int i=0;i<output.size();i++){
 	  if(input[0].real() < 0.0f)
 	    output[i] = RELUcoef;
 	  else
 	    output[i] = (1.0f);
 	}
+	*/
 
 	//output.inverse_fft();
 

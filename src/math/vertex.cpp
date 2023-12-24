@@ -1609,7 +1609,7 @@ namespace whiteice
 	       dataSize, v.dataSize, __FILE__, __LINE__);
 
 	whiteice::logging.error("vertex::operator-=(): vector dimension mismatch.");
-	assert(0);
+	assert(false);
 	throw illegal_operation("vector op: vector dim. mismatch");
       }
 
