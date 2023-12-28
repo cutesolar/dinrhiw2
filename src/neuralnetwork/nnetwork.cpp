@@ -2784,8 +2784,71 @@ namespace whiteice
       }
       else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<float>,
-				  whiteice::math::modular<unsigned int> >) ||
-	      typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::modular<unsigned int> >)) 
+      { // superresolution
+	
+	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
+	// this should mean that derivate exists because we are only non-linear in real line
+	
+#if 1
+	// WRONG but WORKS BETTER!
+	
+	auto output = input;
+	
+	{
+	  whiteice::math::superresolution<
+	    whiteice::math::blas_complex<float>,
+	    whiteice::math::modular<unsigned int> > a, one;
+
+	  a.zero();
+	  
+	  for(unsigned int i=0;i<a.size();i++){
+	    if(input[0].real() < 0.0f)
+	      a[i] = whiteice::math::blas_complex<float>(RELUcoef,0.0f);
+	    else{
+	      a[i] = whiteice::math::blas_complex<float>(1.0f,0.0f);
+	    }
+	  }
+
+	  one = whiteice::math::superresolution<
+	    whiteice::math::blas_complex<float>,
+	    whiteice::math::modular<unsigned int> >(1.0f);
+
+	  //for(unsigned i=0;i<one.size();i++)
+	  //  one[i] = 1.0f;
+
+	  a.fft();
+	  one.fft();
+
+	  auto result = a.circular_convolution(one).inverse_fft();
+
+	  whiteice::math::convert(output, result);
+	}
+#endif
+	
+#if 0
+	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
+	const double epsilon = 1e-30;
+	
+	T h;
+	
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	T output = (nonlin(input+h, layer, neuron) -
+		    nonlin(input, layer, neuron))/h;
+#endif
+	
+	// return output;
+	
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
+      else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<double>,
 				  whiteice::math::modular<unsigned int> >))
       { // superresolution
@@ -2798,10 +2861,39 @@ namespace whiteice
 	
 	auto output = input;
 	
-	if(input[0].real() < 0.0f)
-	  output = T(RELUcoef);
-	else
-	  output = T(1.0f);
+	
+	{
+	  whiteice::math::superresolution<
+	    whiteice::math::blas_complex<double>,
+	    whiteice::math::modular<unsigned int> > a, one;
+
+	  a.zero();
+
+	  for(unsigned int i=0;i<a.size();i++){
+	    if(input[0].real() < 0.0f){
+	      a[i] = whiteice::math::blas_complex<double>(RELUcoef, 0.0f);
+	    }
+	    else{
+	      a[i] = whiteice::math::blas_complex<double>(1.0f,0.0f);
+	    }
+	  }
+	    
+	  one = whiteice::math::superresolution<
+	    whiteice::math::blas_complex<double>,
+	    whiteice::math::modular<unsigned int> >(1.0f);
+	  
+	  //for(unsigned i=0;i<one.size();i++)
+	  //  one[i] = 1.0f;
+
+	  a.fft();
+	  one.fft();
+
+	  auto result = a.circular_convolution(one).inverse_fft();
+
+	  whiteice::math::convert(output, result);
+	    
+	  // output = T(RELUcoef);
+	}
 #endif
 	
 #if 0
@@ -3423,6 +3515,144 @@ namespace whiteice
       }
       else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<float>,
+				  whiteice::math::modular<unsigned int> >)) 
+      { // superresolution
+	
+	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
+	// this should mean that derivate exists because we are only non-linear in real line
+	
+#if 1
+	// WRONG but WORKS BETTER!
+	
+	auto output = input;
+	
+	{
+	  whiteice::math::superresolution<
+	    whiteice::math::blas_complex<float>,
+	    whiteice::math::modular<unsigned int> > a, one;
+
+	  a.zero();
+
+	  for(unsigned int i=0;i<a.size();i++){
+	    if(input[0].real() < 0.0f)
+	      a[i] = whiteice::math::blas_complex<float>(RELUcoef, 0.0f);
+	    else{
+	      a[i] = whiteice::math::blas_complex<float>(1.0f, 0.0f);
+	    }
+	  }
+	    
+
+	  one = whiteice::math::superresolution<
+	    whiteice::math::blas_complex<float>,
+	    whiteice::math::modular<unsigned int> >(1.0f);
+
+	  //for(unsigned i=0;i<one.size();i++)
+	  //  one[i] = 1.0f;
+	  
+	  a.fft();
+	  one.fft();
+
+	  auto result = a.circular_convolution(one).inverse_fft();
+
+	  whiteice::math::convert(output, result);
+	}
+#endif
+	
+#if 0
+	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
+	const double epsilon = 1e-30;
+	
+	T h;
+	
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	T output = (nonlin(input+h, layer, neuron) -
+		    nonlin(input, layer, neuron))/h;
+#endif
+	
+	// return output;
+	
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
+      else if(typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<double>,
+				  whiteice::math::modular<unsigned int> >))
+      { // superresolution
+	
+	// in superresolution, we only use leaky ReLU to the zeroth real component and keep other values linear..
+	// this should mean that derivate exists because we are only non-linear in real line
+	
+#if 1
+	// WRONG but WORKS BETTER!
+	
+	auto output = input;
+	
+	
+	{
+	  whiteice::math::superresolution<
+	    whiteice::math::blas_complex<double>,
+	    whiteice::math::modular<unsigned int> > a, one;
+
+	  a.zero();
+
+	  for(unsigned int i=0;i<a.size();i++){
+	    if(input[0].real() < 0.0f){
+	      a[i] = whiteice::math::blas_complex<double>(RELUcoef, 0.0f);
+	    }
+	    else{
+	      a[i] = whiteice::math::blas_complex<double>(1.0f, 0.0f);
+	    }
+	  }
+	    
+	  one = whiteice::math::superresolution<
+	    whiteice::math::blas_complex<double>,
+	    whiteice::math::modular<unsigned int> >(1.0f);
+
+	  //for(unsigned i=0;i<one.size();i++)
+	  //  one[i] = 1.0f;
+	  
+	  a.fft();
+	  one.fft();
+
+	  auto result = a.circular_convolution(one).inverse_fft();
+
+	  whiteice::math::convert(output, result);
+	    
+	  // output = T(RELUcoef);
+	}
+#endif
+	
+#if 0
+	// CORRECT but WORKS MUCH WORSE!!! (gets stuck to local optimums)
+	const double epsilon = 1e-30;
+	
+	T h;
+	
+	for(unsigned int i=0;i<h.size();i++)
+	  h[i] = epsilon;
+	
+	T output = (nonlin(input+h, layer, neuron) -
+		    nonlin(input, layer, neuron))/h;
+#endif
+	
+	// return output;
+	
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
+#if 0
+      else if(typeid(T) == typeid(whiteice::math::superresolution<
+				  whiteice::math::blas_real<float>,
 				  whiteice::math::modular<unsigned int> >) ||
 	      typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_real<double>,
@@ -3450,6 +3680,7 @@ namespace whiteice
 	}
 	
       }
+#endif
       else if(typeid(T) == typeid(whiteice::math::superresolution<
 				  whiteice::math::blas_complex<float>,
 				  whiteice::math::modular<unsigned int> >) ||

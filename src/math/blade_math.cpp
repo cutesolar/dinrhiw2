@@ -773,6 +773,56 @@ namespace whiteice
     }
 
     
+
+    bool convert(blas_complex<float>& B,
+		 const superresolution< blas_complex<double>, modular<unsigned int> > A)
+    {
+      whiteice::math::convert(B, A[0]);
+      return true;
+    }
+
+    bool convert(superresolution<whiteice::math::blas_real<float>, modular<unsigned int> >& B,
+		 superresolution<whiteice::math::blas_complex<double>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i] = A[i][0];
+      }
+
+      return true;
+    }
+
+    bool convert(superresolution<whiteice::math::blas_real<double>, modular<unsigned int> >& B,
+		 superresolution<whiteice::math::blas_complex<float>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	B[i] = A[i][0];
+      }
+      
+      return true;
+    }
+    
+    bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
+		 superresolution< blas_complex<double>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	whiteice::math::convert(B[i], A[i]);
+      }
+      
+      return true;
+    }
+
+
+    bool convert(superresolution<blas_complex<double>, modular<unsigned int> >& B,
+		 superresolution<blas_complex<float>, modular<unsigned int> > A)
+    {
+      for(unsigned int i=0;i<B.size();i++){
+	whiteice::math::convert(B[i], A[i]);
+      }
+      
+      return true;
+    }
+
+    
     bool convert(superresolution< blas_complex<float>, modular<unsigned int> >& B,
 		 const superresolution< blas_complex<float>, modular<unsigned int> > A)
     {

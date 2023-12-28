@@ -89,7 +89,7 @@ int main()
   std::vector<unsigned int> arch;  
   arch.push_back(10);
   
-  const unsigned int LAYERS = 2; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
+  const unsigned int LAYERS = 10; // was: 2, 10, 40 [TODO: test 100 dimensional neural network]
   
   for(unsigned int l=0;l<LAYERS;l++)
     arch.push_back(20); // was: 50, 30, 1000
@@ -97,7 +97,7 @@ int main()
   arch.push_back(10);
 
   
-#if 0
+#if 1
   arch.clear();
   arch.push_back(4);
   arch.push_back(20); // was: 20,50
@@ -124,7 +124,7 @@ int main()
 
   net.randomize();
   snet.randomize();
-  net.setResidual(false); // was: true
+  net.setResidual(false); // was: false, true
   snet.setResidual(false);
 
   const bool BN = false; // batch normalization (on/off)
@@ -247,7 +247,7 @@ int main()
   }
 
   
-#if 1
+#if 0
   // use SHA-256 HASH data instead
   {
     printf("USING SHA-256 HASH CRYPTO DATASET.\n");
@@ -317,8 +317,8 @@ int main()
     }
     
     
-    data.downsampleAll(1000); // should be at least 1000, was: 50
-    data2.downsampleAll(1000); // should be at least 1000, was: 50
+    data.downsampleAll(100); // should be at least 1000, was: 50
+    data2.downsampleAll(100); // should be at least 1000, was: 50
   }
 #endif
 
