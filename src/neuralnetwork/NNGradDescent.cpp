@@ -233,20 +233,48 @@ namespace whiteice
 					 bool dropout,
 					 bool initiallyUseNN)
     {
-      if(data.getNumberOfClusters() < 2) return false;
+      if(data.getNumberOfClusters() < 2){
+	char buffer[256];
+	sprintf(buffer, "NNGradDescent::startOptimize(): data.getNumberOfClusters() < 2: %d",
+		(int)data.getNumberOfClusters());
+	logging.error(buffer);
+	return false;
+      }
 
-      if(data.size(0) != data.size(1)) return false;
+      if(data.size(0) != data.size(1)){
+	char buffer[256];
+	sprintf(buffer, "NNGradDescent::startOptimize(): data.size(0) != data.size(1): %d %d",
+		(int)data.size(0), (int)data.size(1));
+	logging.error(buffer);
+	return false;
+      }
 
       // need at least 1 datapoint(s)
-      if(data.size(0) < 1) return false;
+      if(data.size(0) < 1){
+	char buffer[256];
+	sprintf(buffer, "NNGradDescent::startOptimize(): data.size(0) < 1: %d",
+		(int)data.size(0));
+	logging.error(buffer);
+	return false;
+      }
 
       if(data.dimension(0) != nn.input_size() ||
-	 data.dimension(1) != nn.output_size())
+	 data.dimension(1) != nn.output_size()){
+	char buffer[256];
+	sprintf(buffer, "NNGradDescent::startOptimize(): nn dimensions mismatch: %d %d %d %d",
+		(int)data.dimension(0), (int)data.dimension(1),
+		(int)nn.input_size(), (int)nn.output_size());
+	logging.error(buffer);
 	return false;
+      }
 
       start_lock.lock();
 
       if(running == true){
+	char buffer[256];
+	sprintf(buffer, "NNGradDescent::startOptimize(): running is already true.");
+	logging.error(buffer);
+	
 	start_lock.unlock();
 	return false;
       }
@@ -257,6 +285,12 @@ namespace whiteice
 	std::lock_guard<std::mutex> lock(thread_is_running_mutex);
 	if(thread_is_running > 0){
 	  start_lock.unlock();
+
+	  char buffer[256];
+	  sprintf(buffer, "NNGradDescent::startOptimize(): thread_is_running is positive: %d.",
+		  thread_is_running);
+	  logging.error(buffer);
+	  
 	  return false;
 	}
 	

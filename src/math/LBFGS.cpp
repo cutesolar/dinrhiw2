@@ -217,6 +217,15 @@ namespace whiteice
 			      const vertex<T>& x,
 			      const vertex<T>& d) const
     {
+      {
+	char buffer[80];
+	
+	sprintf(buffer, "LBFGS linesearch called START.");
+	
+	logging.info(buffer);
+      }
+
+      
       // finds the correct scale first
       // (exponential search)
       
@@ -476,6 +485,15 @@ namespace whiteice
       thread_is_running_cond.notify_all();
       
       while(thread_running && (MAXITERS == 0 || iterations < MAXITERS)){
+
+	{
+	  char buffer[80];
+
+	  sprintf(buffer, "LBFGS iter loop: iter %d/%d. reset: %d", iterations, MAXITERS, reset);
+	  
+	  logging.info(buffer);
+	}
+	
 	try{
 	  // we keep iterating until we converge (later) or
 	  // the real error starts to increase (FIXME: NOT DONE NOW!!!)
@@ -664,7 +682,7 @@ namespace whiteice
       }
 
       
-      
+      solution_converged = true;
       thread_running = false; // very tricky here, writing false => false or true => false SHOULD BE ALWAYS SAFE without locks
       // thread_is_running_cond.notify_all(); // waiters have to use wait_for() [timeout milliseconds] as it IS possible to miss notify_all()
       
