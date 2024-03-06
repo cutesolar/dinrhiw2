@@ -456,9 +456,9 @@ namespace whiteice
 	if(smart_convergence_check){
 	  errors.push_back(real_besty); // NOTE: getError() must return >= 0.0 values
 
-	  if(errors.size() >= 50){
+	  if(errors.size() >= 100){
 	  
-	    while(errors.size() > 50)
+	    while(errors.size() > 100)
 	      errors.pop_front();
 
 	    // make all values to be positive
