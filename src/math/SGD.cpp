@@ -389,14 +389,14 @@ namespace whiteice
 #endif
 	}
 	else{
-	  if((mistep_go_worse > 0 && ynew[0] < (T(1.150)*besty)[0]) /* || 
+	  if((mistep_go_worse > 0 && ynew[0] < (T(1.250)*besty)[0]) /* || 
 								      (ynew - besty)[0] < 1e-5*/){ 
 	    // go worse direction [just once]
 	    if(mistep_go_worse) mistep_go_worse--;
 	    worse = true; 
 	  }
 	  else{
-	    if(ynew[0] >= (T(1.150)*besty)[0]){
+	    if(ynew[0] >= (T(1.250)*besty)[0]){
 	      x = old_x; // don't go to worse directions..
 
 	      recalculate_gradient = false; // no need to calculate gradient again.. 
@@ -423,7 +423,7 @@ namespace whiteice
 
 
 	
-	if(lrate[0] < T(1e-10)[0] || no_improve_iterations_count >= 30){
+	if(lrate[0] < T(1e-10)[0] || no_improve_iterations_count >= 20){
 	  // lrate = T(1e-10);
 
 	  // resets LRATE and goes to worse direction
