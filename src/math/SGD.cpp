@@ -48,6 +48,8 @@ namespace whiteice
       this->keepWorse = false;
       this->smart_convergence_check = true;
       this->adaptive_lrate = true;
+
+      this->use_adam = false;
     }
     
  
@@ -282,6 +284,145 @@ namespace whiteice
 
       
       thread_is_running_cond.notify_all();
+      
+      
+      if(use_adam){
+	
+	// Use Adam Optimizer instead which should often give better results..
+	
+	const T alpha = T(0.001);
+	const T beta1 = T(0.9);
+	const T beta2 = T(0.999);
+	const T epsilon = T(1e-8);
+	
+	std::list<T> errors; // used for convergence check
+	
+	vertex<T> x;
+	T real_besty;
+
+	{
+	  std::lock_guard<std::mutex> lock(solution_mutex);
+	  
+	  this->iterations = 0;
+	  x = bestx;
+	  real_besty = besty;
+	}
+
+	unsigned int no_improve_iterations = 0;
+	
+	vertex<T> grad;
+	
+	vertex<T> m(x.size());
+	vertex<T> v(x.size());
+	vertex<T> m_hat(x.size());
+	vertex<T> v_hat(x.size());
+	
+	m.zero();
+	v.zero();
+	
+	
+	while((iterations < MAX_ITERS || MAX_ITERS == 0) &&
+	      (no_improve_iterations) < MAX_NO_IMPROVE_ITERS &&
+	      thread_running)
+	{
+	  iterations++;
+	  
+	  grad = Ugrad(x);
+	  
+	  for(unsigned int i=0;i<grad.size();i++){
+	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*grad[i];
+	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*grad[i]*grad[i];
+
+	    m_hat[i] = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations)[0]));
+	    v_hat[i] = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations)[0]));
+
+	    x[i] -= (alpha / (whiteice::math::sqrt(v_hat[i]) + epsilon)) * m_hat[i];
+	  }
+
+	  heuristics(x);
+
+	  T new_error = getError(x);
+
+	  if(new_error >= real_besty){
+	    no_improve_iterations++;
+	  }
+	  else{
+	    std::lock_guard<std::mutex> lock(solution_mutex);
+	    
+	    bestx = x;
+	    besty = new_error;
+	    real_besty = new_error;
+
+	    no_improve_iterations = 0;
+	  }
+
+	  
+	  if(smart_convergence_check){
+	    errors.push_back(real_besty); // NOTE: getError() must return >= 0.0 values
+	    
+	    if(errors.size() >= 100){
+	      
+	      while(errors.size() > 100)
+		errors.pop_front();
+	      
+	      // make all values to be positive
+	      T min_value = *errors.begin();
+	      
+	      for(const auto& e : errors)
+		if(e < min_value) min_value = e;
+	      
+	      if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
+	      else min_value = T(-0.01f);
+	      
+	      
+	      T m = T(0.0f);
+	      T s = T(0.0f);
+	      
+	      for(const auto& e : errors){
+		m += (e-min_value);
+		s += (e-min_value)*(e-min_value);
+	      }
+	      
+	      m /= errors.size();
+	      s /= errors.size();
+	      
+	      s -= m*m;
+	      s = sqrt(abs(s));
+	      
+	      T r = T(0.0f);
+	      
+	      if(m > T(0.0f))
+		r = s/m;
+	      
+	      if(r[0] <= T(0.005f)[0]){ // convergence: 0.1% st.dev. when compared to mean.
+		solution_converged = true;
+		break;
+	      }
+	      
+	    }
+	  }
+
+	  while(sleep_mode && thread_running){
+	    std::chrono::milliseconds duration(200);
+	    std::this_thread::sleep_for(duration);
+	  }
+	  
+	}
+	
+
+      
+	{
+	  solution_converged = true;
+	  
+	  // std::lock_guard<std::mutex> lock(thread_mutex); // needed or safe??
+	  
+	  thread_running = false; // very tricky here, writing false => false or true => false SHOULD BE ALWAYS SAFE without locks
+	}
+	// thread_is_running_cond.notify_all(); // waiters have to use wait_for() [timeout milliseconds] as it IS possible to miss notify_all()
+	
+	return; // exit
+      }
+      
 
       this->iterations = 0;
       unsigned int no_improve_iterations = 0;

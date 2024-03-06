@@ -70,6 +70,9 @@ namespace whiteice
 	void setAdaptiveLRate(bool adaptiveFlag){ adaptive_lrate = adaptiveFlag; }
 	bool getAdaptiveLRate() const { return adaptive_lrate; }
 
+	void setAdamOptimizer(const bool adam = true){ use_adam = adam; }
+	bool getAdamOptimizer() const { return use_adam; }
+
 	// x is the best parameter found, y is training error and
 	// iterations is number of training iterations.
         bool getSolution(vertex<T>& x, T& y, unsigned int& iterations) const;
@@ -104,6 +107,8 @@ namespace whiteice
 	T lrate;
 	unsigned int MAX_ITERS;
 	unsigned int MAX_NO_IMPROVE_ITERS;
+
+	bool use_adam = false;
       
         bool overfit = false;
 	bool keepWorse = false; // do we save worse solutions
