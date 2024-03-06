@@ -65,6 +65,7 @@
 #include "EnsembleMeans.h"
 
 #include "SGD.h"
+#include "SGD_recurrent_nnetwork.h"
 #include "SGD_snet.h" // superresolutional neural net SGD optimizer
 
 #include "RNG.h"
