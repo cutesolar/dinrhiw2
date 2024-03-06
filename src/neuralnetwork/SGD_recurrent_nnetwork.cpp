@@ -13,6 +13,209 @@ namespace whiteice
     whiteice::math::SGD<T>(overfit),
     net(nn), data(d)
   {
+    logging.info("SGD_recurrent_nnetork: CTOR start");
+	
+    assert(data.getNumberOfClusters() == 3 || data.getNumberOfClusters() == 2);
+
+    // checks network has correct architecture
+    {
+      const unsigned int RDIM = net.input_size()-data.dimension(0);
+
+      assert(RDIM >= 1);
+      
+      assert(net.input_size() == data.dimension(0)+RDIM);
+      assert(net.output_size() == data.dimension(1)+RDIM);
+    }
+    
+
+    // divides data in episoids to to training and testing sets
+    ///////////////////////////////////////////////
+    if(data.getNumberOfClusters() == 3){
+
+      logging.info("data.getNumberOfClusters() == 3 CTOR");
+
+      dtrain.clear();
+      dtest.clear();
+
+      if(data.dimension(2) == 2){ 
+	
+	dtrain = data;
+	dtest  = data;
+	
+	dtrain.clearData(0);
+	dtrain.clearData(1);
+	dtrain.clearData(2);
+	
+	dtest.clearData(0);
+	dtest.clearData(1);
+	dtest.clearData(2);
+	
+	for(unsigned int e=0;e<data.size(2);e++){
+	  math::vertex<T> range = data.access(2, e);
+	  
+	  assert(range.size() == 2);
+	  assert(range[0] < range[1] && range[0] < data.size(0) && range[1] <= data.size(0));
+	  unsigned int r1, r2;
+	  
+	  whiteice::math::convert(r1, range[0]);
+	  whiteice::math::convert(r2, range[1]);
+	  
+	  const unsigned int LEN = (r2 - r1);
+	  
+	  const unsigned int r = (rng.rand() % 4);
+	  
+	  if(r != 0){ // training dataset 75% of cases go here
+	    
+	    const unsigned int start = dtrain.size(0);
+	    
+	    range[0] = start;
+	    range[1] = start+LEN;
+	    
+	    for(unsigned int i=r1;i<r2;i++){
+	      math::vertex<T> in  = data.access(0,i);
+	    math::vertex<T> out = data.access(1,i);
+	    
+	    dtrain.add(0, in,  true);
+	    dtrain.add(1, out, true);
+	    }
+	    
+	    dtrain.add(2, range, true);
+	  }
+	  else{
+	    
+	    const unsigned int start = dtest.size(0);
+	    
+	    range[0] = start;
+	    range[1] = start+LEN;
+	    
+	    for(unsigned int i=r1;i<r2;i++){
+	      math::vertex<T> in  = data.access(0,i);
+	      math::vertex<T> out = data.access(1,i);
+	      
+	      dtest.add(0, in,  true);
+	      dtest.add(1, out, true);
+	    }
+	    
+	    dtest.add(2, range, true);
+	  }
+	  
+	}
+      }
+      
+      
+      // we cannot never have zero training or testing set size
+      // in such a small cases (very little data) we just use
+      // all the data both for training and testing and overfit
+      if(dtrain.size(0) == 0 || dtest.size(0) == 0 || overfit){
+	logging.info("data.getNumberOfClusters() == 3 CTOR, zero or overfit!");
+	
+	dtrain = data;
+	dtest  = data;
+
+	dtrain.removeCluster(2);
+	dtest.removeCluster(2);
+
+	dtrain.createCluster("range", 2);
+	dtest.createCluster("range", 2);
+	
+	math::vertex<T> range;
+	range.resize(2);
+
+	const unsigned int c = data.size(0)/100 + 1;
+
+	for(unsigned int i=0;i<c;i++){
+	
+	  range[0] = (i*data.size(0))/100;
+	  range[1] = ((i+1)*data.size(0))/100;
+
+	  if(range[0] > data.size(0)){
+	    range[0] = data.size(0);
+	  }
+	  
+	  if(range[1] > data.size(0)){
+	    range[1] = data.size(0);
+	  }
+	  
+	  // FIXME: overfitting, should separate data to 10 step long ranges between dtrain and dtest..
+	  
+	  dtrain.add(2, range, true);
+	  dtest.add(2, range, true);
+	  
+	  {
+	    char buffer[80];
+	    
+	    sprintf(buffer, "SGD_recurrent_nnetork: CTOR3: %d %d %d %d %d %d",
+		    dtrain.size(0), dtest.size(0),
+		    dtrain.size(1), dtest.size(1),
+		    dtrain.size(2), dtest.size(2));
+	    
+	    logging.info(buffer);
+	  }
+	  
+	}
+      }
+    }
+    else{ // number of clusrers is 2
+
+      logging.info("data.getNumberOfClusters() == 2 CTOR");
+      
+      dtrain = data;
+      dtest  = data;
+
+      dtrain.createCluster("range", 2);
+      dtest.createCluster("range", 2);
+
+      //dtrain.clearData(0);
+      //dtrain.clearData(1);
+      //dtrain.clearData(2);
+      
+      //dtest.clearData(0);
+      //dtest.clearData(1);
+      //dtest.clearData(2);
+      
+      math::vertex<T> range;
+      range.resize(2);
+      
+      const unsigned int c = data.size(0)/100 + 1;
+      
+      for(unsigned int i=0;i<c;i++){
+	
+	range[0] = (i*data.size(0))/100;
+	range[1] = ((i+1)*data.size(0))/100;
+	
+	if(range[0] > data.size(0)){
+	  range[0] = data.size(0);
+	}
+	
+	if(range[1] > data.size(0)){
+	  range[1] = data.size(0);
+	}
+
+
+	// FIXME: overfitting, should separate data to 10 step long ranges between dtrain and dtest..
+
+	dtrain.add(2, range, true);
+	dtest.add(2, range, true);
+	
+	{
+	  char buffer[80];
+	  
+	  sprintf(buffer, "SGD_recurrent_nnetork: CTOR: %d %d %d %d %d %d",
+		  dtrain.size(0), dtest.size(0),
+		  dtrain.size(1), dtest.size(1),
+		  dtrain.size(2), dtest.size(2));
+	  
+	  logging.info(buffer);
+	}
+	
+      }
+    }
+
+    logging.info("SGD_recurrent_nnetork: CTOR end");
+
+
+
+#if 0
     assert(data.getNumberOfClusters() == 3);
 
     // checks network has correct architecture
@@ -100,6 +303,7 @@ namespace whiteice
 	dtest  = data;
       }
     }
+#endif
     
   }
 
