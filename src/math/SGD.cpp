@@ -298,6 +298,8 @@ namespace whiteice
       bool use_mistep_lrate = false;
       int mistep_go_worse = 0;
 
+      bool recalculate_gradient = true;
+
       
       // stops if given number of iterations has passed or no improvements in N iters
       // or if instructed to stop. Additionally, in the loop there is convergence check
@@ -306,7 +308,10 @@ namespace whiteice
 	    (no_improve_iterations) < MAX_NO_IMPROVE_ITERS &&
 	    thread_running)
       {
-	grad = Ugrad(x);
+	if(recalculate_gradient == true)
+	  grad = Ugrad(x);
+
+	recalculate_gradient = true; // as the default calculates gradient each iteration..
 
 	auto old_x = x;
 
@@ -384,17 +389,21 @@ namespace whiteice
 #endif
 	}
 	else{
-	  if((mistep_go_worse > 0 && ynew[0] < (T(1.250)*besty)[0]) /* || 
+	  if((mistep_go_worse > 0 && ynew[0] < (T(1.150)*besty)[0]) /* || 
 								      (ynew - besty)[0] < 1e-5*/){ 
 	    // go worse direction [just once]
 	    if(mistep_go_worse) mistep_go_worse--;
 	    worse = true; 
 	  }
 	  else{
-	    if(ynew[0] > (T(1.250)*besty)[0])
+	    if(ynew[0] >= (T(1.150)*besty)[0]){
 	      x = old_x; // don't go to worse directions..
-	    else
+
+	      recalculate_gradient = false; // no need to calculate gradient again.. 
+	    }
+	    else{
 	      worse = true;
+	    }
 	  }
 	}
 
