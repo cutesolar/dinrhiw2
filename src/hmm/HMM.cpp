@@ -1266,9 +1266,11 @@ namespace whiteice {
     
     nextState = sample(dnext);
 
-    auto logp = log(dnext[nextState]);
-    
-    return logp.getDouble();
+    if(dnext[nextState].getDouble() > 0.0){
+      auto logp = log(dnext[nextState]);
+      return logp.getDouble();
+    }
+    else return -10000.0; // guess to keep things working.. 
   }
 
   

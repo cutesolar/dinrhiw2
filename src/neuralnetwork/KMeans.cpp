@@ -672,6 +672,9 @@ namespace whiteice
     if(kmeans.size() <= 0)
       throw std::logic_error("KMeans: No clustering available");
 
+    if(x.size() != kmeans[0].size())
+      throw std::logic_error("KMeans::getClusterIndex(): input data dimension mismatch with kmeans clusters."); 
+
     T best_distance = T(INFINITY);
     unsigned int best_index = 0;
 
