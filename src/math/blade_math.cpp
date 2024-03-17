@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <stdlib.h>
 
-#include "pocketfft_hdronly.h" // FFT algorithm
-//#include "pocketfft/pocketfft.h"
+//#include "pocketfft_hdronly.h" // FFT algorithm [buggy with threaded code, DISABLED!!!]
+#include "pocketfft/pocketfft.h"
 
 
 #include "blade_math.h"
@@ -16,7 +16,7 @@
 #include <math.h>
 #include <gmp.h>
 
-using namespace pocketfft;
+//using namespace pocketfft; // pocketfft_hdronly.h
 
 
 
@@ -1378,7 +1378,7 @@ namespace whiteice
     template <typename T>
     bool basic_fft(vertex< whiteice::math::blas_complex<T> >& v) 
     {
-#if 0
+#if 1
       const unsigned int LEN = v.size();
 
       double* buffer = (double*)malloc(LEN*sizeof(double)*2);
@@ -1426,7 +1426,7 @@ namespace whiteice
       return true;
 #endif
       
-#if 1
+#if 0
       const unsigned int LEN = v.size();
 
       shape_t shape { LEN };
@@ -1474,7 +1474,7 @@ namespace whiteice
     template <typename T>
     bool basic_ifft(vertex< whiteice::math::blas_complex<T> >& v) 
     {
-#if 0
+#if 1
       const unsigned int LEN = v.size();
       
       double* buffer = (double*)malloc(LEN*sizeof(double)*2);
@@ -1526,7 +1526,7 @@ namespace whiteice
 #endif
 
       
-#if 1
+#if 0
       const unsigned int LEN = v.size();
 
       shape_t shape { LEN };

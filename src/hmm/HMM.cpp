@@ -1228,7 +1228,7 @@ namespace whiteice {
 			 unsigned int& nextState,
 			 const unsigned int observation) const
   {
-    if(currentState > ph.size()){
+    if(currentState >= ph.size()){
       throw std::invalid_argument("HMM::next_state() - currentState out of bounds");
     }
     
