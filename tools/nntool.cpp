@@ -1182,7 +1182,7 @@ int main(int argc, char** argv)
 
     }
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    else if(lmethod == "pgrad"){
+    else if(lmethod == "grad"){
       
       if(SIMULATION_DEPTH > 1){
 	printf("ERROR: recurrent nnetwork not supported\n");
@@ -1335,7 +1335,7 @@ int main(int argc, char** argv)
       
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    else if(lmethod == "grad"){
+    else if(lmethod == "simplegrad"){
 
       if(SIMULATION_DEPTH > 1){
 	printf("ERROR: recurrent nnetwork not supported\n");
@@ -2873,7 +2873,7 @@ void print_usage(bool all)
   printf("[data]            dstool file containing data (binary file)\n");
   printf("[arch]            architecture of net (Eg. 3-10-9)\n");
   printf("<nnfile>          used/loaded/saved neural net weights file\n");
-  printf("[lmethod]         method: use, random, grad, sgrad, pgrad, bayes,\n"); 
+  printf("[lmethod]         method: use, random, grad (adam), sgrad, simplegrad, bayes,\n"); 
   printf("                  lbfgs, plbfgs, edit, (gbrbm, bbrbm, mix)\n");
   printf("                  edit edits net to have new architecture\n");
   printf("                  previous weights are preserved if possible\n");
