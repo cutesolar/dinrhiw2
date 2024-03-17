@@ -151,6 +151,8 @@ namespace whiteice
       bool dont_normalize_error; // don't normalize values when calculating error.
       T regularizer;
 
+      bool use_adam = true; // Use MUCH better Adam optimizer as the default for now 	
+
       // whether to use minimum norm error ||y-f(x)|| instead of
       // the standard MSE (minimum squared error) 0.5*||y-f(x)||^2 (default)
       bool mne; 

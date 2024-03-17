@@ -305,15 +305,19 @@ namespace whiteice
 	optimizer_thread.clear();
       }
       
-      
-      this->data = &data;
-      this->NTHREADS = NTHREADS;
-      this->MAXITERS = MAXITERS;
-      best_error = T(LARGE_INF_VALUE);
-      best_pure_error = T(LARGE_INF_VALUE);
-      iterations = 0;
-      running = true;
-      thread_is_running = 0;
+
+      {
+	std::lock_guard<std::mutex> lock(solution_lock);
+	
+	this->data = &data;
+	this->NTHREADS = NTHREADS;
+	this->MAXITERS = MAXITERS;
+	best_error = T(LARGE_INF_VALUE);
+	best_pure_error = T(LARGE_INF_VALUE);
+	iterations = 0;
+	running = true;
+	thread_is_running = 0;
+      }
 
       {
 	std::lock_guard<std::mutex> lock(first_time_lock);
@@ -867,264 +871,79 @@ namespace whiteice
 	}	
       }
       
-      
-      
-      while(running && iterations < MAXITERS){
-	// keep looking for solution forever
+      if(use_adam){
+	// Use Adam Optimizer instead which should often give better results..
 	
-	// starting location for neural network
+	const T alpha = T(0.001);
+	const T beta1 = T(0.9);
+	const T beta2 = T(0.999);
+	const T epsilon = T(1e-8);
+	
+	std::list<T> errors; // used for convergence check
+
 	std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*(this->nn)));
 
 	{
-	  char buffer[256];
-
-	  std::ostringstream ss;
-	  ss << std::this_thread::get_id();
-	  std::string str_id = ss.str();
-
-	  whiteice::math::vertex<T> w;
-	  nn->exportdata(w);
-	  
-	  snprintf(buffer, 256, "NNGradDescent: %d/%d (%s) reset/fresh neural network. param norm %f.", iterations, MAXITERS, str_id.c_str(), w.norm()[0].c[0]);
-	  whiteice::logging.info(buffer);
-	}
-
-	
-	{
 	  std::lock_guard<std::mutex> lock(first_time_lock);
 
-	  // use heuristic to normalize weights to unity
-	  // (keep input weights) [the first try is always given imported weights]
+	  if(first_time == false){ // don't use initial weights..
+	    nn->randomize(); // NO pretraining for now
+	    first_time = true;
+	  }
+	}
+	
+	vertex<T> x;
+	T real_besty, pure_real_besty;
 
-	  if(first_time == false){
+	{
+	  nn->exportdata(x);
 
-	    nn->randomize();
+	  real_besty = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
 
-	    whiteice::logging.info("NNGradDescent: resets neural network (nn::randomize() called)");
-
-
-	    if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
-	       typeid(T) == typeid(whiteice::math::blas_real<double>)){
-
-	      if(this->matrix_factorization_pretraining){
-
-#if 0
-		bool residual = nn->getResidual();
-		std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
-		nn->getNonlinearity(nonlins);
-		
-		nn->setResidual(false);
-		nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
-#endif
-
-		
-		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
-		
-		whiteice::PretrainNN<T> pretrainer;
-
-		pretrainer.setMatrixFactorization(true);
-		
-		if(pretrainer.startTrain(*nn, dtrain, 50)){
-		  
-		  while(pretrainer.isRunning()){
-		    sleep(1);
-		  }
-		  
-		  pretrainer.stopTrain();
-		  
-		  pretrainer.getResults(*nn);
-		}
-
-#if 0
-		nn->setResidual(residual);
-		nn->setNonlinearity(nonlins);
-#endif
-		
-		whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
-		
-	     }
-
-	    }
-	    
-	    
-#if 0
-	    // disable deep pretraining and normalize weights to unity as they
-	    // don't implement complex numbers..
-	    
-	    if(deep_pretraining){
-	      auto ptr = nn.release();
-	      // verbose = 2: logs training to log file..
-	      if(deep_pretrain_nnetwork(ptr, dtrain, false, 2, &running) == false)
-		whiteice::logging.error("NNGradDescent: deep pretraining FAILED");
-	      else
-		whiteice::logging.info("NNGradDescent: deep pretraining completed");
-		
-	      nn.reset(ptr);
-	    }
-
-	    
-	    if(heuristics){
-	      //normalize_weights_to_unity(*nn);
-	      
-	      /*
-	      if(whiten1d_nnetwork(*nn, dtrain) == false)
-		printf("ERROR: whiten1d_nnetwork failed\n");
-
-	      */
-	      /*
-	      normalize_weights_to_unity(*nn);
-	      T alpha = T(0.5f);
-	      negative_feedback_between_neurons(*nn, dtrain, alpha);
-	      */
-	    }
-#endif
-	    
+	  if(dropout){
+	    auto nn_without_dropout = *nn;
+	    nn_without_dropout.removeDropOut();
+	    pure_real_besty = getError(nn_without_dropout, dtest, false, false);
 	  }
 	  else{
-	    first_time = false;
-
-	    
-	    if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
-	       typeid(T) == typeid(whiteice::math::blas_real<double>)){
-	      
-	      if(this->matrix_factorization_pretraining){
-
-#if 0
-		bool residual = nn->getResidual();
-		std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
-		
-		nn->getNonlinearity(nonlins);
-		
-		nn->setResidual(false);
-		nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
-#endif
-		
-		whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
-		
-		whiteice::PretrainNN<T> pretrainer;
-
-		pretrainer.setMatrixFactorization(true);
-		
-		if(pretrainer.startTrain(*nn, dtrain, 50)){
-		  
-		  while(pretrainer.isRunning()){
-		    sleep(1);
-		  }
-		  
-		  pretrainer.stopTrain();
-		  
-		  pretrainer.getResults(*nn);
-		}
-
-#if 0
-		nn->setResidual(residual);
-		nn->setNonlinearity(nonlins);
-#endif
-		whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
-		
-	      }
-	    }
-	    
-	  }
-
-	}
-
-
-	// cancellation point
-	{
-	  if(running == false){
-	    std::lock_guard<std::mutex> lock(thread_is_running_mutex);
-	    thread_is_running--;
-	    thread_is_running_cond.notify_all();
-	    return; // cancels execution
+	    pure_real_besty = getError(*nn, dtest, false, false);
 	  }
 	}
 
+	unsigned int no_improve_iterations = 0;
+
+	const bool smart_convergence_check = true;
 	
-
-	// 2. normal gradient descent
-	///////////////////////////////////////
-	{
-	  math::vertex<T> weights, w0;
-	  
-	  T prev_error, error;	  
-	  T delta_error = T(0.0f);
-
-	  
-	  error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
+	vertex<T> sumgrad(x.size());
+	
+	vertex<T> m(x.size());
+	vertex<T> v(x.size());
+	vertex<T> m_hat(x.size());
+	vertex<T> v_hat(x.size());
+	
+	m.zero();
+	v.zero();
+	
+	
+	while(running && iterations < MAXITERS){
 
 	  {
-	    solution_lock.lock();
+	    std::lock_guard<std::mutex> lock(solution_lock);
 	    
-	    if(real(error) < real(best_error)){
-	      // improvement (smaller error with early stopping)
-	      
-	      if(dropout){
-		auto nn_without_dropout = *nn;
-		nn_without_dropout.removeDropOut();
-		
-		const T gerror = getError(nn_without_dropout, *data,
-					  false, false);
-		
-		if(real(gerror) < real(best_pure_error)){
-		  nn_without_dropout.exportdata(bestx);
-		  best_error = error;
-		  best_pure_error = gerror;
-		}
-	      }
-	      else{
-		const T gerror = getError(*nn, *data, false, false);
-
-		if(real(gerror) < real(best_pure_error)){
-		  nn->exportdata(bestx);
-		  best_error = error;
-		  best_pure_error = gerror;
-		}
-	      }
-	      
-	    }
-	    
-	    solution_lock.unlock();
+	    iterations++;
 	  }
 
-	  prev_error = error;
-
 	  
-	  // resets no improvement counter to check for convergence
-	  // and sets best error for this loop iteration
-	  T local_thread_best_error = T(LARGE_INF_VALUE);
-	  
+	  // calculates gradient 
 	  {
-	    std::lock_guard<std::mutex> lock(noimprove_lock);
-	    
-	    noimprovements[std::this_thread::get_id()] = 0;
-	    local_thread_best_error = error;
-	  }
-
-			   
-	  T lrate = T(0.01f);
-	  T ratio = T(1.0f);
-			   
-	  error = getError(*nn, dtrain, (real(regularizer)>real(T(0.0f))), dropout);
-	  
-	  do
-	  {
-	    prev_error = error;
-
-	    // goes through data, calculates gradient
-	    // exports weights, weights -= lrate*gradient
-	    // imports weights back
-
-	    math::vertex<T> sumgrad;
-	    sumgrad.resize(nn->exportdatasize());
 	    sumgrad.zero();
-
+	    
 	    // number of samples used to estimate gradient in minibatch mode
 	    const unsigned int MINIBATCHSIZE = 1000 > dtrain.size(0) ? dtrain.size(0) : 1000;
-
+	      
 	    if(use_minibatch){
 	      const T ninv = T(1.0f/MINIBATCHSIZE);
-	      
+		
 #pragma omp parallel shared(sumgrad)
 	      {
 		math::vertex<T> sgrad, grad;
@@ -1134,7 +953,7 @@ namespace whiteice
 		const whiteice::nnetwork<T>& nnet = *nn;
 		std::vector< math::vertex<T> > bpdata;
 		std::vector< std::vector<bool> > net_dropout;
-		
+		  
 		math::vertex<T> err;
 		math::vertex<T> output;
 		
@@ -1158,11 +977,11 @@ namespace whiteice
 		      assert(0);
 		    }
 		  }
-
+		  
 		  err = output - dtrain.access(1, index);
 		  
 		  if(mne) err.normalize(); // minimum norm error gradient instead
-
+		  
 		  if(dropout){
 		    if(nnet.mse_gradient(err, bpdata, net_dropout, grad) == false){
 		      std::cout << "gradient failed (1)." << std::endl;
@@ -1184,14 +1003,13 @@ namespace whiteice
 		{
 		  sumgrad += sgrad;
 		}
-	      
+		
 	      }
-	      
 	      
 	      sumgrad *= ninv;
 	    }
 	    else{ // do not use minibatch but ALL data is used to compute gradient
-
+		
 	      const T ninv = T(1.0f/dtrain.size(0));
 	      
 #pragma omp parallel shared(sumgrad)
@@ -1203,7 +1021,7 @@ namespace whiteice
 		const whiteice::nnetwork<T>& nnet = *nn;
 		std::vector< math::vertex<T> > bpdata;
 		std::vector< std::vector<bool> > net_dropout;
-
+		
 		math::vertex<T> output;
 		math::vertex<T> err;
 		
@@ -1226,11 +1044,11 @@ namespace whiteice
 		      assert(0);
 		    }
 		  }
-
+		  
 		  err = output - dtrain.access(1, index);
 		  
 		  if(mne) err.normalize(); // minimum norm error gradient instead
-
+		  
 		  if(dropout){
 		    if(nnet.mse_gradient(err, bpdata, net_dropout, grad) == false){
 		      std::cout << "gradient failed (3)." << std::endl;
@@ -1252,183 +1070,316 @@ namespace whiteice
 		{
 		  sumgrad += sgrad;
 		}
-	      
+		
 	      }
-
+	      
 	      sumgrad *= ninv;
 	    }
 	    
 	    
+	  }
 
-	    {
-	      char buffer[256];
-	      double tmp = 0.0;
-	      whiteice::math::convert(tmp, sumgrad.norm());
+	  
+	  for(unsigned int i=0;i<sumgrad.size();i++){
+	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
+	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
+
+	    m_hat[i] = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations)[0]));
+	    v_hat[i] = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations)[0]));
+
+	    x[i] -= (alpha / (whiteice::math::sqrt(v_hat[i]) + epsilon)) * m_hat[i];
+	  }
+
+	  // if(heuristics) heuristics(x);
+	  
+	  nn->importdata(x);
+
+	  T new_error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
+
+	  if(new_error >= real_besty){
+	    no_improve_iterations++;
+	  }
+	  else{
+	    std::lock_guard<std::mutex> lock(solution_lock);
+	    
+	    if(new_error < this->best_error){
+	    
+	      this->bestx = x;
+	      this->best_error = new_error;
+	      real_besty = new_error;
 	      
-	      snprintf(buffer, 256, "NNGradDescent: %d/%d gradient norm: %f", iterations, MAXITERS, tmp);
-	      whiteice::logging.info(buffer);
-	    }
-
-
-	    // cancellation point
-	    {
-	      if(running == false){
-		std::lock_guard<std::mutex> lock(thread_is_running_mutex);
-		thread_is_running--;
-		thread_is_running_cond.notify_all();
-		return; // cancels execution
+	      if(dropout){
+		auto nn_without_dropout = *nn;
+		nn_without_dropout.removeDropOut();
+		pure_real_besty = getError(nn_without_dropout, dtest, false, false);
 	      }
-	    }
-	    	      
-	    if(nn->exportdata(weights) == false)
-	      std::cout << "export failed." << std::endl;
-
-	    w0 = weights;
-
-	    // sumgrad.normalize();
-	    
-	    // adds regularizer to gradient (1/2*||w||^2)
-	    
-	    sumgrad += regularizer*w0;
-	    
-
-	    // restarts gradient descent from lrate = 0.50
-	    
-	    lrate = sqrt(lrate);
-	    lrate *= T(100.0);
-
-	    if(lrate <= T(1e-3)) // now very small learning rates
-	      lrate = T(1e-3);
-	    
-	    // lrate = 0.01f;
-
-	    
-	    // line search: (we should maybe increase lrate to both directions lrate_next = 2.0*lrate and lrate_next2 = 0.5*lrate...
-	    do{
-	      if(use_SGD){ // just single step towards gradient
-		weights = w0;
-		weights -= sgd_lrate * sumgrad;
-		
-		nn->importdata(weights);
-
-		break; // don't do linesearch..
+	      else{
+		pure_real_besty = getError(*nn, dtest, false, false);
 	      }
 	      
-	      weights = w0;
-	      weights -= lrate * sumgrad;
+	      this->best_pure_error = pure_real_besty;
+	    }
+	    else{
 
-	      if(nn->importdata(weights) == false)
-		std::cout << "import failed." << std::endl;
-
-	      if(heuristics){
-		//normalize_weights_to_unity(*nn);
-#if 0
-		if(whiten1d_nnetwork(*nn, dtrain) == false)
-		  printf("ERROR: whiten1d_nnetwork failed\n");
-		
-		// using negative feedback heuristic 
-		T alpha = T(0.5f); // lrate;
-		negative_feedback_between_neurons(*nn, dtrain, alpha);
-#endif
+	      real_besty = new_error;
+	      
+	      if(dropout){
+		auto nn_without_dropout = *nn;
+		nn_without_dropout.removeDropOut();
+		pure_real_besty = getError(nn_without_dropout, dtest, false, false);
 	      }
-
-	      error = getError(*nn, dtrain, (real(regularizer)>real(T(0.0f))), dropout);
-
-	      delta_error = (prev_error - error); // positive value means error has decreased
-	      ratio = real(delta_error) / real(error);
-
-	      if(real(delta_error) < real(T(0.0f))){ // if error grows we reduce learning rate
-		lrate *= T(0.50);
+	      else{
+		pure_real_besty = getError(*nn, dtest, false, false);
 	      }
-	      else if(real(delta_error) > real(T(0.0))){ // error becomes smaller we increase learning rate
-		lrate *= T(1.0/0.50);
+	      
+	    }
+
+	    no_improve_iterations = 0;
+	  }
+
+	  
+	  if(smart_convergence_check){
+	    errors.push_back(pure_real_besty); // NOTE: getError() must return >= 0.0 values
+	    
+	    if(errors.size() >= 100){
+	      
+	      while(errors.size() > 100)
+		errors.pop_front();
+	      
+	      // make all values to be positive
+	      T min_value = *errors.begin();
+	      
+	      for(const auto& e : errors)
+		if(e < min_value) min_value = e;
+	      
+	      if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
+	      else min_value = T(-0.01f);
+	      
+	      
+	      T m = T(0.0f);
+	      T s = T(0.0f);
+	      
+	      for(const auto& e : errors){
+		m += (e-min_value);
+		s += (e-min_value)*(e-min_value);
 	      }
-
-	      // break;
-
-	      {
-		char buffer[256];
-		double tmp1, tmp2, tmp3, tmp4;
-		whiteice::math::convert(tmp1, error);
-		whiteice::math::convert(tmp2, delta_error);
-		whiteice::math::convert(tmp4, ratio);
-		whiteice::math::convert(tmp3, lrate);
-		
-		std::ostringstream ss;
-		ss << std::this_thread::get_id();
-		std::string str_id = ss.str();
-		
-		snprintf(buffer, 256,
-			 "NNGradDescent: %d/%d (%s) linesearch error: %f delta-error: %f ratio: %f lrate: %e",
-			 iterations, MAXITERS,
-			 str_id.c_str(),
-			 tmp1, tmp2, tmp4, tmp3);
-		whiteice::logging.info(buffer);
-	      }
-
-#if 0
-	      // leaky error reduction, we sometimes allow jump to worse
-	      // position in gradient direction
-	      if((rng.rand() % 100) == 0 && real(error) < real(T(1.00f))){ // was 0.50f
-		logging.info("NNGradDescent: random early stopping of linesearch");
+	      
+	      m /= errors.size();
+	      s /= errors.size();
+	      
+	      s -= m*m;
+	      s = sqrt(abs(s));
+	      
+	      T r = T(0.0f);
+	      
+	      if(m > T(0.0f))
+		r = s/m;
+	      
+	      if(r[0] <= T(0.005f)[0]){ // convergence: 0.1% st.dev. when compared to mean.
+		convergence[std::this_thread::get_id()] = true;
+		//solution_converged = true;
 		break;
 	      }
+	      
+	    }
+	  }
+	  
+	}
+	
+	
+	
+      }
+      else{
+      
+	while(running && iterations < MAXITERS){ // keep looking for solution (forever)
+	  
+	// starting location for neural network
+	  std::unique_ptr< nnetwork<T> > nn(new nnetwork<T>(*(this->nn)));
+	  
+	  {
+	    char buffer[256];
+	    
+	    std::ostringstream ss;
+	    ss << std::this_thread::get_id();
+	    std::string str_id = ss.str();
+	    
+	    whiteice::math::vertex<T> w;
+	    nn->exportdata(w);
+	    
+	    snprintf(buffer, 256, "NNGradDescent: %d/%d (%s) reset/fresh neural network. param norm %f.", iterations, MAXITERS, str_id.c_str(), w.norm()[0].c[0]);
+	    whiteice::logging.info(buffer);
+	  }
+	  
+	  
+	  {
+	    std::lock_guard<std::mutex> lock(first_time_lock);
+	    
+	    // use heuristic to normalize weights to unity
+	    // (keep input weights) [the first try is always given imported weights]
+	    
+	    if(first_time == false){
+	      
+	      nn->randomize();
+	      
+	      whiteice::logging.info("NNGradDescent: resets neural network (nn::randomize() called)");
+
+	      
+	      if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+		 typeid(T) == typeid(whiteice::math::blas_real<double>)){
+		
+		if(this->matrix_factorization_pretraining){
+		  
+#if 0
+		  bool residual = nn->getResidual();
+		  std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
+		  nn->getNonlinearity(nonlins);
+		  
+		  nn->setResidual(false);
+		  nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
 #endif
+		  
+		  
+		  whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
+		  
+		  whiteice::PretrainNN<T> pretrainer;
+		  
+		  pretrainer.setMatrixFactorization(true);
+		  
+		  if(pretrainer.startTrain(*nn, dtrain, 50)){
+		    
+		    while(pretrainer.isRunning()){
+		      sleep(1);
+		    }
+		    
+		    pretrainer.stopTrain();
+		    
+		    pretrainer.getResults(*nn);
+		  }
+		  
+#if 0
+		  nn->setResidual(residual);
+		  nn->setNonlinearity(nonlins);
+#endif
+		  
+		  whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
+		  
+		}
+		
+	      }
+	      
+	      
+#if 0
+	      // disable deep pretraining and normalize weights to unity as they
+	      // don't implement complex numbers..
+	      
+	      if(deep_pretraining){
+		auto ptr = nn.release();
+		// verbose = 2: logs training to log file..
+		if(deep_pretrain_nnetwork(ptr, dtrain, false, 2, &running) == false)
+		  whiteice::logging.error("NNGradDescent: deep pretraining FAILED");
+		else
+		  whiteice::logging.info("NNGradDescent: deep pretraining completed");
+		
+		nn.reset(ptr);
+	      }
+	      
+	      
+	      if(heuristics){
+		//normalize_weights_to_unity(*nn);
+		
+		/*
+		  if(whiten1d_nnetwork(*nn, dtrain) == false)
+		  printf("ERROR: whiten1d_nnetwork failed\n");
+		  
+		*/
+		/*
+		  normalize_weights_to_unity(*nn);
+		  T alpha = T(0.5f);
+		  negative_feedback_between_neurons(*nn, dtrain, alpha);
+		*/
+	      }
+#endif
+	      
 	    }
-	    while(real(delta_error) <= T(0.0) && real(lrate) >= real(T(10e-25)) && running);
-
+	    else{
+	      first_time = false;
+	      
+	      
+	      if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+		 typeid(T) == typeid(whiteice::math::blas_real<double>)){
+		
+		if(this->matrix_factorization_pretraining){
+		  
+#if 0
+		  bool residual = nn->getResidual();
+		  std::vector< enum whiteice::nnetwork<T>::nonLinearity > nonlins;
+		  
+		  nn->getNonlinearity(nonlins);
+		  
+		  nn->setResidual(false);
+		  nn->setNonlinearity(whiteice::nnetwork< T >::pureLinear);
+#endif
+		  
+		  whiteice::logging.info("NNGradDescent: starting Matrix Factorization Pretrainer.");
+		  
+		  whiteice::PretrainNN<T> pretrainer;
+		  
+		  pretrainer.setMatrixFactorization(true);
+		  
+		  if(pretrainer.startTrain(*nn, dtrain, 50)){
+		    
+		    while(pretrainer.isRunning()){
+		      sleep(1);
+		    }
+		    
+		    pretrainer.stopTrain();
+		    
+		    pretrainer.getResults(*nn);
+		  }
+		  
+#if 0
+		  nn->setResidual(residual);
+		  nn->setNonlinearity(nonlins);
+#endif
+		  whiteice::logging.info("NNGradDescent: stopping Matrix Factorization Pretrainer.");
+		  
+		}
+	      }
+	      
+	    }
 	    
-	    // replaces error with TESTing set error
+	  }
+	  
+	  
+	  // cancellation point
+	  {
+	    if(running == false){
+	      std::lock_guard<std::mutex> lock(thread_is_running_mutex);
+	      thread_is_running--;
+	      thread_is_running_cond.notify_all();
+	      return; // cancels execution
+	    }
+	  }
+	  
+	  
+	  
+	  // 2. normal gradient descent
+	  ///////////////////////////////////////
+	  {
+	    math::vertex<T> weights, w0;
+	    
+	    T prev_error, error;	  
+	    T delta_error = T(0.0f);
+	    
+	    
 	    error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
-
-	    if(use_SGD == false){
-	      
-	      if(real(error) >= real(local_thread_best_error)){
-		// no improvement for this iteration
-		std::lock_guard<std::mutex> lock(noimprove_lock);
-		
-		noimprovements[std::this_thread::get_id()]++;
-	      }
-	      else{ // improvement in this iteration
-		// resets no improvement counter for this thread
-		local_thread_best_error = error;
-		
-		std::lock_guard<std::mutex> lock(noimprove_lock);
-		
-		noimprovements[std::this_thread::get_id()] = 0;
-	      }
-	    }
 	    
-	    
-	    if(use_SGD == false){
-	      char buffer[256];
-	      double tmp1, tmp2, tmp3, tmp4;
-	      whiteice::math::convert(tmp1, error);
-	      whiteice::math::convert(tmp2, delta_error);
-	      whiteice::math::convert(tmp4, ratio);
-	      whiteice::math::convert(tmp3, lrate);
+	    {
+	      solution_lock.lock();
 	      
-	      std::ostringstream ss;
-	      ss << std::this_thread::get_id();
-	      std::string str_id = ss.str();
-	      
-	      snprintf(buffer, 256,
-		       "NNGradDescent: %d/%d (%s) linesearch STOP noimprove counter: %d error: %f delta-error: %f ratio: %f lrate: %e",
-		       iterations, MAXITERS,
-		       str_id.c_str(),
-		       noimprovements[std::this_thread::get_id()],
-		       tmp1, tmp2, tmp4, tmp3);
-	      whiteice::logging.info(buffer);
-	    }
-
-	    
-	    //nn->exportdata(weights);
-	    w0 = weights;
-
-	    if(use_SGD == false){
 	      if(real(error) < real(best_error)){
-		std::lock_guard<std::mutex> lock(solution_lock);
-
+		// improvement (smaller error with early stopping)
+		
 		if(dropout){
 		  auto nn_without_dropout = *nn;
 		  nn_without_dropout.removeDropOut();
@@ -1451,97 +1402,469 @@ namespace whiteice
 		    best_pure_error = gerror;
 		  }
 		}
-	      }
-	    }
-	    else{
-	      const T gerror = getError(*nn, *data, false, false);
-
-	      std::lock_guard<std::mutex> lock(solution_lock);
-
-	      if(real(gerror) < real(best_pure_error)){
-		nn->exportdata(bestx);
-		best_error = error;
-		best_pure_error = gerror;
-	      }
-	    }
-	    
-	    
-	    // TODO: PUSH ALWAYS BEST ERROR TO SEE CONVERGENCE OF THREAD
-	    // ONLY TRUE IMPROVEMENTS ALLOW KEEPING ITERATING
-	    {
-	      std::lock_guard<std::mutex> lock(errors_lock);
 		
-	      auto& e = errors[std::this_thread::get_id()];
-	      e.push_back(error);
-	      while(e.size() > EHISTORY) e.pop_front();
-	    }
-	    
-	    iterations++;
-	    
-	    // cancellation point
-	    {
-	      if(running == false){
-		std::lock_guard<std::mutex> lock(thread_is_running_mutex);
-		thread_is_running--;
-		thread_is_running_cond.notify_all();
-		return; // stops execution
 	      }
-	    }
-
-	    
-	  }
-	  while(real(error) > real(T(0.00001f)) &&
-		noimprovements[std::this_thread::get_id()] < MAX_NOIMPROVEMENT_ITERS &&
-		iterations < MAXITERS &&
-		running);
-
-	  {
-	    // marks first convergence by this thread
-	    // (restart from random point)
-	    std::lock_guard<std::mutex> lock(convergence_lock);
-	    
-	    convergence[std::this_thread::get_id()] = true;
-	  }
-
-	  
-	  // 3. after convergence checks if the result is better
-	  //    than the earlier one
-	  {
-	    solution_lock.lock();
-	    
-	    if(real(error) < real(best_error)){
-	      // improvement (smaller error with early stopping)
 	      
-	      if(dropout){
-		auto nn_without_dropout = *nn;
-		nn_without_dropout.removeDropOut();
+	      solution_lock.unlock();
+	    }
+	    
+	    prev_error = error;
 
-		const T gerror = getError(nn_without_dropout, *data,
-					  false, false);
-
-		if(real(gerror) < real(best_pure_error)){
-		  nn_without_dropout.exportdata(bestx);
-		  best_error = error;
-		  best_pure_error = gerror;
+	    
+	    // resets no improvement counter to check for convergence
+	    // and sets best error for this loop iteration
+	    T local_thread_best_error = T(LARGE_INF_VALUE);
+	    
+	    {
+	      std::lock_guard<std::mutex> lock(noimprove_lock);
+	      
+	      noimprovements[std::this_thread::get_id()] = 0;
+	      local_thread_best_error = error;
+	    }
+	    
+	    
+	    T lrate = T(0.01f);
+	    T ratio = T(1.0f);
+	    
+	    error = getError(*nn, dtrain, (real(regularizer)>real(T(0.0f))), dropout);
+	    
+	    do
+	    {
+	      prev_error = error;
+	      
+	      // goes through data, calculates gradient
+	      // exports weights, weights -= lrate*gradient
+	      // imports weights back
+	      
+	      math::vertex<T> sumgrad;
+	      sumgrad.resize(nn->exportdatasize());
+	      sumgrad.zero();
+	      
+	      // number of samples used to estimate gradient in minibatch mode
+	      const unsigned int MINIBATCHSIZE = 1000 > dtrain.size(0) ? dtrain.size(0) : 1000;
+	      
+	      if(use_minibatch){
+		const T ninv = T(1.0f/MINIBATCHSIZE);
+		
+#pragma omp parallel shared(sumgrad)
+		{
+		  math::vertex<T> sgrad, grad;
+		  sgrad.resize(nn->exportdatasize());
+		  sgrad.zero();
+		  
+		  const whiteice::nnetwork<T>& nnet = *nn;
+		  std::vector< math::vertex<T> > bpdata;
+		  std::vector< std::vector<bool> > net_dropout;
+		  
+		  math::vertex<T> err;
+		  math::vertex<T> output;
+		  
+#pragma omp for nowait schedule(guided)
+		  for(unsigned int i=0;i<MINIBATCHSIZE;i++){
+		    const unsigned int index = rng.rand() % dtrain.size(0);
+		    // const unsigned intnet index = i;
+		    
+		    if(dropout){
+		      nnet.setDropOut(net_dropout);
+		      if(nnet.calculate(dtrain.access(0, index), output,
+					net_dropout, bpdata) == false){
+			std::cout << "calculate failed (1)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    else{
+		      if(nnet.calculate(dtrain.access(0, index), output,
+					bpdata) == false){
+			std::cout << "calculate failed (2)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    
+		    err = output - dtrain.access(1, index);
+		    
+		    if(mne) err.normalize(); // minimum norm error gradient instead
+		    
+		    if(dropout){
+		      if(nnet.mse_gradient(err, bpdata, net_dropout, grad) == false){
+			std::cout << "gradient failed (1)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    else{
+		      if(nnet.mse_gradient(err, bpdata, grad) == false){
+			std::cout << "gradient failed (2)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    
+		    // sgrad += ninv*grad;
+		    sgrad += grad;
+		  }
+		  
+#pragma omp critical
+		  {
+		    sumgrad += sgrad;
+		  }
+		  
+		}
+		
+		
+		sumgrad *= ninv;
+	      }
+	      else{ // do not use minibatch but ALL data is used to compute gradient
+		
+		const T ninv = T(1.0f/dtrain.size(0));
+		
+#pragma omp parallel shared(sumgrad)
+		{
+		  math::vertex<T> sgrad, grad;
+		  sgrad.resize(nn->exportdatasize());
+		  sgrad.zero();
+		  
+		  const whiteice::nnetwork<T>& nnet = *nn;
+		  std::vector< math::vertex<T> > bpdata;
+		  std::vector< std::vector<bool> > net_dropout;
+		  
+		  math::vertex<T> output;
+		  math::vertex<T> err;
+		  
+#pragma omp for nowait schedule(guided)
+		  for(unsigned int i=0;i<dtrain.size(0);i++){
+		    const unsigned int index = i;
+		    
+		    if(dropout){
+		      nnet.setDropOut(net_dropout);
+		      if(nnet.calculate(dtrain.access(0, index), output,
+					net_dropout, bpdata) == false){
+			std::cout << "calculate failed. (3)" << std::endl;
+			assert(0);
+		      }
+		    }
+		    else{
+		      if(nnet.calculate(dtrain.access(0, index), output,
+					bpdata) == false){
+			std::cout << "calculate failed. (4)" << std::endl;
+			assert(0);
+		      }
+		    }
+		    
+		    err = output - dtrain.access(1, index);
+		    
+		    if(mne) err.normalize(); // minimum norm error gradient instead
+		    
+		    if(dropout){
+		      if(nnet.mse_gradient(err, bpdata, net_dropout, grad) == false){
+			std::cout << "gradient failed (3)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    else{
+		      if(nnet.mse_gradient(err, bpdata, grad) == false){
+			std::cout << "gradient failed (4)." << std::endl;
+			assert(0);
+		      }
+		    }
+		    
+		    // sgrad += ninv*grad;
+		    sgrad += grad;
+		  }
+		  
+#pragma omp critical
+		  {
+		    sumgrad += sgrad;
+		  }
+		  
+		}
+		
+		sumgrad *= ninv;
+	      }
+	      
+	      
+	      
+	      {
+		char buffer[256];
+		double tmp = 0.0;
+		whiteice::math::convert(tmp, sumgrad.norm());
+		
+		snprintf(buffer, 256, "NNGradDescent: %d/%d gradient norm: %f", iterations, MAXITERS, tmp);
+		whiteice::logging.info(buffer);
+	      }
+	      
+	      
+	      // cancellation point
+	      {
+		if(running == false){
+		  std::lock_guard<std::mutex> lock(thread_is_running_mutex);
+		  thread_is_running--;
+		  thread_is_running_cond.notify_all();
+		  return; // cancels execution
+		}
+	      }
+	      
+	      if(nn->exportdata(weights) == false)
+		std::cout << "export failed." << std::endl;
+	      
+	      w0 = weights;
+	      
+	      // sumgrad.normalize();
+	      
+	      // adds regularizer to gradient (1/2*||w||^2)
+	      
+	      sumgrad += regularizer*w0;
+	      
+	      
+	      // restarts gradient descent from lrate = 0.50
+	      
+	      lrate = sqrt(lrate);
+	      lrate *= T(100.0);
+	      
+	      if(lrate <= T(1e-3)) // now very small learning rates
+		lrate = T(1e-3);
+	      
+	      // lrate = 0.01f;
+	      
+	      
+	      // line search: (we should maybe increase lrate to both directions lrate_next = 2.0*lrate and lrate_next2 = 0.5*lrate...
+	      do{
+		if(use_SGD){ // just single step towards gradient
+		  weights = w0;
+		  weights -= sgd_lrate * sumgrad;
+		  
+		  nn->importdata(weights);
+		  
+		  break; // don't do linesearch..
+		}
+		
+		weights = w0;
+		weights -= lrate * sumgrad;
+		
+		if(nn->importdata(weights) == false)
+		  std::cout << "import failed." << std::endl;
+		
+		if(heuristics){
+		  //normalize_weights_to_unity(*nn);
+#if 0
+		  if(whiten1d_nnetwork(*nn, dtrain) == false)
+		    printf("ERROR: whiten1d_nnetwork failed\n");
+		  
+		  // using negative feedback heuristic 
+		  T alpha = T(0.5f); // lrate;
+		  negative_feedback_between_neurons(*nn, dtrain, alpha);
+#endif
+		}
+		
+		error = getError(*nn, dtrain, (real(regularizer)>real(T(0.0f))), dropout);
+		
+		delta_error = (prev_error - error); // positive value means error has decreased
+		ratio = real(delta_error) / real(error);
+		
+		if(real(delta_error) < real(T(0.0f))){ // if error grows we reduce learning rate
+		  lrate *= T(0.50);
+		}
+		else if(real(delta_error) > real(T(0.0))){ // error becomes smaller we increase learning rate
+		  lrate *= T(1.0/0.50);
+		}
+		
+		// break;
+		
+		{
+		  char buffer[256];
+		  double tmp1, tmp2, tmp3, tmp4;
+		  whiteice::math::convert(tmp1, error);
+		  whiteice::math::convert(tmp2, delta_error);
+		  whiteice::math::convert(tmp4, ratio);
+		  whiteice::math::convert(tmp3, lrate);
+		  
+		  std::ostringstream ss;
+		  ss << std::this_thread::get_id();
+		  std::string str_id = ss.str();
+		  
+		  snprintf(buffer, 256,
+			   "NNGradDescent: %d/%d (%s) linesearch error: %f delta-error: %f ratio: %f lrate: %e",
+			   iterations, MAXITERS,
+			   str_id.c_str(),
+			   tmp1, tmp2, tmp4, tmp3);
+		  whiteice::logging.info(buffer);
+		}
+		
+#if 0
+		// leaky error reduction, we sometimes allow jump to worse
+		// position in gradient direction
+		if((rng.rand() % 100) == 0 && real(error) < real(T(1.00f))){ // was 0.50f
+		  logging.info("NNGradDescent: random early stopping of linesearch");
+		  break;
+		}
+#endif
+	      }
+	      while(real(delta_error) <= T(0.0) && real(lrate) >= real(T(10e-25)) && running);
+	      
+	      
+	      // replaces error with TESTing set error
+	      error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
+	      
+	      if(use_SGD == false){
+		
+		if(real(error) >= real(local_thread_best_error)){
+		  // no improvement for this iteration
+		  std::lock_guard<std::mutex> lock(noimprove_lock);
+		  
+		  noimprovements[std::this_thread::get_id()]++;
+		}
+		else{ // improvement in this iteration
+		  // resets no improvement counter for this thread
+		  local_thread_best_error = error;
+		  
+		  std::lock_guard<std::mutex> lock(noimprove_lock);
+		  
+		  noimprovements[std::this_thread::get_id()] = 0;
+		}
+	      }
+	      
+	      
+	      if(use_SGD == false){
+		char buffer[256];
+		double tmp1, tmp2, tmp3, tmp4;
+		whiteice::math::convert(tmp1, error);
+		whiteice::math::convert(tmp2, delta_error);
+		whiteice::math::convert(tmp4, ratio);
+		whiteice::math::convert(tmp3, lrate);
+		
+		std::ostringstream ss;
+		ss << std::this_thread::get_id();
+		std::string str_id = ss.str();
+		
+		snprintf(buffer, 256,
+			 "NNGradDescent: %d/%d (%s) linesearch STOP noimprove counter: %d error: %f delta-error: %f ratio: %f lrate: %e",
+			 iterations, MAXITERS,
+			 str_id.c_str(),
+			 noimprovements[std::this_thread::get_id()],
+			 tmp1, tmp2, tmp4, tmp3);
+		whiteice::logging.info(buffer);
+	      }
+	      
+	      
+	      //nn->exportdata(weights);
+	      w0 = weights;
+	      
+	      if(use_SGD == false){
+		if(real(error) < real(best_error)){
+		  std::lock_guard<std::mutex> lock(solution_lock);
+		  
+		  if(dropout){
+		    auto nn_without_dropout = *nn;
+		    nn_without_dropout.removeDropOut();
+		    
+		    const T gerror = getError(nn_without_dropout, *data,
+					      false, false);
+		    
+		    if(real(gerror) < real(best_pure_error)){
+		      nn_without_dropout.exportdata(bestx);
+		      best_error = error;
+		      best_pure_error = gerror;
+		    }
+		  }
+		  else{
+		    const T gerror = getError(*nn, *data, false, false);
+		    
+		    if(real(gerror) < real(best_pure_error)){
+		      nn->exportdata(bestx);
+		      best_error = error;
+		      best_pure_error = gerror;
+		    }
+		  }
 		}
 	      }
 	      else{
 		const T gerror = getError(*nn, *data, false, false);
-
+		
+		std::lock_guard<std::mutex> lock(solution_lock);
+		
 		if(real(gerror) < real(best_pure_error)){
 		  nn->exportdata(bestx);
 		  best_error = error;
 		  best_pure_error = gerror;
 		}
 	      }
-
+	      
+	      
+	      // TODO: PUSH ALWAYS BEST ERROR TO SEE CONVERGENCE OF THREAD
+	      // ONLY TRUE IMPROVEMENTS ALLOW KEEPING ITERATING
+	      {
+		std::lock_guard<std::mutex> lock(errors_lock);
+		
+		auto& e = errors[std::this_thread::get_id()];
+		e.push_back(error);
+		while(e.size() > EHISTORY) e.pop_front();
+	      }
+	      
+	      iterations++;
+	      
+	      // cancellation point
+	      {
+		if(running == false){
+		  std::lock_guard<std::mutex> lock(thread_is_running_mutex);
+		  thread_is_running--;
+		  thread_is_running_cond.notify_all();
+		  return; // stops execution
+		}
+	      }
+	      
+	      
+	    }
+	    while(real(error) > real(T(0.00001f)) &&
+		  noimprovements[std::this_thread::get_id()] < MAX_NOIMPROVEMENT_ITERS &&
+		  iterations < MAXITERS &&
+		running);
+	    
+	    {
+	      // marks first convergence by this thread
+	      // (restart from random point)
+	      std::lock_guard<std::mutex> lock(convergence_lock);
+	      
+	      convergence[std::this_thread::get_id()] = true;
 	    }
 	    
-	    solution_lock.unlock();
+	    
+	    // 3. after convergence checks if the result is better
+	    //    than the earlier one
+	    {
+	      solution_lock.lock();
+	      
+	      if(real(error) < real(best_error)){
+		// improvement (smaller error with early stopping)
+		
+		if(dropout){
+		  auto nn_without_dropout = *nn;
+		  nn_without_dropout.removeDropOut();
+		  
+		  const T gerror = getError(nn_without_dropout, *data,
+					    false, false);
+		  
+		  if(real(gerror) < real(best_pure_error)){
+		    nn_without_dropout.exportdata(bestx);
+		    best_error = error;
+		    best_pure_error = gerror;
+		  }
+		}
+		else{
+		  const T gerror = getError(*nn, *data, false, false);
+		  
+		  if(real(gerror) < real(best_pure_error)){
+		    nn->exportdata(bestx);
+		    best_error = error;
+		    best_pure_error = gerror;
+		  }
+		}
+		
+	      }
+	      
+	      solution_lock.unlock();
+	    }
 	  }
+	  
+	  
 	}
-	
-	
+
       }
 
       }
