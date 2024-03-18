@@ -719,7 +719,6 @@ enable_mkl
 enable_amdblis
 enable_cublas
 enable_nvblas
-with_atlaslpath
 enable_native
 enable_cppdebug
 '
@@ -1364,11 +1363,6 @@ Optional Features:
   --disable-nvblas        Disable NVIDIA NVBLAS library
   --enable-native         Enable native optimization
   --enable-cppdebug       Enable C++ debugging flags (stdc++)
-
-Optional Packages:
-  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
-  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-atlaslpath=PATH  sets search path for ATLAS libraries
 
 Some influential environment variables:
   CC          C compiler command
@@ -5470,15 +5464,6 @@ fi
 
 ZLIB_USABLE="no"
 
-
-ATLASLIBS_PATH="/usr/local/lib/"
-
-
-# Check whether --with-atlaslpath was given.
-if test ${with_atlaslpath+y}
-then :
-  withval=$with_atlaslpath; if [ -n $withval ]; then ATLASLIBS_PATH=$withval; fi
-fi
 
 
 

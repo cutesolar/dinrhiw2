@@ -655,10 +655,11 @@ dnl fi
 
 dnl adds --with-atlaslibpath
 dnl ATLAS support is NOT working / is broken!!!
-ATLASLIBS_PATH="/usr/local/lib/"
-
-AC_ARG_WITH([atlaslpath], AS_HELP_STRING([--with-atlaslpath=PATH],[sets search path for ATLAS libraries]),
-			  [if [[ -n $withval ]]; then ATLASLIBS_PATH=$withval; fi], [])
+dnl ATLASLIBS_PATH="/usr/local/lib/"
+dnl 
+dnl AC_ARG_WITH([atlaslpath], AS_HELP_STRING([--with-atlaslpath=PATH],[sets search path for ATLAS libraries]),
+dnl			  [if [[ -n $withval ]]; then ATLASLIBS_PATH=$withval; fi], [])
+dnl
 
 
 optimization_flags="$optimization_flags -mtune=native"
