@@ -33,7 +33,7 @@ ARCH="784-300-300-300-300-10"
 
 # 784-300-300-300-300-10 (grad: 75%): 
 ## $NNTOOL -v --overfit --samples 10000 $DSFILE $ARCH $NNFILE grad
-$NNTOOL -v --overfit --time 3600 --threads 1 $DSFILE $ARCH $NNFILE pgrad
+$NNTOOL -v --overfit --time 3600 --threads 1 $DSFILE $ARCH $NNFILE grad
 ## $NNTOOL -v --samples 10000 $DSFILE $ARCH $NNFILE grad
 
 # Try bayesian neural network sampling from overfitten best solution.

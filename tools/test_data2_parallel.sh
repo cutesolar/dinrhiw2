@@ -18,7 +18,7 @@ rm -f wdbc-test.ds
 
 # uses nntool trying to learn from dataset (4 min long search)
 
-./nntool --time 240 -v wdbc-test.ds ?-20-? wdbcnn.cfg pgrad
+./nntool --time 240 -v wdbc-test.ds ?-20-? wdbcnn.cfg grad
 
 ##################################################
 # testing

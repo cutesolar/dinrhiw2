@@ -39,13 +39,13 @@ ARCH="3-20-20-20-20-20-20-20-20-20-20-20-20-20-20-20-20-20-20-20-1"
 #$NNTOOL -v examples-test.ds $ARCH examplesnn.cfg mix
 # $NNTOOL -v examples-test.ds $ARCH examplesnn.cfg lbfgs
 
-################## $NNTOOL -v --samples 2000 examples-test.ds $ARCH examplesnn.cfg pgrad
+################## $NNTOOL -v --samples 2000 examples-test.ds $ARCH examplesnn.cfg grad
 
-$NNTOOL -v --time 600 --threads 4 examples-test.ds $ARCH examplesnn.cfg pgrad
+$NNTOOL -v --time 600 --threads 4 examples-test.ds $ARCH examplesnn.cfg grad
 
-## $NNTOOL -v --time 600 examples-test.ds $ARCH examplesnn.cfg pgrad
+## $NNTOOL -v --time 600 examples-test.ds $ARCH examplesnn.cfg grad
 
-## $NNTOOL -v --time 60 examples-test.ds $ARCH examplesnn.cfg pgrad
+## $NNTOOL -v --time 60 examples-test.ds $ARCH examplesnn.cfg grad
 
 # testing
 

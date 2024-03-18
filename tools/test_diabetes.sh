@@ -30,7 +30,7 @@ $DSTOOL -padd:0:meanvar $DSFILE
 ARCH="8-30-30-30-30-30-30-30-30-30-1"
 
 $NNTOOL -v --time 200 $DSFILE $ARCH $NNFILE grad
-#$NNTOOL -v --time 200 --overfit --noresidual $DSFILE $ARCH $NNFILE pgrad
+#$NNTOOL -v --time 200 --overfit --noresidual $DSFILE $ARCH $NNFILE grad
 
 #######################################################################
 # test NN performance

@@ -18,7 +18,7 @@ rm -f iris-test.ds
 
 # uses nntool trying to learn from dataset
 
-./nntool --time 240 -v iris-test.ds ?-10-? iris-nn.cfg pgrad
+./nntool --time 240 -v iris-test.ds ?-10-? iris-nn.cfg grad
 
 ##################################################
 # testing

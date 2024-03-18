@@ -31,7 +31,7 @@ ARCH="6-50-50-1"
 
 ################## $NNTOOL -v --samples 2000 wine-test.ds $ARCH winenn.cfg grad
 
-$NNTOOL -v --time 600 --overfit gendata3-test.ds $ARCH gendata3nn.cfg pgrad
+$NNTOOL -v --time 600 --overfit gendata3-test.ds $ARCH gendata3nn.cfg grad
 
 # $NNTOOL -v --time 600 gendata-test.ds $ARCH gendatann.cfg grad
 
