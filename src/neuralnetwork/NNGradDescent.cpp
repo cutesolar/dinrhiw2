@@ -1079,7 +1079,7 @@ namespace whiteice
 	    
 	  }
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
 	  for(unsigned int i=0;i<sumgrad.size();i++){
 	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
 	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];

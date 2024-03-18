@@ -329,7 +329,7 @@ namespace whiteice
 	  
 	  grad = Ugrad(x);
 
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
 	  for(unsigned int i=0;i<grad.size();i++){
 	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*grad[i];
 	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*grad[i]*grad[i];
