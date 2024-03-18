@@ -45,7 +45,7 @@ ARCH="10-30-30-1"
 ##$NNTOOL -v --samples 10000 $DSFILE $ARCH $NNFILE grad
 ##$NNTOOL -v --samples 10000 $DSFILE $ARCH $NNFILE grad
 
-$NNTOOL -v --time 200 $DSFILE $ARCH $NNFILE pgrad
+$NNTOOL -v --time 200 $DSFILE $ARCH $NNFILE grad
 
 # Try bayesian neural network sampling from overfitten best solution.
 # This will take into account uncertainty. DO NOT WORK WELL
