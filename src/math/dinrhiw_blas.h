@@ -16,6 +16,10 @@ extern "C" {
 #include "mkl_blas.h"
 #endif
 
+#ifdef AMDBLIS
+#include <cblas.h>
+#endif
+
 }
 
 #include "blas_primitives.h"
