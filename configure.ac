@@ -475,6 +475,27 @@ else
    INTELMKL="no"
 fi
 
+
+MKLROOT="/opt/intel/oneapi/mkl/latest"
+AC_MSG_CHECKING([for Intel MKL library (3) (Linux)])
+`g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/ -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_mkl" == "xno"],[
+     INTELMKL="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     INTELMKL="yes"
+     BLAS_CFLAGS="-m64 -I$MKLROOT/include -DINTELMKL"
+     BLAS_LIBS="-L$MKLROOT/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
+     AC_MSG_RESULT([yes, installed in $MKLROOT])
+  ])
+else
+   AC_MSG_RESULT([no Intel MKL detected])
+   INTELMKL="no"
+fi
+
 dnl Intel MKL in Windows
 MKLROOT=/c/Program\ Files\ \(x86\)/IntelSWTools/compilers_and_libraries/windows/mkl
 

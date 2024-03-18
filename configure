@@ -5251,6 +5251,35 @@ printf "%s\n" "no Intel MKL detected" >&6; }
    INTELMKL="no"
 fi
 
+
+MKLROOT="/opt/intel/oneapi/mkl/latest"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (3) (Linux)" >&5
+printf %s "checking for Intel MKL library (3) (Linux)... " >&6; }
+`g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/ -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
+
+if [ $? -eq 0 ]; then
+  if test "x$enable_mkl" == "xno"
+then :
+
+     INTELMKL="no"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, but DISABLED" >&5
+printf "%s\n" "yes, but DISABLED" >&6; }
+
+else $as_nop
+
+     INTELMKL="yes"
+     BLAS_CFLAGS="-m64 -I$MKLROOT/include -DINTELMKL"
+     BLAS_LIBS="-L$MKLROOT/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, installed in $MKLROOT" >&5
+printf "%s\n" "yes, installed in $MKLROOT" >&6; }
+
+fi
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
+printf "%s\n" "no Intel MKL detected" >&6; }
+   INTELMKL="no"
+fi
+
 MKLROOT=/c/Program\ Files\ \(x86\)/IntelSWTools/compilers_and_libraries/windows/mkl
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (Windows)" >&5
