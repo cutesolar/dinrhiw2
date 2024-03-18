@@ -1358,7 +1358,8 @@ Optional Features:
   --disable-openmp        Disable OpenMP
   --disable-openblas      Disable OpenBLAS library
   --disable-mkl           Disable Intel MKL library
-  --disable-amdblis       Disable AMD BLIS (BLAS) library
+  --disable-amdblis       Disable AMD BLIS (BLAS) library (must be installed
+                          in /opt/amd-blis/ directory)
   --disable-cublas        Disable NVIDIA cuBLAS library
   --disable-nvblas        Disable NVIDIA NVBLAS library
   --enable-native         Enable native optimization
@@ -5318,13 +5319,33 @@ fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for AMD BLIS library" >&5
 printf %s "checking for AMD BLIS library... " >&6; }
-`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/ -lblis-mt > /dev/null 2> /dev/null`
+`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
 
-   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: AMD BLIS currently doesn't support full CBLAS!" >&5
-printf "%s\n" "AMD BLIS currently doesn't support full CBLAS!" >&6; }
-   if [ "x$AMDBLIS" != "xyes" ]; then
-      AMDBLIS="no"
-   fi
+if [ $? -eq 0 ]; then
+  if test "x$enable_amdblis" == "xno"
+then :
+
+     AMDBLIS="no"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, but DISABLED" >&5
+printf "%s\n" "yes, but DISABLED" >&6; }
+
+else $as_nop
+
+     AMDBLIS="yes"
+     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/"
+     BLAS_LIBS="-lblis-mt -L/opt/amd-blis/lib/LP64/"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /opt/amd-blis/include/" >&5
+printf "%s\n" "yes, headers in /opt/amd-blis/include/" >&6; }
+
+fi
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no AMD BLIS detected" >&5
+printf "%s\n" "no AMD BLIS detected" >&6; }
+  if [ "x$AMDBLIS" != "xyes" ]; then
+     AMDBLIS="no"
+  fi
+fi
+
 
 
 

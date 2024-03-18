@@ -520,32 +520,33 @@ fi
 
 dnl AMD BLIS library support
 AC_ARG_ENABLE([amdblis],
-	AS_HELP_STRING([--disable-amdblis],[Disable AMD BLIS (BLAS) library]))
+	AS_HELP_STRING([--disable-amdblis],[Disable AMD BLIS (BLAS) library (must be installed in /opt/amd-blis/ directory)]))
  
 AC_MSG_CHECKING([for AMD BLIS library])
-`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/ -lblis-mt > /dev/null 2> /dev/null`
+`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
 
-dnl if [[ $? -eq 0 ]]; then
-dnl    AS_IF([test "x$enable_amdblis" == "xno"],[
-dnl       AMDBLIS="no"
-dnl       AC_MSG_RESULT([yes, but DISABLED])
-dnl    ],
-dnl    [
-dnl       AMDBLIS="yes"
-dnl       BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/"
-dnl       BLAS_LIBS="-lblis-mt -L/opt/amd-blis/lib/"
-dnl       AC_MSG_RESULT([yes, headers in /opt/amd-blis/include/])
-dnl    ])
-dnl  else
-dnl    AC_MSG_RESULT([no AND detected])
-dnl    if [[ "x$AMDBLIS" != "xyes" ]]; then
-dnl       AMDBLIS="no"
-dnl    fi
-dnl fi
-   AC_MSG_RESULT([AMD BLIS currently doesn't support full CBLAS!])
-   if [[ "x$AMDBLIS" != "xyes" ]]; then
-      AMDBLIS="no"
-   fi
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_amdblis" == "xno"],[
+     AMDBLIS="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     AMDBLIS="yes"
+     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/"
+     BLAS_LIBS="-lblis-mt -L/opt/amd-blis/lib/LP64/"
+     AC_MSG_RESULT([yes, headers in /opt/amd-blis/include/])
+  ])
+else
+  AC_MSG_RESULT([no AMD BLIS detected])
+  if [[ "x$AMDBLIS" != "xyes" ]]; then
+     AMDBLIS="no"
+  fi
+fi
+ 
+dnl    AC_MSG_RESULT([AMD BLIS currently doesn't support full CBLAS!])
+dnl   if [[ "x$AMDBLIS" != "xyes" ]]; then
+dnl      AMDBLIS="no"
+dnl   fi
 
 
 
