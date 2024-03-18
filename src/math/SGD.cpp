@@ -49,7 +49,7 @@ namespace whiteice
       this->smart_convergence_check = true;
       this->adaptive_lrate = true;
 
-      this->use_adam = false;
+      this->use_adam = true;
     }
     
  
@@ -328,7 +328,8 @@ namespace whiteice
 	  iterations++;
 	  
 	  grad = Ugrad(x);
-	  
+
+#pragma omp parallel for
 	  for(unsigned int i=0;i<grad.size();i++){
 	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*grad[i];
 	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*grad[i]*grad[i];
