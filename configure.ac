@@ -488,7 +488,7 @@ if [[ $? -eq 0 ]]; then
   [
      INTELMKL="yes"
      BLAS_CFLAGS="-m64 -I$MKLROOT/include -DINTELMKL"
-     BLAS_LIBS="-L$MKLROOT/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
+     BLAS_LIBS="-L$MKLROOT/lib/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
      AC_MSG_RESULT([yes, installed in $MKLROOT])
   ])
 else

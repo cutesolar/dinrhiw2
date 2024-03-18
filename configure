@@ -5269,7 +5269,7 @@ else $as_nop
 
      INTELMKL="yes"
      BLAS_CFLAGS="-m64 -I$MKLROOT/include -DINTELMKL"
-     BLAS_LIBS="-L$MKLROOT/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
+     BLAS_LIBS="-L$MKLROOT/lib/ -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl"
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, installed in $MKLROOT" >&5
 printf "%s\n" "yes, installed in $MKLROOT" >&6; }
 
