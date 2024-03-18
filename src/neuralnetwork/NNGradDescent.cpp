@@ -898,8 +898,6 @@ namespace whiteice
 	{
 	  nn->exportdata(x);
 
-	  real_besty = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
-
 	  if(dropout){
 	    auto nn_without_dropout = *nn;
 	    nn_without_dropout.removeDropOut();
@@ -908,6 +906,8 @@ namespace whiteice
 	  else{
 	    pure_real_besty = getError(*nn, dtest, false, false);
 	  }
+
+	  real_besty = pure_real_besty;
 	}
 
 	unsigned int no_improve_iterations = 0;
@@ -1079,7 +1079,7 @@ namespace whiteice
 	    
 	  }
 
-	  
+#pragma omp parallel for
 	  for(unsigned int i=0;i<sumgrad.size();i++){
 	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
 	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
@@ -1094,45 +1094,29 @@ namespace whiteice
 	  
 	  nn->importdata(x);
 
-	  T new_error = getError(*nn, dtest, (real(regularizer)>real(T(0.0f))), dropout);
+	  T new_error = T(0.0);
 
+	  if(dropout){
+	    auto nn_without_dropout = *nn;
+	    nn_without_dropout.removeDropOut();
+	    new_error = getError(nn_without_dropout, dtest, false, false);
+	  }
+	  else{
+	    new_error = getError(*nn, dtest, false, false);
+	  }	  
+	  
 	  if(new_error >= real_besty){
 	    no_improve_iterations++;
 	  }
 	  else{
 	    std::lock_guard<std::mutex> lock(solution_lock);
 	    
-	    if(new_error < this->best_error){
+	    this->bestx = x;
+	    this->best_error = new_error;
+	    this->best_pure_error = new_error;
 	    
-	      this->bestx = x;
-	      this->best_error = new_error;
-	      real_besty = new_error;
-	      
-	      if(dropout){
-		auto nn_without_dropout = *nn;
-		nn_without_dropout.removeDropOut();
-		pure_real_besty = getError(nn_without_dropout, dtest, false, false);
-	      }
-	      else{
-		pure_real_besty = getError(*nn, dtest, false, false);
-	      }
-	      
-	      this->best_pure_error = pure_real_besty;
-	    }
-	    else{
-
-	      real_besty = new_error;
-	      
-	      if(dropout){
-		auto nn_without_dropout = *nn;
-		nn_without_dropout.removeDropOut();
-		pure_real_besty = getError(nn_without_dropout, dtest, false, false);
-	      }
-	      else{
-		pure_real_besty = getError(*nn, dtest, false, false);
-	      }
-	      
-	    }
+	    real_besty = new_error;
+	    pure_real_besty = new_error;
 
 	    no_improve_iterations = 0;
 	  }
