@@ -1,3 +1,12 @@
+Dependencies:
+
+ * BLAS library (OpenBLAS, Intel MKL, AMD BLIS)
+ * GMP library
+ * Python [only used by experimental reinforcement learning code to use python
+           minihack environment for machine learning testing and can be removed
+	   by disabling reinforcement learning code compilation
+	   (requries some source code/compilation process editing)]
+
 
 This software uses / has PocketFFT header file in src/math/pocketfft_hdronly.h.
 The basic_fft() and basic_ifft() routines use it for fast FFT (fast fourier transform).
