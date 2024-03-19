@@ -21,6 +21,15 @@ namespace whiteice
     {
       const unsigned int RDIM = net.input_size()-data.dimension(0);
 
+      {
+	char buf[256];
+
+	sprintf(buf, "SGD_recurrent_nnetwork CTR data/model dimensions: %d %d %d %d %d",
+		(int)data.dimension(0), (int)data.dimension(1), (int)net.input_size(), (int)net.output_size(), (int)RDIM);
+
+	logging.info(buf);
+      }
+
       assert(RDIM >= 1);
       
       assert(net.input_size() == data.dimension(0)+RDIM);
