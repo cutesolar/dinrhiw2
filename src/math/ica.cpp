@@ -20,83 +20,83 @@ namespace whiteice
     
     template bool ica< blas_real<float> >
     (const matrix< blas_real<float> >& D, matrix< blas_real<float> >& W, bool verbose,
-     const blas_real<float> tolerance);
+     const blas_real<float> tolerance, const unsigned int MAXITERS);
     template bool ica< blas_real<double> >
     (const matrix< blas_real<double> >& D, matrix< blas_real<double> >& W, bool verbose,
-     const blas_real<double> tolerance);
+     const blas_real<double> tolerance, const unsigned int MAXITERS);
 
     template bool ica< blas_complex<float> >
     (const matrix< blas_complex<float> >& D, matrix< blas_complex<float> >& W, bool verbose,
-     const blas_complex<float> tolerance);
+     const blas_complex<float> tolerance, const unsigned int MAXITERS);
     
     template bool ica< blas_complex<double> >
     (const matrix< blas_complex<double> >& D, matrix< blas_complex<double> >& W, bool verbose,
-     const blas_complex<double> tolerance);
+     const blas_complex<double> tolerance, const unsigned int MAXITERS);
 
     template bool ica< superresolution<blas_real<float>, modular<unsigned int> > >
     (const matrix< superresolution<blas_real<float>, modular<unsigned int> > >& D,
      matrix< superresolution<blas_real<float>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_real<float>, modular<unsigned int> > tolerance);
+     const superresolution<blas_real<float>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     template bool ica< superresolution<blas_real<double>, modular<unsigned int> > >
     (const matrix< superresolution<blas_real<double>, modular<unsigned int> > >& D,
      matrix< superresolution<blas_real<double>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_real<double>, modular<unsigned int> > tolerance);
+     const superresolution<blas_real<double>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
 
     template bool ica< superresolution<blas_complex<float>, modular<unsigned int> > >
     (const matrix< superresolution<blas_complex<float>, modular<unsigned int> > >& D,
      matrix< superresolution<blas_complex<float>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_complex<float>, modular<unsigned int> > tolerance);
+     const superresolution<blas_complex<float>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     template bool ica< superresolution<blas_complex<double>, modular<unsigned int> > >
     (const matrix< superresolution<blas_complex<double>, modular<unsigned int> > >& D,
      matrix< superresolution<blas_complex<double>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_complex<double>, modular<unsigned int> > tolerance);
+     const superresolution<blas_complex<double>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     
 
     template bool ica< blas_real<float> >
     (const std::vector< math::vertex< blas_real<float> > >& data, matrix< blas_real<float> >& W, bool verbose,
-     const blas_real<float> tolerance);
+     const blas_real<float> tolerance, const unsigned int MAXITERS);
     template bool ica< blas_real<double> >
     (const std::vector< math::vertex< blas_real<double> > >& data, matrix< blas_real<double> >& W, bool verbose,
-     const blas_real<double> tolerance);
+     const blas_real<double> tolerance, const unsigned int MAXITERS);
     
     template bool ica< blas_complex<float> >
     (const std::vector< math::vertex< blas_complex<float> > >& data, matrix< blas_complex<float> >& W, bool verbose,
-     const blas_complex<float> tolerance);
+     const blas_complex<float> tolerance, const unsigned int MAXITERS);
     template bool ica< blas_complex<double> >
     (const std::vector< math::vertex< blas_complex<double> > >& data, matrix< blas_complex<double> >& W, bool verbose,
-     const blas_complex<double> tolerance);
+     const blas_complex<double> tolerance, const unsigned int MAXITERS);
 
 
     template bool ica< superresolution<blas_real<float>, modular<unsigned int> > >
     (const std::vector< math::vertex< superresolution<blas_real<float>, modular<unsigned int> > > >& data,
      matrix< superresolution<blas_real<float>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_real<float>, modular<unsigned int> > tolerance);
+     const superresolution<blas_real<float>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     template bool ica< superresolution<blas_real<double>, modular<unsigned int> > >
     (const std::vector< math::vertex< superresolution<blas_real<double>, modular<unsigned int> > > >& data,
      matrix< superresolution<blas_real<double>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_real<double>, modular<unsigned int> > tolerance);
+     const superresolution<blas_real<double>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     template bool ica< superresolution<blas_complex<float>, modular<unsigned int> > >
     (const std::vector< math::vertex< superresolution<blas_complex<float>, modular<unsigned int> > > >& data,
      matrix< superresolution<blas_complex<float>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_complex<float>, modular<unsigned int> > tolerance);
+     const superresolution<blas_complex<float>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     template bool ica< superresolution<blas_complex<double>, modular<unsigned int> > >
     (const std::vector< math::vertex< superresolution<blas_complex<double>, modular<unsigned int> > > >& data,
      matrix< superresolution<blas_complex<double>, modular<unsigned int> > >& W,
      bool verbose,
-     const superresolution<blas_complex<double>, modular<unsigned int> > tolerance);
+     const superresolution<blas_complex<double>, modular<unsigned int> > tolerance, const unsigned int MAXITERS);
     
     
     
@@ -139,7 +139,7 @@ namespace whiteice
     
     
     template <typename T>
-    bool ica(const std::vector< math::vertex<T> >& data, matrix<T>& W, bool verbose, const T tolerance) 
+    bool ica(const std::vector< math::vertex<T> >& data, matrix<T>& W, bool verbose, const T tolerance, const unsigned int MAXITERS)
     {
       // this is interface class that simply makes dataset<> calls work, does an costly data format transformation here
       // as the data types are not compatible (TODO: write code that uses DIRECTLY std::vector<> datasets
@@ -154,14 +154,16 @@ namespace whiteice
 	for(unsigned int i=0;i<DATA.xsize();i++)
 	  DATA(j, i) = data[j][i];
 
-      return ica(DATA, W, verbose, tolerance);
+      return ica(DATA, W, verbose, tolerance, MAXITERS);
     }
 
     
     template <typename T>
-    bool ica(const matrix<T>& D, matrix<T>& W, bool verbose, const T tolerance) 
+    bool ica(const matrix<T>& D, matrix<T>& W, bool verbose, const T tolerance, const unsigned int MAXITERS) 
    {
       try{
+
+	if(MAXITERS == 0) return false;
 	
 	const unsigned int num = D.ysize();
 	const unsigned int dim = D.xsize();
@@ -178,7 +180,7 @@ namespace whiteice
 	  TOLERANCE = T(0.0001);
 	}
 	
-	const unsigned int MAXITERS = 1000;
+	// const unsigned int MAXITERS = 1000;
 	
 	// matrix<T> W;
 	W.resize(dim,dim);
