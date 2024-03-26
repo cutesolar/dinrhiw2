@@ -394,7 +394,13 @@ namespace whiteice
 	    }
 
 	    
-	    w.normalize();
+	    if(w.normalize() == false){ // handles zero vector..
+	      const T len = T(sqrt(w.size()));
+	      
+	      for(unsigned int i=0;i<w.size();i++){
+		w[i] = T(1.0f)/len;
+	      }
+	    }
 
 	    // std::cout << "ica w = " << w << std::endl;
 	    
