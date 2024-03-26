@@ -208,7 +208,14 @@ namespace whiteice
 	  // initialization
 	  W.rowcopyto(w, nn);
 	  
-	  w.normalize();
+	  if(w.normalize() == false){ // handles zero vector..
+	    const T len = T(sqrt(w.size()));
+	    
+	    for(unsigned int i=0;i<w.size();i++){
+	      w[i] = T(1.0f)/len;
+	    }
+	  }
+	  
 	  __ica_project(w, nn, W);
 	  
 	  bool convergence = 0;
