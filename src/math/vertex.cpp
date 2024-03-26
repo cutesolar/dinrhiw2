@@ -852,9 +852,63 @@ namespace whiteice
     bool vertex<T>::normalize() 
     {
       T len = norm();
-      if(len == T(0.0f)) return false;
-      len = T(1.0f) / len;
       
+      if(len <= T(0.0f)) return false;
+
+      if(typeid(T) == typeid(whiteice::math::blas_real<float>)){
+	if(len <= T(1e-35f)){ // handles almost zero length vectors which causes arithmetic exception..
+	  unsigned int counter = 0;
+	  
+	  for(unsigned int i=0;i<dataSize;i++){
+	    if(data[i] > T(0.0f)){
+	      data[i] = T(1.0f);
+	      counter++;
+	    }
+	    else{
+	      data[i] = T(0.0f);
+	    }
+	  }
+	  
+	  if(counter == 0) return false;
+	  
+	  len = T(sqrt(counter));
+	  
+	  for(unsigned int i=0;i<dataSize;i++){
+	    data[i] /= len;
+	  }
+	}
+	
+	return true;
+      }
+      else if(typeid(T) == typeid(whiteice::math::blas_real<double>)){
+	if(len <= T(1e-300)){ // handles almost zero length vectors which causes arithmetic exception..
+	  unsigned int counter = 0;
+	  
+	  for(unsigned int i=0;i<dataSize;i++){
+	    if(data[i] > T(0.0f)){
+	      data[i] = T(1.0f);
+	      counter++;
+	    }
+	    else{
+	      data[i] = T(0.0f);
+	    }
+	  }
+	  
+	  if(counter == 0) return false;
+	  
+	  len = T(sqrt(counter));
+	  
+	  for(unsigned int i=0;i<dataSize;i++){
+	    data[i] /= len;
+	  }
+	}
+	
+	return true;
+      }
+      
+      len = T(1.0f) / len;
+
+	
 #ifdef CUBLAS
 
       if(typeid(T) == typeid(blas_real<float>)){
