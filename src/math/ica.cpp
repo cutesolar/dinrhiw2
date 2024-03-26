@@ -227,6 +227,21 @@ namespace whiteice
 	    
 	    y = X * w;
 
+	    // restricts very big values causing havoc with bad data..
+	    // [NOTE: does this break ICA algorithm sometimes?]
+	    if(typeid(T) == typeid(whiteice::math::blas_real<float>)){
+	      for(unsigned int i=0;i<y.size();i++){
+		if(y[i] > T(1e10f)) y[i] = T(1e10f);
+		else if(y[i] < T(-1e10f)) y[i] = T(-1e10f);
+	      }
+	    }
+	    else if(typeid(T) == typeid(whiteice::math::blas_real<double>)){
+	      for(unsigned int i=0;i<y.size();i++){
+		if(y[i] > T(1e100)) y[i] = T(1e100);
+		else if(y[i] < T(-1e100)) y[i] = T(-1e100);
+	      }
+	    }
+
 
 	    if(typeid(T) == typeid(superresolution< blas_real<float>, modular<unsigned int> >) ||
 	       typeid(T) == typeid(superresolution< blas_real<double>, modular<unsigned int> >)){
