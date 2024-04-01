@@ -8,7 +8,7 @@ variational autoencoder and deep learning
 
 Currently, the feedforward neural network code supports:
 
-* second order L-BFGS optimization and gradient descent (backpropagation)
+* popular ADAM gradient descent (backpropagation)
 * hamiltonian monte carlo sampling (HMC) and simple bayesian neural network
 * parallel computing (via OpenMP)
 * residual neural network (deep learning)
@@ -32,9 +32,9 @@ compiler or newer to work around this compiler bug.
 
 Library dependencies:
 
-* OpenBLAS or Intel MKL (cblas.h interface),
+* OpenBLAS, Intel MKL or AMD BLIS (cblas.h interface),
 * GMP (arbitrary precision mathematics)
-* ZLib [not really used]
+* Python [not really used]
 
 
 To build and install library execute: 
@@ -113,5 +113,5 @@ Finally add support of parallel DBN pretraining + nnetwork optimization to tools
 
 TODO
 
-Recurrent neural networks and reinforcement learning.
+Reinforcement learning.
 
