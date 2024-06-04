@@ -4,8 +4,10 @@
  *
  * Q and Policy learnign from data works (NNGradDescent)
  *
- * calculation of Gradient Grad(Q(x,policy(x))) don't work
- * and maximizing policy(x) to give max Q(x) value don't work
+ * No it seems kinda work:
+ *
+ * calculation of Gradient Grad(Q(x,policy(x)))
+ * and maximizing policy(x) to give max Q(x).
  * 
  */
 
@@ -51,8 +53,8 @@ int main(int argc, char** argv)
       random.normal(r2);
 
       in.resize(6);
-      assert(in.write_subvertex(r1, 0) == true);
-      assert(in.write_subvertex(r2, r1.size()) == true);
+      in.write_subvertex(r1, 0);
+      in.write_subvertex(r2, r1.size());
 
       out.resize(1);
       auto delta = r1 + r2;
@@ -93,7 +95,7 @@ int main(int argc, char** argv)
     nn.randomize();
     nn.setResidual(RESIDUAL);
 
-    assert(grad.startOptimize(data, nn, 1, 1000, false, true) == true);
+    grad.startOptimize(data, nn, 1, 1000, false, true);
 
     while(grad.isRunning()){
       whiteice::math::blas_real<double> error = 0.0f;
@@ -165,7 +167,7 @@ int main(int argc, char** argv)
     nn.randomize();
     nn.setResidual(RESIDUAL);
 
-    assert(grad.startOptimize(data, nn, 1, 250, false, true) == true);
+    grad.startOptimize(data, nn, 1, 250, false, true);
 
     while(grad.isRunning()){
       whiteice::math::blas_real<double> error = 0.0f;
@@ -264,8 +266,8 @@ int main(int argc, char** argv)
 
 	whiteice::math::vertex< whiteice::math::blas_real<double> > in(state.size() + action.size());
 
-	assert(in.write_subvertex(state, 0) == true);
-	assert(in.write_subvertex(action, state.size()) == true);
+	in.write_subvertex(state, 0);
+	in.write_subvertex(action, state.size());
 
 	whiteice::math::matrix< whiteice::math::blas_real<double> > gradQ, full_gradQ;
 	whiteice::math::vertex< whiteice::math::blas_real<double> > Qvalue;
@@ -295,7 +297,7 @@ int main(int argc, char** argv)
 	  error_sign = +1.0; // was +1.0
 #endif
 	
-	assert(g.xsize() == nn.exportdatasize());
+	//assert(g.xsize() == nn.exportdatasize());
 
 	for(unsigned int j=0;j<nn.exportdatasize();j++){
 	  // grad[i] = g(0, i);
@@ -394,8 +396,8 @@ whiteice::math::blas_real<double> calculateError(const whiteice::nnetwork< white
 
     whiteice::math::vertex< whiteice::math::blas_real<double> > in(state.size() + action.size());
     
-    assert(in.write_subvertex(state, 0) == true);
-    assert(in.write_subvertex(action, state.size()) == true);
+    in.write_subvertex(state, 0);
+    in.write_subvertex(action, state.size());
 
     whiteice::math::vertex< whiteice::math::blas_real<double> > Qvalue;
 

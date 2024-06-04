@@ -445,8 +445,8 @@ namespace whiteice
 	dtest.invpreprocess(0, state);
 	//dtest.invpreprocess(1, action);
 
-	assert(in.write_subvertex(state, 0) == true);
-	assert(in.write_subvertex(action, state.size()) == true);
+	in.write_subvertex(state, 0);
+	in.write_subvertex(action, state.size());
 	
 	Q_preprocess.preprocess(0, in);
 	
@@ -567,6 +567,16 @@ namespace whiteice
       start_lock.lock();
       start_lock.unlock();
     }
+
+    whiteice::math::vertex<T> m(policy->exportdatasize());
+    whiteice::math::vertex<T> v(policy->exportdatasize());
+    whiteice::math::vertex<T> m_hat(policy->exportdatasize());
+    whiteice::math::vertex<T> v_hat(policy->exportdatasize());
+    
+    m.zero();
+    v.zero();
+    m_hat.zero();
+    v_hat.zero();
     
     
     while(running && iterations < MAXITERS){
@@ -658,7 +668,7 @@ namespace whiteice
 	  const T ninv = use_minibatch ? T(1.0f/MINIBATCHSIZE) : T(1.0f/dtrain.size(0));
 	  
 
-#pragma omp parallel shared(sumgrad)
+	  //#pragma omp parallel shared(sumgrad)
 	  {
 	    math::vertex<T> sgrad, grad;
 	    grad.resize(policy->exportdatasize());
@@ -685,7 +695,7 @@ namespace whiteice
 	    
 	    if(use_minibatch){
 	      
-#pragma omp for nowait schedule(guided)
+	      //#pragma omp for nowait schedule(guided)
 	      for(unsigned int i=0;i<MINIBATCHSIZE;i++){
 
 		const unsigned int index = rng.rand() % dtrain.size(0);
@@ -696,7 +706,7 @@ namespace whiteice
 		
 		state = dtrain.access(0, index); // preprocessed state vector
 		
-		assert(pnet.calculate(state, action) == true);
+		pnet.calculate(state, action);
 		
 		pnet.jacobian(state, gradP);
 		
@@ -704,22 +714,22 @@ namespace whiteice
 		// dtrain.invpreprocess(1, action);
 		
 		{
-		  assert(in.write_subvertex(state, 0) == true);
-		  assert(in.write_subvertex(action, state.size()) == true);
+		  in.write_subvertex(state, 0);
+		  in.write_subvertex(action, state.size());
 		  
 		  this->Q_preprocess->preprocess(0, in);
 		  
 		  this->Q->calculate(in, Qvalue);
 		  
-		  assert(this->Q->gradient_value(in, full_gradQ) == true);
+		  this->Q->gradient_value(in, full_gradQ);
 		  
-		  assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
-		  assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
+		  this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full);
+		  this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad);
 		  
-		  assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
-							 state.size(), 0,
-							 action.size(),
-							 Qpreprocess_grad_full.ysize()) == true);
+		  Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
+						  state.size(), 0,
+						  action.size(),
+						  Qpreprocess_grad_full.ysize());
 		  
 		  
 		  gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
@@ -733,7 +743,7 @@ namespace whiteice
 	      }
 	      
 	      
-#pragma omp critical
+	      //#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -741,39 +751,39 @@ namespace whiteice
 	    }
 	    else{
 	      
-#pragma omp for nowait schedule(guided)
+	      //#pragma omp for nowait schedule(guided)
 	      for(unsigned int i=0;i<dtrain.size(0);i++){
 		
 		if(dropout) pnet.setDropOut();
 		
-		// calculates gradients for Q(state, action(state)) and policy(state)
+		// calculates gradients for Q(state, action(state)) and action=policy(state)
 		
 		state = dtrain.access(0, i); // preprocessed state vector
-		
-		assert(pnet.calculate(state, action) == true);
-		
+
+		pnet.calculate(state, action);
+
 		pnet.jacobian(state, gradP);
 		
 		dtrain.invpreprocess(0, state); // original state for Q network
 		// dtrain.invpreprocess(1, action);
 		
 		{
-		  assert(in.write_subvertex(state, 0) == true);
-		  assert(in.write_subvertex(action, state.size()) == true);
+		  in.write_subvertex(state, 0);
+		  in.write_subvertex(action, state.size());
 		  
 		  this->Q_preprocess->preprocess(0, in);
 		  
 		  this->Q->calculate(in, Qvalue);
 		  
-		  assert(this->Q->gradient_value(in, full_gradQ) == true);
+		  this->Q->gradient_value(in, full_gradQ);
+
+		  this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full);
+		  this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad);
 		  
-		  assert(this->Q_preprocess->preprocess_grad(0, Qpreprocess_grad_full) == true);
-		  assert(this->Q_preprocess->invpreprocess_grad(1, Qpostprocess_grad) == true);
-		  
-		  assert(Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
-							 state.size(), 0,
-							 action.size(),
-							 Qpreprocess_grad_full.ysize()) == true);
+		  Qpreprocess_grad_full.submatrix(Qpreprocess_grad,
+						  state.size(), 0,
+						  action.size(),
+						  Qpreprocess_grad_full.ysize());
 		  
 		  
 		  gradQ = Qpostprocess_grad * full_gradQ * Qpreprocess_grad;
@@ -787,7 +797,7 @@ namespace whiteice
 	      }
 	      
 	      
-#pragma omp critical
+	      //#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -844,6 +854,35 @@ namespace whiteice
 	  lrate *= T(100.0);
 	  
 	  do{
+	    if(use_Adam){ // use ADAM optimizer
+
+	      const T alpha = T(0.001);
+	      const T beta1 = T(0.9);
+	      const T beta2 = T(0.999);
+	      const T epsilon = T(1e-8);
+	      
+	      weights = w0;
+
+#pragma omp parallel for schedule(static)
+	      for(unsigned int i=0;i<sumgrad.size();i++){
+		m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
+		v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
+		
+		m_hat[i] = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
+		v_hat[i] = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
+		
+		weights[i] -= (alpha / (whiteice::math::sqrt(v_hat[i]) + epsilon)) * m_hat[i];
+	      }
+
+	      if(heuristics){
+		normalize_weights_to_unity(*policy);
+	      }
+	      
+	      value = getValue(*policy, *Q, *Q_preprocess, dtrain);
+	      
+	      break;
+	    }
+	    
 	    if(use_SGD){ // just single step towards gradient instead of line search
 	      weights = w0;
 	      weights += sgd_lrate * sumgrad;

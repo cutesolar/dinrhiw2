@@ -116,7 +116,8 @@ namespace whiteice
     whiteice::dataset<T> data; // copy of own dataset
     
     whiteice::nnetwork<T>* policy; // network architecture and settings
-    
+
+    bool use_Adam = true; // use Adam optimizer instead
     
     bool heuristics;
     bool dropout; // use dropout heuristics when training

@@ -1089,13 +1089,27 @@ namespace whiteice
 		whiteice::nnetwork<T> nn2;
 		std::vector< math::vertex<T> > lagged_weights;
 		lagged_policy.exportSamples(nn2, lagged_weights, 1);
-		
+
 		math::vertex<T> weights;
 		nn.exportdata(weights);
 
-		lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
-		nn2.importdata(lagged_weights[0]);
-		lagged_policy.importNetwork(nn2);
+		if(lagged_weights.size() > 0){
+
+		  if(weights.size() == lagged_weights[0].size()){
+		    
+		    lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
+		    nn2.importdata(lagged_weights[0]);
+		    lagged_policy.importNetwork(nn2);
+		  }
+		  else{
+		    nn2 = nn;
+		    lagged_policy.importNetwork(nn2);
+		  }
+		}
+		else{
+		  nn2 = nn;
+		  lagged_policy.importNetwork(nn2);
+		}
 #endif
 		
 		whiteice::logging.info("RIFL_abstract2: new policy diagnostics");

@@ -1,6 +1,8 @@
 Code is only tested and known to compile on Debian/Linux (amd64) and 
 Windows 64bit platform. Minimal testing has been done on Intel 32bit plaform.
 
+* assert(f()) calls don't often call the f() function at all, remove such assert()s
+
 * t-SNE is a bit buggy(?) and don't scale now to large number of data points
 
 * reinforcement code don't learn example cart-pole upswing properly
