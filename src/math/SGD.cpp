@@ -371,10 +371,7 @@ namespace whiteice
 	      
 	      for(const auto& e : errors)
 		if(e < min_value) min_value = e;
-	      
-	      if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
-	      else min_value = T(-0.01f);
-	      
+
 	      
 	      T m = T(0.0f);
 	      T s = T(0.0f);
@@ -609,9 +606,6 @@ namespace whiteice
 	    for(const auto& e : errors)
 	      if(e < min_value) min_value = e;
 
-	    if(min_value < T(0.0f)) min_value = min_value - T(1.0f);
-	    else min_value = T(-0.01f);
-	    
 	    
 	    T m = T(0.0f);
 	    T s = T(0.0f);
