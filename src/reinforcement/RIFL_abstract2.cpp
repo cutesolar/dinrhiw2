@@ -522,8 +522,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 1; // 40, was 1 (dont work), 5, 10, WAS: 5
-    const unsigned int P_OPTIMIZE_ITERATIONS = 1; // 10, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 40; // 40, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int P_OPTIMIZE_ITERATIONS = 10; // 10, was 1 (dont work), 5, 10, WAS: 5
     
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
@@ -699,7 +699,8 @@ namespace whiteice
 	  auto norm1 = state.norm();
 	  auto result = action + state;
 	  auto norm2 = result.norm();
-	  
+
+#if 0
 	  if(norm2 < norm1){
 	    std::cout << counter << " "
 		      << "Q(STATE,POLICY_ACTION) = " << u
@@ -722,6 +723,8 @@ namespace whiteice
 		      << " MODELS: " << hasModel[0] << " " << hasModel[1]
 		      << std::endl;
 	  }
+#endif
+	  
 	}
 	else{
 #if 0
@@ -867,7 +870,7 @@ namespace whiteice
 
 	    if(dataset_thread == nullptr){
 
-	      assert(grad.getSolution(nn) == true);
+	      grad.getSolution(nn);
 	      
 	      char buffer[128];
 	      double tmp = 0.0;
@@ -1066,8 +1069,8 @@ namespace whiteice
 	    
 	    if(dataset2_thread == nullptr){
 
-	      assert(grad2.getSolution(nn) == true);
-	      assert(grad2.getDataset(this->policy_preprocess) == true);
+	      grad2.getSolution(nn);
+	      grad2.getDataset(this->policy_preprocess);
 
 	      char buffer[128];
 	      double tmp = 0.0;

@@ -136,7 +136,7 @@ namespace whiteice
 
 	reinforcement = x; // we maximize x=1.0, y=0.0, z=0.0 is the maximum
 
-	std::cout << iteration << "/100: REINFORCEMENT: " << reinforcement << std::endl;
+	// std::cout << iteration << "/100: REINFORCEMENT: " << reinforcement << std::endl;
 	
 	if(resetLastStep){
 	  endFlag = true;

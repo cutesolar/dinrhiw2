@@ -4,7 +4,7 @@
  * when a sphere point in x^2 + y^2 + z^2 = 1 
  * is rotated around origo for 100 iterations.
  * 
- * This this test Q can now have negative value (unlike in testcase4).
+ * This test Q can now have negative value (unlike in testcase4).
  * Example seems to work now.
  */
 
