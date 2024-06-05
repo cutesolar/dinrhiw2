@@ -116,8 +116,8 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 
-	     // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
 	  nn.setResidual(true);
@@ -523,11 +523,11 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 40; // 40, was 1 (dont work), 5, 10, WAS: 5
-    const unsigned int P_OPTIMIZE_ITERATIONS = 10; // 10, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 400; // 40, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int P_OPTIMIZE_ITERATIONS = 20; // 10, was 1 (dont work), 5, 10, WAS: 5
     
     // tau = 1.0 => no lagged neural networks [don't work]
-    const T tau = T(0.001); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.05]
+    const T tau = T(0.05); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
@@ -562,12 +562,12 @@ namespace whiteice
     int old_grad_iterations = -1;
     int old_grad2_iterations = -1;
 
-    const unsigned long DATASIZE = 1000000; // was: 100.000 / 1M history of samples
+    const unsigned long DATASIZE = 100000; // was: 100.000 / 1M history of samples
     // assumes each episode length is 100 so this is ~ equal to 1.000.000 samples
     const unsigned long EPISODES_MAX_SIZE = 10000;
     const unsigned long MINIMUM_EPISODE_SIZE = 50;
     const unsigned long MINIMUM_DATASIZE = 5000; // number of samples required to start learning
-    const unsigned long SAMPLESIZE = 500; // number of samples used in learning
+    const unsigned long SAMPLESIZE = 2000; // number of samples used in learning, was: 500
     unsigned long database_counter = 0;
     unsigned long episodes_counter = 0;
     
@@ -989,12 +989,12 @@ namespace whiteice
 	    grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
 	  }
 	  else{
-	    eta.start(0.0, 5);
+	    eta.start(0.0, 15);
 
 	    grad.setUseMinibatch(false);
 	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
-	    grad.startOptimize(data, nn, 1, 5, dropout, useInitialNN);
+	    grad.startOptimize(data, nn, 1, 15, dropout, useInitialNN);
 	  }
 	  
 
@@ -1215,12 +1215,12 @@ namespace whiteice
 				  dropout, useInitialNN);
 	    }
 	    else{
-	      eta2.start(0.0, 5);
+	      eta2.start(0.0, 15);
 
 	      grad2.setUseMinibatch(false);
 	      grad2.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	      
-	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, 5,
+	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, 15,
 				  dropout, useInitialNN);
 	    }
 
@@ -1282,8 +1282,6 @@ namespace whiteice
       delete dataset2_thread;
       dataset2_thread = nullptr;
     }
-
-    if(episodesFile) fclose(episodesFile);
     
   }
 

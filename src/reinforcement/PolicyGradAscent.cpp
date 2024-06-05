@@ -43,9 +43,9 @@ namespace whiteice
     use_SGD = false; // stochastic gradient descent with fixed learning rate
     sgd_lrate = T(0.01f);
 
-    regularize = true; // REGULARIZER - ENABLED
+    regularize = false; // REGULARIZER - ENABLED
     regularizer = T(0.001); // was: 1/10.000, was 0.01
-    // regularizer = T(0.0); // DISABLED
+    regularizer = T(0.0); // DISABLED
   }
 
   
@@ -554,6 +554,9 @@ namespace whiteice
       dtest  = data;
     }
 
+    //dtrain = data;
+    //dtest  = data;
+
     dtrain.diagnostics();
 
     {
@@ -568,15 +571,16 @@ namespace whiteice
       start_lock.unlock();
     }
 
+
+    T value = 0.0; 
+    
+    
+
     whiteice::math::vertex<T> m(policy->exportdatasize());
     whiteice::math::vertex<T> v(policy->exportdatasize());
-    whiteice::math::vertex<T> m_hat(policy->exportdatasize());
-    whiteice::math::vertex<T> v_hat(policy->exportdatasize());
     
     m.zero();
     v.zero();
-    m_hat.zero();
-    v_hat.zero();
     
     
     while(running && iterations < MAXITERS){
@@ -618,34 +622,36 @@ namespace whiteice
 	}
       }
 #endif
+
+      {
+	solution_lock.lock();
+
+	value = getValue(*policy, *Q, *Q_preprocess, dtest);
+	
+	if(value > best_value){
+	  // improvement (larger mean q-value of the policy)
+	  best_value = value;
+	  best_q_value = value; // 
+	  policy->exportdata(bestx);
+	  this->policy->importdata(bestx);
+	  
+	  //auto ptr = this->policy;
+	  //this->policy = new whiteice::nnetwork<T>(*policy);
+	  //delete ptr;
+	}
+	
+	solution_lock.unlock();
+      }
+      
+
       
       // 2. normal gradient ascent
       ///////////////////////////////////////
       {
 	math::vertex<T> weights, w0;
 	  
-	T prev_value, value;
+	T prev_value;
 	T delta_value = 0.0f;
-
-	value = getValue(*policy, *Q, *Q_preprocess, dtest);
-
-	{
-	  solution_lock.lock();
-	  
-	  if(value > best_value){
-	    // improvement (larger mean q-value of the policy)
-	      best_value = value;
-	      best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
-	      policy->exportdata(bestx);
-	      this->policy->importdata(bestx);
-	      
-	      //auto ptr = this->policy;
-	      //this->policy = new whiteice::nnetwork<T>(*policy);
-	      //delete ptr;
-	  }
-	  
-	  solution_lock.unlock();
-	}
 
 	
 	T lrate = T(1.0);
@@ -668,7 +674,7 @@ namespace whiteice
 	  const T ninv = use_minibatch ? T(1.0f/MINIBATCHSIZE) : T(1.0f/dtrain.size(0));
 	  
 
-	  //#pragma omp parallel shared(sumgrad)
+#pragma omp parallel shared(sumgrad)
 	  {
 	    math::vertex<T> sgrad, grad;
 	    grad.resize(policy->exportdatasize());
@@ -695,7 +701,7 @@ namespace whiteice
 	    
 	    if(use_minibatch){
 	      
-	      //#pragma omp for nowait schedule(guided)
+#pragma omp for nowait schedule(guided)
 	      for(unsigned int i=0;i<MINIBATCHSIZE;i++){
 
 		const unsigned int index = rng.rand() % dtrain.size(0);
@@ -743,7 +749,7 @@ namespace whiteice
 	      }
 	      
 	      
-	      //#pragma omp critical
+#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -751,7 +757,7 @@ namespace whiteice
 	    }
 	    else{
 	      
-	      //#pragma omp for nowait schedule(guided)
+#pragma omp for nowait schedule(guided)
 	      for(unsigned int i=0;i<dtrain.size(0);i++){
 		
 		if(dropout) pnet.setDropOut();
@@ -797,7 +803,7 @@ namespace whiteice
 	      }
 	      
 	      
-	      //#pragma omp critical
+#pragma omp critical
 	      {
 		sumgrad += sgrad;
 	      }
@@ -865,20 +871,24 @@ namespace whiteice
 
 #pragma omp parallel for schedule(static)
 	      for(unsigned int i=0;i<sumgrad.size();i++){
-		m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
+		// should ASCEND the error.. (-sumgrad goes to larger values)
+		
+		m[i] = beta1 * m[i] + (T(1.0) - beta1)*(-sumgrad[i]);
 		v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
-		
-		m_hat[i] = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
-		v_hat[i] = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
-		
-		weights[i] -= (alpha / (whiteice::math::sqrt(v_hat[i]) + epsilon)) * m_hat[i];
+
+		T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
+		T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
+
+		weights[i] -= (alpha / (whiteice::math::sqrt(v_hat) + epsilon)) * m_hat;
 	      }
+
+	      policy->importdata(weights);
 
 	      if(heuristics){
 		normalize_weights_to_unity(*policy);
 	      }
 	      
-	      value = getValue(*policy, *Q, *Q_preprocess, dtrain);
+	      value = getValue(*policy, *Q, *Q_preprocess, dtest);
 	      
 	      break;
 	    }
@@ -895,7 +905,7 @@ namespace whiteice
 		normalize_weights_to_unity(*policy);
 	      }
 	      
-	      value = getValue(*policy, *Q, *Q_preprocess, dtrain);
+	      value = getValue(*policy, *Q, *Q_preprocess, dtest);
 
 	      break;
 	    }
@@ -963,7 +973,7 @@ namespace whiteice
 	  w0 = weights;
  	  
 	  iterations++;
-	  
+#if 0
 	  if(use_SGD == false){
 	    std::lock_guard<std::mutex> lock(solution_lock);
 	      
@@ -1001,6 +1011,7 @@ namespace whiteice
 	    policy->exportdata(bestx);
 	    this->policy->importdata(bestx);
 	  }
+#endif
 	  
 	  
 	  // cancellation point
@@ -1012,44 +1023,42 @@ namespace whiteice
 	      return; // stops execution
 	    }
 	  }
-	  
+
+	  // 3. checks if the result is better
+	  //    than the earlier one
+	  {
+	    solution_lock.lock();
+	    
+	    if(value > best_value){
+	      // improvement (larger mean q-value of the policy)
+	      best_value = value;
+	      best_q_value = value; // getValue(*policy, *Q, *Q_preprocess, dtest);
+	      policy->exportdata(bestx);
+	      auto ptr = this->policy;
+	      this->policy = new whiteice::nnetwork<T>(*policy);
+	      delete ptr;
+	      
+	      {
+		char buffer[128];
+		
+		double b;
+		whiteice::math::convert(b, best_q_value);
+		
+		snprintf(buffer, 128,
+			 "PolicyGradAscent: better policy found: %f iter %d",
+			 b, iterations);
+		whiteice::logging.info(buffer);
+	      }
+	    }
+	    
+	    solution_lock.unlock();
+	  }
 	  
 	}
 	while(lrate >= T(10e-30) && 
 	      iterations < MAXITERS &&
 	      running);
 	
-	
-	
-	// 3. after convergence checks if the result is better
-	//    than the earlier one
-	{
-	  solution_lock.lock();
-	  
-	  if(value > best_value){
-	    // improvement (larger mean q-value of the policy)
-	    best_value = value;
-	    best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
-	    policy->exportdata(bestx);
-	    auto ptr = this->policy;
-	    this->policy = new whiteice::nnetwork<T>(*policy);
-	    delete ptr;
-	    
-	    {
-	      char buffer[128];
-	      
-	      double b;
-	      whiteice::math::convert(b, best_q_value);
-	      
-	      snprintf(buffer, 128,
-		       "PolicyGradAscent: better policy found: %f iter %d",
-		       b, iterations);
-	      whiteice::logging.info(buffer);
-	    }
-	  }
-	  
-	  solution_lock.unlock();
-	}
 	
       }
       

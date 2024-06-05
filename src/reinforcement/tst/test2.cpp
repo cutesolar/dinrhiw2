@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
     system.setEpsilon(0.50); // 50% of control choices are random
     system.setLearningMode(true);
-    system.setVerbose(true);
+    system.setVerbose(false);
 
     if(loadFlag){
       printf("Loading existing model from disk..\n");

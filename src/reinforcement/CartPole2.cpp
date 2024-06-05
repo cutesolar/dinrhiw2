@@ -313,7 +313,7 @@ namespace whiteice
       if(verbose)
 	printf("%s\n", buffer);
 
-      // whiteice::logging.info(buffer);
+      whiteice::logging.info(buffer);
     }
     
     {
@@ -378,9 +378,9 @@ namespace whiteice
 	  a1 *= T(360.0);
 	  // a1 *= T(2.0*M_PI);
 
-	  std::cout << "x = " << x
-		    << " theta = " << T(360.0)*theta/T(2.0*M_PI)
-		    << " theta_dot = " << T(360.0)*theta_dot/T(2.0*M_PI) << std::endl;
+	  //std::cout << "x = " << x
+	  //	    << " theta = " << T(360.0)*theta/T(2.0*M_PI)
+	  //	    << " theta_dot = " << T(360.0)*theta_dot/T(2.0*M_PI) << std::endl;
 
 #if 1
 	  //if(a1 > T(+12.0) || a1 < T(-12.0)) reinforcement = 0.0;
@@ -408,7 +408,7 @@ namespace whiteice
 	    if(verbose)
 	      printf("%s\n", buffer);
 	    
-	    // whiteice::logging.info(buffer);
+	    whiteice::logging.info(buffer);
 	  }
 	}
       }
@@ -517,7 +517,7 @@ namespace whiteice
 	      printf("%s\n", buffer);
 	    }
 
-	    // whiteice::logging.info(buffer);
+	    whiteice::logging.info(buffer);
 	  }
 	  
 	  fflush(stdout);
