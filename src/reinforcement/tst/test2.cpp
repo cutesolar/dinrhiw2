@@ -60,6 +60,7 @@ int main(int argc, char** argv)
     system.setVerbose(false);
 
     if(loadFlag){
+      system.setEpsilon(0.75); // 25% of control choices are random
       printf("Loading existing model from disk..\n");
       if(system.load("rifl.dat") == false){
 	printf("ERROR: Loading model from disk FAILED.");
