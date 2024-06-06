@@ -455,8 +455,30 @@ else
 fi
 
 
+AC_MSG_CHECKING([for Intel MKL library (2) (Linux, pkg-config)])
+PKG_MKL_CFLAGS=`pkg-config mkl-sdl-ilp64 --cflags 2> /dev/null`
+PKG_MKL_LIBS=`pkg-config mkl-sdl-ilp64 --libs 2> /dev/null`
+`g++ -o openblastest openblastest.c -DINTELMKL $PKG_MKL_CFLAGS $PKG_MKL_LIBS > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_mkl" == "xno"],[
+     INTELMKL="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     INTELMKL="yes"
+     BLAS_CFLAGS="$PKG_MKL_CFLAGS -DINTELMKL"
+     BLAS_LIBS="$PKG_MKL_LIBS"
+     AC_MSG_RESULT([yes, pkg-config mkl-sdl-ilp64 FOUND.])
+  ])
+else
+   AC_MSG_RESULT([no Intel MKL detected])
+   INTELMKL="no"
+fi
+
+
 MKLROOT="/opt/intel/psxe_runtime/linux/mkl"
-AC_MSG_CHECKING([for Intel MKL library (2) (Linux)])
+AC_MSG_CHECKING([for Intel MKL library (3) (Linux)])
 `g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/intel64_lin -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then
@@ -477,7 +499,7 @@ fi
 
 
 MKLROOT="/opt/intel/oneapi/mkl/latest"
-AC_MSG_CHECKING([for Intel MKL library (3) (Linux)])
+AC_MSG_CHECKING([for Intel MKL library (4) (Linux)])
 `g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/ -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then

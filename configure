@@ -5218,9 +5218,39 @@ printf "%s\n" "no Intel MKL detected" >&6; }
 fi
 
 
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (2) (Linux, pkg-config)" >&5
+printf %s "checking for Intel MKL library (2) (Linux, pkg-config)... " >&6; }
+PKG_MKL_CFLAGS=`pkg-config mkl-sdl-ilp64 --cflags 2> /dev/null`
+PKG_MKL_LIBS=`pkg-config mkl-sdl-ilp64 --libs 2> /dev/null`
+`g++ -o openblastest openblastest.c -DINTELMKL $PKG_MKL_CFLAGS $PKG_MKL_LIBS > /dev/null 2> /dev/null`
+
+if [ $? -eq 0 ]; then
+  if test "x$enable_mkl" == "xno"
+then :
+
+     INTELMKL="no"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, but DISABLED" >&5
+printf "%s\n" "yes, but DISABLED" >&6; }
+
+else $as_nop
+
+     INTELMKL="yes"
+     BLAS_CFLAGS="$PKG_MKL_CFLAGS -DINTELMKL"
+     BLAS_LIBS="$PKG_MKL_LIBS"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config mkl-sdl-ilp64 FOUND." >&5
+printf "%s\n" "yes, pkg-config mkl-sdl-ilp64 FOUND." >&6; }
+
+fi
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
+printf "%s\n" "no Intel MKL detected" >&6; }
+   INTELMKL="no"
+fi
+
+
 MKLROOT="/opt/intel/psxe_runtime/linux/mkl"
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (2) (Linux)" >&5
-printf %s "checking for Intel MKL library (2) (Linux)... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (3) (Linux)" >&5
+printf %s "checking for Intel MKL library (3) (Linux)... " >&6; }
 `g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/intel64_lin -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then
@@ -5248,8 +5278,8 @@ fi
 
 
 MKLROOT="/opt/intel/oneapi/mkl/latest"
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (3) (Linux)" >&5
-printf %s "checking for Intel MKL library (3) (Linux)... " >&6; }
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (4) (Linux)" >&5
+printf %s "checking for Intel MKL library (4) (Linux)... " >&6; }
 `g++ -o openblastest openblastest.c -DINTELMKL -I$MKLROOT/include/ -L$MKLROOT/lib/ -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lm > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then

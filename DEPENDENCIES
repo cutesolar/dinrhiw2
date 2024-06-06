@@ -1,11 +1,12 @@
 Dependencies:
 
- * BLAS library (OpenBLAS, Intel MKL, AMD BLIS)
- * GMP library
- * Python [only used by experimental reinforcement learning code to use python
-           minihack environment for machine learning testing and can be removed
-	   by disabling reinforcement learning code compilation
-	   (requries some source code/compilation process editing)]
+ * make, autoconf, g++, bison, pkg-config (only in tools/) 
+ * BLAS library (OpenBLAS, Intel MKL, AMD BLIS, cuBLAS) [checks common locations and tries pkg-config]
+ * GMP library (libgmp-dev)
+ * Pythondev [only used by experimental reinforcement learning code to use python
+              minihack environment for machine learning testing and can be removed
+   	      by disabling reinforcement learning code compilation
+	      (requries some source code/compilation process editing)]
 
 
 This software uses / has PocketFFT header file in src/math/pocketfft_hdronly.h.
@@ -14,7 +15,7 @@ The basic_fft() and basic_ifft() routines use it for fast FFT (fast fourier tran
 Software is currently available here: https://gitlab.mpcdf.mpg.de/mtr/pocketfft.
 
 
-LICENSE FOR SOFTWARE:
+LICENSE FOR FFT SOFTWARE:
 
 Copyright (C) 2010-2019 Max-Planck-Society
 
