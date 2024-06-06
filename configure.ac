@@ -706,7 +706,7 @@ dnl -fsanitize=address"
 
 dnl enable newer C++ standards
 CFLAGS="-std=gnu++20 $CFLAGS"
-conf_flags="-std=gnu++20 $conf_flags `python3-config --cflags --embed`"
+conf_flags="-std=gnu++20 -Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
 
 dnl 
 dnl AC_ARG_ENABLE([profiling],
