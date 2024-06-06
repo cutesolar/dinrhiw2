@@ -1,6 +1,6 @@
 Dependencies:
 
- * make, autoconf, g++, bison, pkg-config (only in tools/) 
+ * make, autoconf, g++, pkg-config, bison (only in tools/) 
  * BLAS library (OpenBLAS, Intel MKL, AMD BLIS, cuBLAS) [checks common locations and tries pkg-config]
  * GMP library (libgmp-dev)
  * Pythondev [only used by experimental reinforcement learning code to use python
