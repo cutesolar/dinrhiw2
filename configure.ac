@@ -699,8 +699,7 @@ AC_ARG_ENABLE([cppdebug],
 
 AS_IF([test "x$enable_cppdebug" = "xyes"],[
 dnl  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
-  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG"
-dnl -fsanitize=address"
+  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address"
   conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address"
 ])
 
