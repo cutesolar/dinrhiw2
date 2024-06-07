@@ -5557,8 +5557,8 @@ then :
 
 fi
 
-CFLAGS="-std=gnu++20 $CFLAGS"
-conf_flags="-std=gnu++20 -Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
+CFLAGS="$CFLAGS"
+conf_flags="-Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
 
 
 

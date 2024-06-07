@@ -724,8 +724,10 @@ dnl  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address
 ])
 
 dnl enable newer C++ standards
-CFLAGS="-std=gnu++20 $CFLAGS"
-conf_flags="-std=gnu++20 -Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
+dnl CFLAGS="-std=gnu++20 $CFLAGS"
+dnl conf_flags="-std=gnu++20 -Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
+CFLAGS="$CFLAGS"
+conf_flags="-Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
 
 dnl 
 dnl AC_ARG_ENABLE([profiling],

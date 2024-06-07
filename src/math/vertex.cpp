@@ -35,9 +35,11 @@ cublasStatus_t cublas_status  = cublasCreate(&cublas_handle);
 cublasStatus_t cublas_math = cublasSetMathMode(cublas_handle, CUBLAS_TF32_TENSOR_OP_MATH);
 
 
-volatile bool use_gpu_sync = false;
-
 #endif
+
+bool use_gpu_sync = false;
+
+
 
 // #define OPENBLAS 0
 

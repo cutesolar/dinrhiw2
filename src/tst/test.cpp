@@ -1067,7 +1067,7 @@ void dynamic_bitset_test()
       temp |= b[j];
       
       for(unsigned int k=0;k<b[i].size();k++){
-	b[i].set(k, b[i][k] | b[j][k]);
+	b[i].set(k, b[i][k] || b[j][k]);
       }
       
       if(temp != b[i])
