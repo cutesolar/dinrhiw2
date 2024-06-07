@@ -5440,6 +5440,34 @@ printf "%s\n" "no NVIDIA cuBLAS detected" >&6; }
    NVIDIACUBLAS="no"
 fi
 
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NVIDIA cuBLAS 12.5 library SLOW (Linux pkg-config)" >&5
+printf %s "checking for NVIDIA cuBLAS 12.5 library SLOW (Linux pkg-config)... " >&6; }
+CUBLAS_FLAGS="`pkg-config cublas-12.5 --cflags --libs 2> /dev/null` `pkg-config cudart-12.5 --cflags --libs 2> /dev/null`"
+`g++ -o cublastest cublastest.cpp -DCUBLAS $CUBLAS_FLAGS > /dev/null 2> /dev/null`
+
+if [ $? -eq 0 ]; then
+  if test "x$enable_cublas" == "xno"
+then :
+
+     NVIDIACUBLAS="no"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, but DISABLED" >&5
+printf "%s\n" "yes, but DISABLED" >&6; }
+
+else $as_nop
+
+     NVIDIACUBLAS="yes"x
+     BLAS_CFLAGS="-DCUBLAS `pkg-config cublas-12.5 --cflags` `pkg-config cudart-12.5 --cflags`"
+     BLAS_LIBS="`pkg-config cublas-12.5 --libs` `pkg-config cudart-12.5 --libs`"
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, using pkg-config cublas-12.5 cudart-12.5" >&5
+printf "%s\n" "yes, using pkg-config cublas-12.5 cudart-12.5" >&6; }
+
+fi
+else
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no NVIDIA cuBLAS detected" >&5
+printf "%s\n" "no NVIDIA cuBLAS detected" >&6; }
+   NVIDIACUBLAS="no"
+fi
+
 
 
 
@@ -5524,8 +5552,8 @@ fi
 if test "x$enable_cppdebug" = "xyes"
 then :
 
-  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address"
-  conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address"
+  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
+  conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
 
 fi
 

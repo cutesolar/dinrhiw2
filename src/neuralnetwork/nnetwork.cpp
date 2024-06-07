@@ -415,7 +415,7 @@ namespace whiteice
   {
     // TODO write cblas and cuBLAS optimized version which uses
     // direct accesses to matrix/vertex memory areas
-    
+
     math::vertex<T> state = inputValues;
 
     if(collectSamples)
@@ -5786,7 +5786,8 @@ namespace whiteice
   
 
   /////////////////////////////////////////////////////////////////////////////
-  
+
+#if 0
   template <typename T>
   inline void nnetwork<T>::gemv_gvadd(unsigned int yd, unsigned int xd, 
 				      const T* W, T* x, T* y,
@@ -6003,6 +6004,7 @@ namespace whiteice
 #endif
 
   }
+#endif
   
   
   ////////////////////////////////////////////////////////////

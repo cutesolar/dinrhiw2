@@ -33,15 +33,16 @@ namespace whiteice
     template <typename T=float>
     inline void blas_safebox(const T& value)
     {
-#ifdef _GLIBCXX_DEBUG
-#if 1 // LARGE VALUE DECTECTION IS DISABLED FOR NOW!
+      //#ifdef _GLIBCXX_DEBUG
+#undef NDEBUG      
+#if 0 // LARGE VALUE DECTECTION IS DISABLED FOR NOW!
       // in debugging mode we stop if data large (algorithms should work with smallish numbers)
-      if(abs(value) > T(1e20) && abs(value) != INFINITY){ // was: 1e20
-	printf("BLAS VALUE TOO LARGE (larger than 10^20): %f\n", value);
+      if(abs(value) > T(1e10) && abs(value) != INFINITY){ // was: 1e10
+	printf("BLAS VALUE TOO LARGE (larger than 10^10): %f\n", value);
 	assert(0);
       }
 #endif
-#endif
+      //#endif
     }
     
     template <typename T>

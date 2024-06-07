@@ -388,12 +388,13 @@ namespace whiteice
     bool importBNdata(const math::vertex<T>& v);
 
   private:
-      
+
+#if 0
     inline void gemv_gvadd(unsigned int yd, unsigned int xd, 
 			   const T* W, T* x, T* y,
 			   unsigned int dim, T* s, const T* b,
 			   T* temp) const;
-    
+#endif
     
     // data structures which are part of interface [avoid using these!]
     math::vertex<T> inputValues;

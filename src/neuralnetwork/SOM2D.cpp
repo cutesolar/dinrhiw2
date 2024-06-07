@@ -1293,7 +1293,8 @@ namespace whiteice
     float tmp, result = 0;
 
 #ifdef CUBLAS
-#error "NOT IMPLEMENTED"
+    printf("WARN: cuBLAS code unlikely to be correct!\n");
+    //#error "NOT IMPLEMENTED"
     auto s = cublasSdot(cublas_handle, som_dimension,
 			(const float*)vmemory, 1, (const float*)&(somtable[0]), 1,
 			(float*)&result);

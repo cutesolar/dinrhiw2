@@ -43,8 +43,8 @@ namespace whiteice
     use_SGD = false; // stochastic gradient descent with fixed learning rate
     sgd_lrate = T(0.01f);
 
-    regularize = false; // REGULARIZER - ENABLED
-    regularizer = T(0.001); // was: 1/10.000, was 0.01
+    regularize = false; // REGULARIZER - DISABLED
+    //regularizer = T(0.001); // was: 1/10.000, was 0.01
     regularizer = T(0.0); // DISABLED
   }
 
@@ -574,8 +574,9 @@ namespace whiteice
 
     T value = 0.0; 
     
+    unsigned int no_improvements_counter = 0;
+    const unsigned int MAX_NO_IMPROVE_ITERS = 500;
     
-
     whiteice::math::vertex<T> m(policy->exportdatasize());
     whiteice::math::vertex<T> v(policy->exportdatasize());
     
@@ -583,7 +584,7 @@ namespace whiteice
     v.zero();
     
     
-    while(running && iterations < MAXITERS){
+    while(running && iterations < MAXITERS && no_improvements_counter < MAX_NO_IMPROVE_ITERS){
       // keep looking for solution until MAXITERS
 	
       // starting position for neural network
@@ -876,8 +877,8 @@ namespace whiteice
 		m[i] = beta1 * m[i] + (T(1.0) - beta1)*(-sumgrad[i]);
 		v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
 
-		T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
-		T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
+		const T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
+		const T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
 
 		weights[i] -= (alpha / (whiteice::math::sqrt(v_hat) + epsilon)) * m_hat;
 	      }
@@ -973,46 +974,6 @@ namespace whiteice
 	  w0 = weights;
  	  
 	  iterations++;
-#if 0
-	  if(use_SGD == false){
-	    std::lock_guard<std::mutex> lock(solution_lock);
-	      
-	    if(value > best_value){
-	      // improvement (larger mean q-value of the policy)
-	      best_value = value;
-	      best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
-	      policy->exportdata(bestx);
-	      this->policy->importdata(bestx);
-	      
-	      //auto ptr = this->policy;
-	      //this->policy = new whiteice::nnetwork<T>(*policy);
-	      //delete ptr;
-	      
-	      {
-		char buffer[128];
-		
-		double b;
-		whiteice::math::convert(b, best_q_value);
-		
-		snprintf(buffer, 128,
-			 "PolicyGradAscent: better policy found: %e iter %d",
-			 b, iterations);
-		whiteice::logging.info(buffer);
-	      }
-	      
-	    }
-	    
-	  }
-	  else{
-	    std::lock_guard<std::mutex> lock(solution_lock);
-
-	    best_value = value;
-	    best_q_value = getValue(*policy, *Q, *Q_preprocess, dtest);
-	    policy->exportdata(bestx);
-	    this->policy->importdata(bestx);
-	  }
-#endif
-	  
 	  
 	  // cancellation point
 	  {
@@ -1049,6 +1010,11 @@ namespace whiteice
 			 b, iterations);
 		whiteice::logging.info(buffer);
 	      }
+
+	      no_improvements_counter = 0;
+	    }
+	    else{
+	      no_improvements_counter++; 
 	    }
 	    
 	    solution_lock.unlock();
@@ -1057,6 +1023,7 @@ namespace whiteice
 	}
 	while(lrate >= T(10e-30) && 
 	      iterations < MAXITERS &&
+	      no_improvements_counter < MAX_NO_IMPROVE_ITERS &&
 	      running);
 	
 	

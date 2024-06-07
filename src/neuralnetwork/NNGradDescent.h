@@ -141,7 +141,7 @@ namespace whiteice
       T getError(const whiteice::nnetwork<T>& net,
 		 const whiteice::dataset<T>& dtest,
 		 const bool regularize = true,
-		 const bool dropout = false);
+		 const bool dropout = false) const;
 	
       
       whiteice::nnetwork<T>* nn; // network architecture and settings
@@ -151,7 +151,7 @@ namespace whiteice
       bool dont_normalize_error; // don't normalize values when calculating error.
       T regularizer;
 
-      bool use_adam = true; // Use MUCH better Adam optimizer as the default for now 	
+      const bool use_adam = true; // Use MUCH better Adam optimizer as the default for now 	
 
       // whether to use minimum norm error ||y-f(x)|| instead of
       // the standard MSE (minimum squared error) 0.5*||y-f(x)||^2 (default)
@@ -162,7 +162,7 @@ namespace whiteice
       T best_pure_error;
       unsigned int iterations;
       
-      const whiteice::dataset<T>* data;
+      whiteice::dataset<T> data;
       
       // flag to indicate this is the first thread to start optimization
       bool first_time;

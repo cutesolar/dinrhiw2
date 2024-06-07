@@ -32,10 +32,10 @@
 // loading vertex.o object file initializes cuBLAS
 cublasHandle_t cublas_handle;
 cublasStatus_t cublas_status  = cublasCreate(&cublas_handle);
-cublasStatus_t cublas_math = cublasSetMathMode(cublas_handle, CUBLAS_TENSOR_OP_MATH);
+cublasStatus_t cublas_math = cublasSetMathMode(cublas_handle, CUBLAS_TF32_TENSOR_OP_MATH);
 
 
-volatile bool use_gpu_sync = true;
+volatile bool use_gpu_sync = false;
 
 #endif
 
@@ -646,7 +646,7 @@ namespace whiteice
 	  throw CUDAException("CUBLAS cublasScnrm2() failed.");
 	}
 
-	T rv = result;
+	T rv = T(result);
 	
 	return rv;
       }
@@ -662,7 +662,7 @@ namespace whiteice
 	  throw CUDAException("CUBLAS cublasDznrm2() failed.");
 	}
 
-	T rv = result;
+	T rv = T(result);
 	
 	return rv;
       }
@@ -781,7 +781,7 @@ namespace whiteice
 	  throw CUDAException("CUBLAS cublasScnrm2() failed.");
 	}
 
-	T rv = result;
+	T rv = T(result);
 	
 	return rv;
       }
@@ -797,7 +797,7 @@ namespace whiteice
 	  throw CUDAException("CUBLAS cublasDznrm2() failed.");
 	}
 
-	T rv = result;
+	T rv = T(result);
 	
 	return rv;
       }
@@ -852,8 +852,11 @@ namespace whiteice
     bool vertex<T>::normalize() 
     {
       T len = norm();
+      double lenf = 0.0;
+
+      whiteice::math::convert(lenf, len);
       
-      if(len <= T(0.0f)) return false;
+      if(lenf <= 0.0) return false;
 
       if(typeid(T) == typeid(whiteice::math::blas_real<float>)){
 	if(len <= T(1e-30f)){ // handles almost zero length vectors which causes arithmetic exception..
@@ -1465,7 +1468,7 @@ namespace whiteice
 	return r;
       }
       else{
-	const T alpha = -1.0f;
+	const T alpha = T(-1.0f);
 
 #pragma omp parallel for schedule(auto)
 	for(unsigned int i=0;i<dataSize;i++)
@@ -1548,7 +1551,7 @@ namespace whiteice
 #ifdef CUBLAS
 
       if(typeid(T) == typeid(blas_real<float>)){
-	const T alpha = +1.0f;
+	const T alpha = T(+1.0f);
 
 	cublasStatus_t s = cublasSaxpy(cublas_handle, (int)dataSize,
 				       (const float*)&alpha,
@@ -1562,7 +1565,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_real<double>)){
-	const T alpha = +1.0;
+	const T alpha = T(+1.0);
 	
 	cublasStatus_t s = cublasDaxpy(cublas_handle, (int)dataSize,
 				       (const double*)&alpha,
@@ -1576,7 +1579,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_complex<float>)){
-	const T alpha = 1.0f;
+	const T alpha = T(1.0f);
 	
 	cublasStatus_t s = cublasCaxpy(cublas_handle, (int)dataSize,
 				       (cuComplex*)&alpha,
@@ -1590,7 +1593,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_complex<double>)){
-	const T alpha = 1.0;
+	const T alpha = T(1.0);
 	
 	cublasStatus_t s = cublasZaxpy(cublas_handle, (int)dataSize,
 				       (cuDoubleComplex*)&alpha,
@@ -1666,7 +1669,7 @@ namespace whiteice
 #ifdef CUBLAS
 
       if(typeid(T) == typeid(blas_real<float>)){
-	const T alpha = -1.0f;
+	const T alpha = T(-1.0f);
 
 	cublasStatus_t s = cublasSaxpy(cublas_handle, (int)dataSize,
 				       (const float*)&alpha,
@@ -1680,7 +1683,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_real<double>)){
-	const T alpha = -1.0;
+	const T alpha = T(-1.0);
 	
 	cublasStatus_t s = cublasDaxpy(cublas_handle, (int)dataSize,
 				       (const double*)&alpha,
@@ -1694,7 +1697,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_complex<float>)){
-	const T alpha = -1.0f;
+	const T alpha = T(-1.0f);
 	
 	cublasStatus_t s = cublasCaxpy(cublas_handle, (int)dataSize,
 				       (cuComplex*)&alpha,
@@ -1708,7 +1711,7 @@ namespace whiteice
 	}
       }
       else if(typeid(T) == typeid(blas_complex<double>)){
-	const T alpha = -1.0;
+	const T alpha = T(-1.0);
 	
 	cublasStatus_t s = cublasZaxpy(cublas_handle, (int)dataSize,
 				       (cuDoubleComplex*)&alpha,
@@ -2990,8 +2993,8 @@ namespace whiteice
 
 	// v^t*M = M^t * v
 
-	const T alpha = 1.0f;
-	const T beta = 0.0f;
+	const T alpha = T(1.0f);
+	const T beta = T(0.0f);
 
 	cublasStatus_t s = cublasSgemv
 	  (cublas_handle,
@@ -3022,8 +3025,8 @@ namespace whiteice
 	return r;
       }
       else if(typeid(T) == typeid(blas_real<double>)){
-	const T alpha = 1.0f;
-	const T beta = 0.0f;
+	const T alpha = T(1.0f);
+	const T beta = T(0.0f);
 
 	cublasStatus_t s = cublasDgemv
 	  (cublas_handle,
@@ -3046,8 +3049,8 @@ namespace whiteice
 	return r;
       }
       else if(typeid(T) == typeid(blas_complex<float>)){
-	const T alpha = 1.0f;
-	const T beta = 0.0f;
+	const T alpha = T(1.0f);
+	const T beta = T(0.0f);
 
 	cublasStatus_t s = cublasCgemv
 	  (cublas_handle,
@@ -3070,8 +3073,8 @@ namespace whiteice
 	return r;
       }
       else if(typeid(T) == typeid(blas_complex<double>)){
-	const T alpha = 1.0;
-	const T beta = 0.0;
+	const T alpha = T(1.0);
+	const T beta = T(0.0);
 
 	cublasStatus_t s = cublasZgemv
 	  (cublas_handle,

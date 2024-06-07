@@ -619,6 +619,26 @@ else
    NVIDIACUBLAS="no"
 fi
 
+AC_MSG_CHECKING([for NVIDIA cuBLAS 12.5 library [SLOW] (Linux pkg-config)])
+CUBLAS_FLAGS="`pkg-config cublas-12.5 --cflags --libs 2> /dev/null` `pkg-config cudart-12.5 --cflags --libs 2> /dev/null`"
+`g++ -o cublastest cublastest.cpp -DCUBLAS $CUBLAS_FLAGS > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_cublas" == "xno"],[
+     NVIDIACUBLAS="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     NVIDIACUBLAS="yes"x
+     BLAS_CFLAGS="-DCUBLAS `pkg-config cublas-12.5 --cflags` `pkg-config cudart-12.5 --cflags`"
+     BLAS_LIBS="`pkg-config cublas-12.5 --libs` `pkg-config cudart-12.5 --libs`"
+     AC_MSG_RESULT([yes, using pkg-config cublas-12.5 cudart-12.5])
+  ])
+else
+   AC_MSG_RESULT([no NVIDIA cuBLAS detected])
+   NVIDIACUBLAS="no"
+fi
+
 
 
 
@@ -698,9 +718,9 @@ AC_ARG_ENABLE([cppdebug],
 	AS_HELP_STRING([--enable-cppdebug],[Enable C++ debugging flags (stdc++)]))
 
 AS_IF([test "x$enable_cppdebug" = "xyes"],[
-dnl  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
-  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address"
-  conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address"
+  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
+dnl  optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address"
+  conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
 ])
 
 dnl enable newer C++ standards

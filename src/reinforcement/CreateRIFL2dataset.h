@@ -51,7 +51,10 @@ namespace whiteice
     whiteice::dataset<T> policy_preprocess;
     whiteice::bayesian_nnetwork<T> lagged_policy;
 
-    //whiteice::RNG<T> rng;
+    whiteice::dataset<T> Q_preprocess;
+    whiteice::bayesian_nnetwork<T> lagged_Q;
+
+    whiteice::RNG<T> rng;
     
     RIFL_abstract2<T> const & rifl;
 

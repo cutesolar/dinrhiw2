@@ -195,25 +195,25 @@ int main()
   try{
     // r_hmc_test(); // tests recurrent Hamiltonian Monte Carlo sampling..
 
-    general_kcluster_test(); // unit tests GeneralKCluster class
+    // general_kcluster_test(); // unit tests GeneralKCluster class
     
     // linear_kcluster_test(); // unit tests LinearKCluster class
     
-    return 0;
+    // return 0;
     
     // nnetwork_entropy_test();
 
     // nnetwork_kl_divergence_test();
 
-    hmc_test();
+    // hmc_test();
 
-    return 0;
+    // return 0;
 
-    pretrain_test();
+    // pretrain_test();
 
-    bayesian_nnetwork_test();    
+    // bayesian_nnetwork_test();    
     
-    // nnetwork_test();
+    nnetwork_test();
     
     // simple_vae_test(); // FAILS FOR NOW??
 
@@ -6746,7 +6746,8 @@ void nnetwork_test()
     std::cout << "ERROR: Unexpected exception: " << e.what() << std::endl;
   }
 #endif
-  
+
+#if 0
   
   try{
     std::cout << "NNETWORK TEST -2: GET/SET DEEP ICA PARAMETERS"
@@ -6945,7 +6946,7 @@ void nnetwork_test()
     std::cout << "Unexpected exception: " << e.what() << std::endl;
   }  
 
-
+#endif
   
   
   try{
@@ -6984,7 +6985,11 @@ void nnetwork_test()
       output[i][1] = math::blas_real<float>(-0.12f)*input[i][0] +
 	math::blas_real<float>(0.1f)*input[i][1];
     }
+
+    use_gpu_sync = true;
+    gpu_sync();
     
+    use_gpu_sync = false;
     
     dataset<> data;
     std::string inString, outString;
@@ -7000,6 +7005,9 @@ void nnetwork_test()
     
     //data.preprocess(0);
     //data.preprocess(1);
+
+    use_gpu_sync = true;
+    gpu_sync();
 
     printf("Starting gradient descent..\n");
     fflush(stdout);
@@ -7026,23 +7034,28 @@ void nnetwork_test()
 	const auto y = data.access(1, i);
 
 	nn->input() = x;
+
+	use_gpu_sync = true;
+	gpu_sync();
+	use_gpu_sync = false;
+	
 	nn->calculate(true);
 	err = nn->output() - y;
+
+	use_gpu_sync = true;
+	gpu_sync();
 	
 	for(unsigned int i=0;i<err.size();i++)
 	  error += ninv*err[i]*err[i];
 
-#if 0
-	// seperate gradient calculation	
-	const auto delta = err;
-	whiteice::math::matrix< whiteice::math::blas_real<float> > DF;
-	nn->jacobian(x, DF);
-	DF.conj();
-	grad = delta*DF;
-#else	
+	use_gpu_sync = false;
+	gpu_sync();
+
 	if(nn->mse_gradient(err, grad) == false)
 	  std::cout << "gradient failed." << std::endl;
-#endif
+
+	use_gpu_sync = true;
+	gpu_sync();
 	
 	//printf("||grad(neuralnetwork)|| = %f\n", grad.norm().c[0]);
 	//fflush(stdout);

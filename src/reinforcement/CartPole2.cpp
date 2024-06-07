@@ -313,7 +313,7 @@ namespace whiteice
       if(verbose)
 	printf("%s\n", buffer);
 
-      whiteice::logging.info(buffer);
+      //whiteice::logging.info(buffer);
     }
     
     {
@@ -366,6 +366,15 @@ namespace whiteice
 	  // converts range between [-180.0, +180.0]
 
 	  T a1 = theta/T(2.0*M_PI);
+
+	  const T epsilon = T(1e-2);
+	  reinforcement = T(1.0)/(abs(a1)+epsilon);
+	  reinforcement /= T(10.0f);
+
+	  //std::cout << "theta = " << theta << " reinforcement = " << reinforcement << std::endl;
+	  
+#if 0
+	  T a1 = theta/T(2.0*M_PI);
 		  
 	  if(a1 > T(0.0))
 	    a1 = a1 - floor(a1);
@@ -381,8 +390,10 @@ namespace whiteice
 	  //std::cout << "x = " << x
 	  //	    << " theta = " << T(360.0)*theta/T(2.0*M_PI)
 	  //	    << " theta_dot = " << T(360.0)*theta_dot/T(2.0*M_PI) << std::endl;
+#endif
+	  
 
-#if 1
+#if 0
 	  //if(a1 > T(+12.0) || a1 < T(-12.0)) reinforcement = 0.0;
 	  //else reinforcement = T(3.00);
 
@@ -396,7 +407,6 @@ namespace whiteice
 
 	  if(abs(a1) > T(90.0f)) reinforcement = reinforcement - T(0.5f);
 #endif
-	  
 	  // reinforcement = T(-1.0)*(T(0.1)*pow(a1, T(2.0)) /*+ T(5.0)*pow(T(Fstep), T(2.0))*/);
 
 	  // if(abs(a1) < abs(a0)) reinforcement++;
@@ -408,7 +418,7 @@ namespace whiteice
 	    if(verbose)
 	      printf("%s\n", buffer);
 	    
-	    whiteice::logging.info(buffer);
+	    //whiteice::logging.info(buffer);
 	  }
 	}
       }
@@ -517,7 +527,7 @@ namespace whiteice
 	      printf("%s\n", buffer);
 	    }
 
-	    whiteice::logging.info(buffer);
+	    //whiteice::logging.info(buffer);
 	  }
 	  
 	  fflush(stdout);

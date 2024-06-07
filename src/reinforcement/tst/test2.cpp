@@ -21,6 +21,8 @@ int main(int argc, char** argv)
   printf("REINFORCEMENT (CONTINUOS) LEARNING TESTCASES 2. (CartPole problem)\n");
   fflush(stdout);
 
+  use_gpu_sync = false; 
+
   srand(time(0));
 
   whiteice::logging.setOutputFile("debug.log");

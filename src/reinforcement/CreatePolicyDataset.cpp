@@ -170,7 +170,7 @@ namespace whiteice
     if(running == false)
       return; // exit point
 
-#if 1
+#if 0
     // add preprocessing to dataset
     {
       data.preprocess

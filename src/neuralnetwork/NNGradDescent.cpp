@@ -34,7 +34,6 @@ namespace whiteice
       best_error = T(LARGE_INF_VALUE);
       best_pure_error = T(LARGE_INF_VALUE);
       iterations = 0;
-      data = NULL;
       NTHREADS = 0;
       thread_is_running = 0;
       
@@ -309,7 +308,7 @@ namespace whiteice
       {
 	std::lock_guard<std::mutex> lock(solution_lock);
 	
-	this->data = &data;
+	this->data = data;
 	this->NTHREADS = NTHREADS;
 	this->MAXITERS = MAXITERS;
 	best_error = T(LARGE_INF_VALUE);
@@ -317,24 +316,26 @@ namespace whiteice
 	iterations = 0;
 	running = true;
 	thread_is_running = 0;
+
+	this->nn = new nnetwork<T>(nn); // copies network (settings)
+	nn.exportdata(bestx);
+	best_error = getError(nn, this->data, (real(regularizer)>real(T(0.0f))), dropout);
+	
+	if(dropout){
+	  auto nn_without_dropout = nn;
+	  nn_without_dropout.removeDropOut();
+	  best_pure_error = getError(nn_without_dropout, this->data, false, false);
+	}
+	else{
+	  best_pure_error = getError(nn, this->data, false, false);
+	}
+	
       }
 
       {
 	std::lock_guard<std::mutex> lock(first_time_lock);
 	// first thread uses weights from user supplied NN
 	first_time = initiallyUseNN;
-      }
-
-      this->nn = new nnetwork<T>(nn); // copies network (settings)
-      nn.exportdata(bestx);
-      best_error = getError(nn, data, (real(regularizer)>real(T(0.0f))), dropout);
-      if(dropout){
-	auto nn_without_dropout = nn;
-	nn_without_dropout.removeDropOut();
-	best_pure_error = getError(nn_without_dropout, data, false, false);
-      }
-      else{
-	best_pure_error = getError(nn, data, false, false);
       }
 
       
@@ -593,7 +594,6 @@ namespace whiteice
       best_error = T(LARGE_INF_VALUE);
       best_pure_error = T(LARGE_INF_VALUE);
       iterations = 0;
-      data = NULL;
       NTHREADS = 0;
       thread_is_running = 0;
       
@@ -624,8 +624,24 @@ namespace whiteice
     T NNGradDescent<T>::getError(const whiteice::nnetwork<T>& net,
 				 const whiteice::dataset<T>& dtest,
 				 const bool regularize,
-				 const bool dropout)
+				 const bool dropout) const
     {
+
+      // debugging
+      {
+	char buf[256];
+
+	snprintf(buf, 256,
+		 "getError() init: data.size(0)=%d use_minibatch=%d regularize=%d dropout=%d\n",
+		 dtest.size(0), (int)use_minibatch, (int)regularize, (int)dropout);
+	whiteice::logging.info(buf);
+
+	dtest.diagnostics(0);
+	dtest.diagnostics(1);
+	net.diagnosticsInfo();
+      }
+
+      
       // error term is E[ 0.5*||y-f(x)||^2 ]
       // in case mne (minimum norm error) error term is E[||y-f(x)||]
       T error = T(0.0f);
@@ -730,6 +746,11 @@ namespace whiteice
 	      auto n = err.norm();
 	      esum += T(0.5f)*n*n;
 	    }
+
+	    	
+	    //if(esum >= T(10e9)){
+	    //  assert(0);
+	    //}
 	    
 	  }
 	  
@@ -759,7 +780,9 @@ namespace whiteice
       }
 
       // shouldn't needed but should help with wierd number problems
-      error = abs(error); 
+      {
+	error = abs(error); 
+      }
 
       return error;
     }
@@ -809,8 +832,8 @@ namespace whiteice
       
       whiteice::dataset<T> dtrain, dtest;
       
-      dtrain = *data;
-      dtest  = *data;
+      dtrain = this->data;
+      dtest  = this->data;
 
       if(overfit == false){ // divides data to separate training and testing datasets
 	
@@ -829,19 +852,19 @@ namespace whiteice
 	  dtest.clearData(0);
 	  dtest.clearData(1);
 	  
-	  for(unsigned int i=0;i<data->size(0);i++){
+	  for(unsigned int i=0;i<data.size(0);i++){
 	    const unsigned int r = (rand() & 3);
 	    
 	    if(r != 0){ // 75% will go to training data
-	      math::vertex<T> in  = data->access(0,i);
-	      math::vertex<T> out = data->access(1,i);
+	      math::vertex<T> in  = data.access(0,i);
+	      math::vertex<T> out = data.access(1,i);
 	      
 	      dtrain.add(0, in,  true);
 	      dtrain.add(1, out, true);
 	    }
 	    else{ // 25% will go to testing data
-	      math::vertex<T> in  = data->access(0,i);
-	      math::vertex<T> out = data->access(1,i);
+	      math::vertex<T> in  = data.access(0,i);
+	      math::vertex<T> out = data.access(1,i);
 	      
 	      dtest.add(0, in,  true);
 	      dtest.add(1, out, true);
@@ -853,8 +876,8 @@ namespace whiteice
 	}
 	
 	if(counter >= 10){ // too little data to divive datasets
-	  dtrain = *data;
-	  dtest  = *data;
+	  dtrain = this->data;
+	  dtest  = this->data;
 	}
       }
 
@@ -908,6 +931,13 @@ namespace whiteice
 	  }
 
 	  real_besty = pure_real_besty;
+
+	  {
+	    std::lock_guard<std::mutex> lock(solution_lock);
+	    
+	    this->best_error = pure_real_besty;
+	    this->best_pure_error = pure_real_besty;
+	  }
 	}
 
 	unsigned int no_improve_iterations = 0;
@@ -918,8 +948,6 @@ namespace whiteice
 	
 	vertex<T> m(x.size());
 	vertex<T> v(x.size());
-	vertex<T> m_hat(x.size());
-	vertex<T> v_hat(x.size());
 	
 	m.zero();
 	v.zero();
@@ -952,7 +980,7 @@ namespace whiteice
 		
 		const whiteice::nnetwork<T>& nnet = *nn;
 		std::vector< math::vertex<T> > bpdata;
-		std::vector< std::vector<bool> > net_dropout;
+		std::vector< std::vector<bool> > net_dropout; // NOTE: dropout code don't work?
 		  
 		math::vertex<T> err;
 		math::vertex<T> output;
@@ -1084,10 +1112,10 @@ namespace whiteice
 	    m[i] = beta1 * m[i] + (T(1.0) - beta1)*sumgrad[i];
 	    v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
 
-	    m_hat[i] = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations)[0]));
-	    v_hat[i] = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations)[0]));
+	    const T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations)[0]));
+	    const T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations)[0]));
 
-	    x[i] -= (alpha / (whiteice::math::sqrt(v_hat[i]) + epsilon)) * m_hat[i];
+	    x[i] -= (alpha / (whiteice::math::sqrt(v_hat) + epsilon)) * m_hat;
 	  }
 
 	  // if(heuristics) heuristics(x);
@@ -1125,36 +1153,32 @@ namespace whiteice
 	  if(smart_convergence_check){
 	    errors.push_back(pure_real_besty); // NOTE: getError() must return >= 0.0 values
 	    
-	    if(errors.size() >= 100){
+	    if(errors.size() >= 250){
 	      
-	      while(errors.size() > 100)
+	      while(errors.size() > 250)
 		errors.pop_front();
 	      
 	      // make all values to be positive
-	      T min_value = *errors.begin();
-	      
-	      for(const auto& e : errors)
-		if(e < min_value) min_value = e;
-	      
 	      
 	      T m = T(0.0f);
+	      
+	      for(const auto& e : errors)
+		m += abs(e);
+	      
+	      m /= errors.size();
+	      
 	      T s = T(0.0f);
 	      
 	      for(const auto& e : errors){
-		m += (e-min_value);
-		s += (e-min_value)*(e-min_value);
+		s += abs(e-m)/sqrt(T(errors.size()));
 	      }
-	      
-	      m /= errors.size();
-	      s /= errors.size();
-	      
-	      s -= m*m;
-	      s = sqrt(abs(s));
 	      
 	      T r = T(0.0f);
 	      
 	      if(m > T(0.0f))
 		r = s/m;
+	      else
+		r = s;
 	      
 	      if(r[0] <= T(0.005f)[0]){ // convergence: 0.1% st.dev. when compared to mean.
 		convergence[std::this_thread::get_id()] = true;
@@ -1170,7 +1194,7 @@ namespace whiteice
 	
 	
       }
-      else{
+      else{ // don't use_ADAM
       
 	while(running && iterations < MAXITERS){ // keep looking for solution (forever)
 	  
@@ -1365,7 +1389,7 @@ namespace whiteice
 		  auto nn_without_dropout = *nn;
 		  nn_without_dropout.removeDropOut();
 		  
-		  const T gerror = getError(nn_without_dropout, *data,
+		  const T gerror = getError(nn_without_dropout, data,
 					    false, false);
 		  
 		  if(real(gerror) < real(best_pure_error)){
@@ -1375,7 +1399,7 @@ namespace whiteice
 		  }
 		}
 		else{
-		  const T gerror = getError(*nn, *data, false, false);
+		  const T gerror = getError(*nn, data, false, false);
 		  
 		  if(real(gerror) < real(best_pure_error)){
 		    nn->exportdata(bestx);
@@ -1735,7 +1759,7 @@ namespace whiteice
 		    auto nn_without_dropout = *nn;
 		    nn_without_dropout.removeDropOut();
 		    
-		    const T gerror = getError(nn_without_dropout, *data,
+		    const T gerror = getError(nn_without_dropout, data,
 					      false, false);
 		    
 		    if(real(gerror) < real(best_pure_error)){
@@ -1745,7 +1769,7 @@ namespace whiteice
 		    }
 		  }
 		  else{
-		    const T gerror = getError(*nn, *data, false, false);
+		    const T gerror = getError(*nn, data, false, false);
 		    
 		    if(real(gerror) < real(best_pure_error)){
 		      nn->exportdata(bestx);
@@ -1756,7 +1780,7 @@ namespace whiteice
 		}
 	      }
 	      else{
-		const T gerror = getError(*nn, *data, false, false);
+		const T gerror = getError(*nn, data, false, false);
 		
 		std::lock_guard<std::mutex> lock(solution_lock);
 		
@@ -1818,7 +1842,7 @@ namespace whiteice
 		  auto nn_without_dropout = *nn;
 		  nn_without_dropout.removeDropOut();
 		  
-		  const T gerror = getError(nn_without_dropout, *data,
+		  const T gerror = getError(nn_without_dropout, data,
 					    false, false);
 		  
 		  if(real(gerror) < real(best_pure_error)){
@@ -1828,7 +1852,7 @@ namespace whiteice
 		  }
 		}
 		else{
-		  const T gerror = getError(*nn, *data, false, false);
+		  const T gerror = getError(*nn, data, false, false);
 		  
 		  if(real(gerror) < real(best_pure_error)){
 		    nn->exportdata(bestx);
@@ -1847,7 +1871,7 @@ namespace whiteice
 	}
 
       }
-
+      
       }
       catch(std::exception& e){
 	std::cout << "NNGradDescent::optimizer_loop(). Unexpected exception: " << e.what() << std::endl;

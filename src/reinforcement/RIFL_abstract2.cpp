@@ -54,15 +54,15 @@ namespace whiteice
 
 	// NOW: 10-layer small width neural network
 	arch.push_back(numStates + numActions);
-	arch.push_back(50); // was: 50, 2 layers
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	arch.push_back(100); // was: 50, 2 layers
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
 	arch.push_back(1);
 	
 	{
@@ -97,15 +97,15 @@ namespace whiteice
 	// NOW: 10-layer small width neural network
 	arch.clear();
 	arch.push_back(numStates);
-	arch.push_back(50); // was: 50, 2 layers
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	arch.push_back(100); // was: 50, 2 layers
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
+	arch.push_back(100);
 	// arch.push_back(256); 
 	arch.push_back(numActions);
 
@@ -523,8 +523,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 400; // 40, was 1 (dont work), 5, 10, WAS: 5
-    const unsigned int P_OPTIMIZE_ITERATIONS = 20; // 10, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 500; // 40, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int P_OPTIMIZE_ITERATIONS = 500; // 10, was 1 (dont work), 5, 10, WAS: 5
     
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(0.05); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
@@ -566,8 +566,8 @@ namespace whiteice
     // assumes each episode length is 100 so this is ~ equal to 1.000.000 samples
     const unsigned long EPISODES_MAX_SIZE = 10000;
     const unsigned long MINIMUM_EPISODE_SIZE = 50;
-    const unsigned long MINIMUM_DATASIZE = 5000; // number of samples required to start learning
-    const unsigned long SAMPLESIZE = 2000; // number of samples used in learning, was: 500
+    const unsigned long MINIMUM_DATASIZE = 10000; // number of samples required to start learning
+    const unsigned long SAMPLESIZE = 5000; // number of samples used in learning, was: 500
     unsigned long database_counter = 0;
     unsigned long episodes_counter = 0;
     
@@ -616,7 +616,7 @@ namespace whiteice
 	auto input = state;
 	policy_preprocess.preprocess(0, input);
 
-	if(policy.calculate(input, u, 1, 0) == true){
+	if(lagged_policy.calculate(input, u, 1, 0) == true){
 	  if(u.size() != numActions){
 	    u.resize(numActions);
 	    for(unsigned int i=0;i<numActions;i++){
@@ -895,12 +895,18 @@ namespace whiteice
 		std::vector< math::vertex<T> > lagged_weights;
 		lagged_Q.exportSamples(nn2, lagged_weights, 1);
 
-		math::vertex<T> weights;
-		nn.exportdata(weights);
+		if(lagged_weights.size() > 0){
 
-		lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
-		nn2.importdata(lagged_weights[0]);
-		lagged_Q.importNetwork(nn2);
+		  math::vertex<T> weights;
+		  nn.exportdata(weights);
+		  
+		  lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
+		  nn2.importdata(lagged_weights[0]);
+		  lagged_Q.importNetwork(nn2);
+		}
+		else{
+		  lagged_Q.importNetwork(nn); 
+		}
 #endif
 		
 		whiteice::logging.info("RIFL_abstract2: new Q diagnostics");
@@ -919,8 +925,8 @@ namespace whiteice
 
 	  // skip if other optimization step (policy network)
 	  // is behind us
-	  //if(epoch[0] > epoch[1])
-	  //  goto q_optimization_done;
+	  if(epoch[0] > epoch[1])
+	    goto q_optimization_done;
 
 	  
 	  // const unsigned int NUMSAMPLES = database.size(); // was 1000
@@ -936,7 +942,7 @@ namespace whiteice
 						       database,
 						       episodes,
 						       database_mutex,
-						       epoch[1],
+						       epoch[0],
 						       data);
 	    
 	    dataset_thread->start(SAMPLESIZE, useEpisodes);
@@ -944,7 +950,7 @@ namespace whiteice
 	    whiteice::logging.info("RIFL_abstract2: new dataset_thread started (Q)");
 	    
 	    continue;
-	      
+      
 	  }
 	  else{
 	    if(dataset_thread->isCompleted() != true){
@@ -954,21 +960,26 @@ namespace whiteice
 	  
 	  whiteice::logging.info("RIFL_abstract2: dataset_thread finished (Q)");
 	  dataset_thread->stop();
-
+	  
+	  if(dataset_thread) delete dataset_thread;
+	  dataset_thread = nullptr;
 	  
 	  // fetch NN parameters from model
+	  whiteice::nnetwork<T> qnn;
+	  
 	  {
 	    std::vector< math::vertex<T> > weights;
 	    
 	    std::lock_guard<std::mutex> lock(Q_mutex);
 	    
-	    if(Q.exportSamples(nn, weights, 1) == false){ // was: lagged_Q
+	    if(Q.exportSamples(qnn, weights, 1) == false){ // was: lagged_Q
 	      assert(0);
 	    }
-	    
-	    assert(weights.size() > 0);
-	    
-	    if(nn.importdata(weights[0]) == false){
+
+	    if(weights.size() <= 0)
+	      assert(0);
+
+	    if(qnn.importdata(weights[0]) == false){
 	      assert(0);
 	    }
 	  }
@@ -976,17 +987,17 @@ namespace whiteice
 	  const bool dropout = false;
 	  const bool useInitialNN = true; // WAS: start from scratch everytime
 	  
-	  grad.setRegularizer(T(0.001f)); // DISABLE REGULARIZER FOR Q-NETWORK
+	  grad.setRegularizer(T(0.0f)); // DISABLE REGULARIZER FOR Q-NETWORK (was: 0.001f)
 	  grad.setNormalizeError(false); // calculate real error values	  
 	  
 	  
-	  if(hasModel[0] >= 10){
+	  if(hasModel[0] >= 0){
 	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
 
-	    grad.setUseMinibatch(true);
-	    grad.setSGD(T(1e-4f)); // what is correct learning rate???
+	    grad.setUseMinibatch(false);
+	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
-	    grad.startOptimize(data, nn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
+	    grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
 	  }
 	  else{
 	    eta.start(0.0, 15);
@@ -994,15 +1005,11 @@ namespace whiteice
 	    grad.setUseMinibatch(false);
 	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
-	    grad.startOptimize(data, nn, 1, 15, dropout, useInitialNN);
+	    grad.startOptimize(data, qnn, 1, 15, dropout, useInitialNN);
 	  }
 	  
 
 	  old_grad_iterations = -1;
-
-	  if(dataset_thread) delete dataset_thread;
-	  dataset_thread = nullptr;
-	  
 	}
 	else{
 	  T error = T(0.0);
@@ -1018,8 +1025,8 @@ namespace whiteice
 	      whiteice::math::convert(e, error);
 	      
 	      snprintf(buffer, 128,
-		       "RIFL_abstract2: Q-optimizer epoch %d iter %d error %f hasmodel %d [ETA %.2f hours]",
-		       epoch[0], iters, e, hasModel[0], eta.estimate()/3600.0);
+		       "RIFL_abstract2: Q-optimizer epoch %d iter %d error %f hasmodel %d [ETA %.2f mins]",
+		       epoch[0], iters, e, hasModel[0], eta.estimate()/60.0);
 	      
 	      whiteice::logging.info(buffer);
 
@@ -1072,7 +1079,7 @@ namespace whiteice
 
 	      grad2.getSolution(nn);
 	      grad2.getDataset(this->policy_preprocess);
-
+	      
 	      char buffer[128];
 	      double tmp = 0.0;
 	      whiteice::math::convert(tmp, meanq);
@@ -1117,8 +1124,7 @@ namespace whiteice
 #endif
 		
 		whiteice::logging.info("RIFL_abstract2: new policy diagnostics");
-		policy.diagnosticsInfo();
-		
+		lagged_policy.diagnosticsInfo();
 		whiteice::logging.info("RIFL_abstract2: new policy-model imported");
 	      }
 
@@ -1133,7 +1139,7 @@ namespace whiteice
 	  
 	  // skip if other optimization step is behind us
 	  // we only start calculating policy after Q() has been optimized..
-	  if(epoch[1] > epoch[0] || epoch[0] == 0) 
+	  if(epoch[1] >= epoch[0] || epoch[0] == 0) 
 	    goto policy_optimization_done;
 	  
 	  
@@ -1205,11 +1211,11 @@ namespace whiteice
 	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
 	    
-	    if(hasModel[1] >= 10){
+	    if(hasModel[1] >= 0){
 	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
 
-	      grad2.setUseMinibatch(true);
-	      grad2.setSGD(T(1e-4f)); // what is correct learning rate???
+	      grad2.setUseMinibatch(false);
+	      grad2.setSGD(T(-1.0)); // what is correct learning rate???
 	      
 	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
 				  dropout, useInitialNN);
@@ -1247,8 +1253,8 @@ namespace whiteice
 	      eta2.update(iters);
 	      
 	      snprintf(buffer, 128,
-		       "RIFL_abstract2: grad2 policy-optimizer epoch %d iter %d mean q-value %f [ETA %.2f hours]",
-		       epoch[1], iters, v, eta2.estimate()/3600.0);
+		       "RIFL_abstract2: grad2 policy-optimizer epoch %d iter %d mean q-value %f [ETA %.2f mins]",
+		       epoch[1], iters, v, eta2.estimate()/60.0);
 	      
 	      whiteice::logging.info(buffer);
 

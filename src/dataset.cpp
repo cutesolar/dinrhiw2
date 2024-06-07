@@ -2520,7 +2520,7 @@ namespace whiteice
 	whiteice::math::convert(temp1, maxvalue);
 	whiteice::math::convert(temp2, minvalue);
 	
-	snprintf(buffer, BUFLEN, "Cluster %d (DIM=%d N=%d) max abs(value): %f min abs(value): %f\n",
+	snprintf(buffer, BUFLEN, "Cluster %d (DIM=%d N=%d) max abs(value): %f min abs(value): %f",
 		 c, (int)clusters[c].data_dimension, (int)clusters[c].data.size(), temp1, temp2);
 	if(verbose){
 	  printf("%s", buffer);
@@ -2534,7 +2534,7 @@ namespace whiteice
 	double temp = 0.0f;
 	whiteice::math::convert(temp, clusters[c].softmax_parameter);
 	
-	snprintf(buffer, BUFLEN, "Cluster %d: softmax value: %f\n", c, temp);
+	snprintf(buffer, BUFLEN, "Cluster %d: softmax value: %f", c, temp);
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
 	
@@ -2542,7 +2542,7 @@ namespace whiteice
 	clusters[c].mean.toString(line);
 	T nrm = clusters[c].mean.norm();
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||mean|| = %f. mean = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||mean|| = %f. mean = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2550,7 +2550,7 @@ namespace whiteice
 	clusters[c].variance.toString(line);
 	nrm = clusters[c].variance.norm();
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||stdev|| = %f. stdev = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||stdev|| = %f. stdev = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2558,7 +2558,7 @@ namespace whiteice
 	clusters[c].Rxx.toString(line);
 	nrm = math::frobenius_norm(clusters[c].Rxx);
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||Rxx|| = %f. Rxx = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||Rxx|| = %f. Rxx = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2566,7 +2566,7 @@ namespace whiteice
 	clusters[c].Wxx.toString(line);
 	nrm = math::frobenius_norm(clusters[c].Wxx);
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||Wxx|| = %f. Wxx = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||Wxx|| = %f. Wxx = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2574,7 +2574,7 @@ namespace whiteice
 	clusters[c].invWxx.toString(line);
 	nrm = math::frobenius_norm(clusters[c].invWxx);
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||invWxx|| = %f. Wxx = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||invWxx|| = %f. Wxx = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2582,7 +2582,7 @@ namespace whiteice
 	clusters[c].ICA.toString(line);
 	nrm = math::frobenius_norm(clusters[c].ICA);
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||ICA|| = %f. ICA = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||ICA|| = %f. ICA = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);
@@ -2590,7 +2590,7 @@ namespace whiteice
 	clusters[c].invICA.toString(line);
 	nrm = math::frobenius_norm(clusters[c].invICA);
 	whiteice::math::convert(temp, nrm);
-	snprintf(buffer, BUFLEN, "Cluster: %d: ||invICA|| = %f. invICA = %s\n",
+	snprintf(buffer, BUFLEN, "Cluster: %d: ||invICA|| = %f. invICA = %s",
 		 c, temp, line.c_str());
 	if(verbose) printf("%s", buffer);
 	whiteice::logging.info(buffer);

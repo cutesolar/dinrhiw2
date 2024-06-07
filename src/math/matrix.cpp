@@ -4137,7 +4137,9 @@ namespace whiteice
 	
 	return true;
       }
-      else if(y*x = numCols*numRows){
+      else if(y*x == numCols*numRows){
+	cudaError_t err;
+	
 	numRows = y;
 	numCols = x;
 	
