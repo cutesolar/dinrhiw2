@@ -167,7 +167,7 @@ namespace whiteice
     }
 
     
-    data = *data_;
+    this->data = *data_;
     
     this->NTHREADS = NTHREADS;
     this->MAXITERS = MAXITERS;
@@ -211,11 +211,11 @@ namespace whiteice
     }
 
     this->policy->exportdata(bestx);
+    this->dropout = dropout;
+    
     best_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
     best_q_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
     
-    this->dropout = dropout;
-
     for(unsigned int i=0;i<optimizer_thread.size();i++){
       if(optimizer_thread[i]){
 	optimizer_thread[i]->join();
@@ -425,6 +425,7 @@ namespace whiteice
     T value = T(0.0);
       
     // calculates mean q-value of policy
+    
 #pragma omp parallel
     {
       T vsum = T(0.0f);
@@ -433,26 +434,28 @@ namespace whiteice
       in.zero();
 
       whiteice::math::vertex<T> action, state;
-      whiteice::math::vertex<T> q;
+      whiteice::math::vertex<T> q(1);
+      q.zero();
       
       // calculates mean q-value from the testing dataset
 #pragma omp for nowait schedule(guided)
       for(unsigned int i=0;i<dtest.size(0);i++){
 	state = dtest.access(0, i);
 	
-	policy.calculate(state, action);
+	if(policy.calculate(state, action) == false)
+	  assert(0);
 
 	dtest.invpreprocess(0, state);
 	//dtest.invpreprocess(1, action);
 
-	in.write_subvertex(state, 0);
-	in.write_subvertex(action, state.size());
-	
-	Q_preprocess.preprocess(0, in);
-	
-	Q.calculate(in, q);
+	if(in.write_subvertex(state, 0) == false) assert(0);
+	if(in.write_subvertex(action, state.size()) == false) assert(0);
 
-	Q_preprocess.invpreprocess(1, q);
+	if(Q_preprocess.preprocess(0, in) == false) assert(0);
+
+	if(Q.calculate(in, q) == false) assert(0);
+
+	if(Q_preprocess.invpreprocess(1, q) == false) assert(0);
 	
 	vsum += q[0];
       }

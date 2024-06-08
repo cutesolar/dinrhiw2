@@ -25,10 +25,11 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
+      sleepMode = true;
 
       hasModel.resize(2);
       hasModel[0] = 0; // Q-network
@@ -54,32 +55,36 @@ namespace whiteice
 
 	// NOW: 10-layer small width neural network
 	arch.push_back(numStates + numActions);
-	arch.push_back(100); // was: 50, 2 layers
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
 	arch.push_back(1);
 	
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
 	  
-	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.randomize(2, T(0.8)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
-
-	  whiteice::math::vertex<T> weights;
-	  nn.exportdata(weights);
-	  weights.zero();
-	  nn.importdata(weights);
-	  
 	  lagged_Q.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
@@ -97,16 +102,24 @@ namespace whiteice
 	// NOW: 10-layer small width neural network
 	arch.clear();
 	arch.push_back(numStates);
-	arch.push_back(100); // was: 50, 2 layers
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	arch.push_back(100);
-	// arch.push_back(256); 
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);	
 	arch.push_back(numActions);
 
 	// policy outputs action is (should be) +[-1,+1]^D vector
@@ -117,18 +130,12 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
-	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
-	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.randomize(2, T(0.8)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
-
-	  whiteice::math::vertex<T> weights;
-	  nn.exportdata(weights);
-	  weights.zero();
-	  nn.importdata(weights);
-	  
 	  lagged_policy.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
@@ -156,10 +163,11 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
+      sleepMode = true;
 
       hasModel.resize(2);
       hasModel[0] = 0; // Q-network
@@ -240,8 +248,8 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
-	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
 	  nn.randomize(2, T(1.0)); // was 1.0
 	  nn.setResidual(true);
@@ -377,6 +385,18 @@ namespace whiteice
   bool RIFL_abstract2<T>::getLearningMode() const 
   {
     return learningMode;
+  }
+
+  template <typename T>
+  void RIFL_abstract2<T>::setSleepingMode(bool sleep) 
+  {
+    sleepMode = sleep;
+  }
+
+  template <typename T>
+  bool RIFL_abstract2<T>::getSleepingMode() const 
+  {
+    return sleepMode;
   }
 
 
@@ -523,11 +543,11 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 500; // 40, was 1 (dont work), 5, 10, WAS: 5
-    const unsigned int P_OPTIMIZE_ITERATIONS = 500; // 10, was 1 (dont work), 5, 10, WAS: 5
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 5000; // 40, was 1 (dont work), 5, 10, WAS: 500
+    const unsigned int P_OPTIMIZE_ITERATIONS = 1000; // 10, was 1 (dont work), 5, 10, WAS: 500
     
     // tau = 1.0 => no lagged neural networks [don't work]
-    const T tau = T(0.05); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
+    const T tau = T(1.0); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
     
     std::vector< rifl2_datapoint<T> > database;
     std::mutex database_mutex;
@@ -566,8 +586,8 @@ namespace whiteice
     // assumes each episode length is 100 so this is ~ equal to 1.000.000 samples
     const unsigned long EPISODES_MAX_SIZE = 10000;
     const unsigned long MINIMUM_EPISODE_SIZE = 50;
-    const unsigned long MINIMUM_DATASIZE = 10000; // number of samples required to start learning
-    const unsigned long SAMPLESIZE = 5000; // number of samples used in learning, was: 500
+    const unsigned long MINIMUM_DATASIZE = 10000; // samples required to start learning, was:10000
+    const unsigned long SAMPLESIZE = 5000; // number of samples used in learning, was: 5000
     unsigned long database_counter = 0;
     unsigned long episodes_counter = 0;
     
@@ -585,6 +605,11 @@ namespace whiteice
 
     
     while(thread_is_running > 0){
+
+      if(sleepMode == true){
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	continue; // we do not do anything and only sleep
+      }
 
       counter++;
 
@@ -659,14 +684,17 @@ namespace whiteice
 	}
 
 	// if there's no model then make random selection (normally distributed)
+#if 0
 	if(hasModel[0] == 0 || hasModel[1] == 0){
 	  rng.normal(u);
 	  random = true;
 	}
+#endif
 	
 	action = u;
       }
 
+      
       
       if(oneHotEncodedAction){
 	whiteice::math::vertex<T> new_action;
@@ -679,8 +707,11 @@ namespace whiteice
 	action = new_action;
       }
 
+      //std::cout << "action = " << action << " ";
+      //std::cout << "random = " << random << std::endl;
+
       // prints Q value of chosen action
-      {
+      if(0){
 	whiteice::math::vertex<T> u;
 	whiteice::math::vertex<T> in(numStates + numActions);
 	in.zero();
@@ -899,18 +930,22 @@ namespace whiteice
 
 		  math::vertex<T> weights;
 		  nn.exportdata(weights);
+
+		  logging.info("lagged_Q updated");
 		  
 		  lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
 		  nn2.importdata(lagged_weights[0]);
 		  lagged_Q.importNetwork(nn2);
 		}
 		else{
+		  logging.info("lagged_Q updated: NO LAG");
+		  
 		  lagged_Q.importNetwork(nn); 
 		}
 #endif
 		
 		whiteice::logging.info("RIFL_abstract2: new Q diagnostics");
-		Q.diagnosticsInfo();
+		lagged_Q.diagnosticsInfo();
 		
 		whiteice::logging.info("RIFL_abstract2: new Q-model imported");
 	      }
@@ -934,19 +969,25 @@ namespace whiteice
 	  
 	  
 	  if(dataset_thread == nullptr){
-	    data.clear();
-	    data.createCluster("input-state", numStates + numActions);
-	    data.createCluster("output-qvalue", 1);
 
-	    dataset_thread = new CreateRIFL2dataset<T>(*this,
-						       database,
-						       episodes,
-						       database_mutex,
-						       epoch[0],
-						       data);
+	    {
+	      std::lock_guard<std::mutex> lock(database_mutex);
+	      
+	      data.clear();
+	      //data.createCluster("input-state", numStates + numActions);
+	      //data.createCluster("output-qvalue", 1);
+	      
+	      
+	      dataset_thread = new CreateRIFL2dataset<T>(*this,
+							 database,
+							 episodes,
+							 database_mutex,
+							 epoch[0],
+							 data);
+	    }
 	    
 	    dataset_thread->start(SAMPLESIZE, useEpisodes);
-	    
+	      
 	    whiteice::logging.info("RIFL_abstract2: new dataset_thread started (Q)");
 	    
 	    continue;
@@ -958,12 +999,14 @@ namespace whiteice
 	    }
 	  }
 	  
-	  whiteice::logging.info("RIFL_abstract2: dataset_thread finished (Q)");
-	  dataset_thread->stop();
-	  
-	  if(dataset_thread) delete dataset_thread;
-	  dataset_thread = nullptr;
-	  
+	  if(dataset_thread){
+	    whiteice::logging.info("RIFL_abstract2: dataset_thread finished (Q)");
+	    dataset_thread->stop();
+	    delete dataset_thread;
+	    dataset_thread = nullptr;
+	  }
+
+
 	  // fetch NN parameters from model
 	  whiteice::nnetwork<T> qnn;
 	  
@@ -972,7 +1015,7 @@ namespace whiteice
 	    
 	    std::lock_guard<std::mutex> lock(Q_mutex);
 	    
-	    if(Q.exportSamples(qnn, weights, 1) == false){ // was: lagged_Q
+	    if(lagged_Q.exportSamples(qnn, weights, 1) == false){ // was: lagged_Q
 	      assert(0);
 	    }
 
@@ -1058,7 +1101,7 @@ namespace whiteice
 	// we only start calculating policy after Q() has been optimized..
 	//if(epoch[1] > epoch[0] || epoch[0] == 0)
 	//  goto policy_optimization_done;
-	if(epoch[0] == 0)
+	if(epoch[0] == 0 || epoch[0] <= epoch[1])
 	  goto policy_optimization_done;
 
 	
@@ -1107,17 +1150,23 @@ namespace whiteice
 		if(lagged_weights.size() > 0){
 
 		  if(weights.size() == lagged_weights[0].size()){
-		    
+
+		    logging.info("lagged_policy updated");
+				 
 		    lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
 		    nn2.importdata(lagged_weights[0]);
 		    lagged_policy.importNetwork(nn2);
 		  }
 		  else{
+		    logging.info("lagged_policy updated: NO LAG");
+		    
 		    nn2 = nn;
 		    lagged_policy.importNetwork(nn2);
 		  }
 		}
 		else{
+		  logging.info("lagged_policy updated: NO LAG");
+		  
 		  nn2 = nn;
 		  lagged_policy.importNetwork(nn2);
 		}
@@ -1165,8 +1214,10 @@ namespace whiteice
 	      continue; // we havent computed proper dataset yet..
 	  }
 
-	  whiteice::logging.info("RIFL_abstract2: dataset2_thread finished (policy)");
-	  dataset2_thread->stop();
+	  if(dataset2_thread){
+	    whiteice::logging.info("RIFL_abstract2: dataset2_thread finished (policy)");
+	    dataset2_thread->stop();
+	  }
 	  
 	  
 	  // fetch NN parameters from model
@@ -1178,7 +1229,7 @@ namespace whiteice
 	      std::lock_guard<std::mutex> lock(Q_mutex);
 	      std::vector< math::vertex<T> > weights;
 	      
-	      if(Q.exportSamples(q_nn, weights, 1) == false){ // was: lagged_Q
+	      if(lagged_Q.exportSamples(q_nn, weights, 1) == false){ // was: lagged_Q
 		assert(0);
 	      }
 	      
@@ -1196,7 +1247,7 @@ namespace whiteice
 	      
 	      std::lock_guard<std::mutex> lock(policy_mutex);
 	      
-	      if(policy.exportSamples(nn, weights, 1) == false){ // was: lagged_policy
+	      if(lagged_policy.exportSamples(nn, weights, 1) == false){ // was: lagged_policy
 		assert(0);
 	      }
 	      

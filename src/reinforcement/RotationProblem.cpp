@@ -65,7 +65,18 @@ namespace whiteice
     
     a.resize(3);
     random.normal(a);
-    a /= a.norm();
+
+    bool length_ok = false;
+
+    while(length_ok == false){
+      if(a.norm() > T(0.0)){
+	a /= a.norm();
+	length_ok = true;
+      }
+      else{
+	random.normal(a);
+      }
+    }
     
     this->x = a[0];
     this->y = a[1];

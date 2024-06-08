@@ -163,6 +163,8 @@ namespace whiteice
 #pragma omp critical
       {
 	data.add(0, datum.state);
+
+	std::cout << "policy dataset: state = " << datum.state << std::endl;
       }
       
     }

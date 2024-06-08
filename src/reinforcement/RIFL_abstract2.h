@@ -71,11 +71,18 @@ namespace whiteice
     T getEpsilon() const ;
 
     /*
-     * sets/gets learning mode 
+     * sets/gets learning mode (default: on)
      * (do we do just control or also try to learn from data)
      */
     void setLearningMode(bool learn) ;
     bool getLearningMode() const ;
+
+    /*
+     * sets/gets sleeping mode (default: on)
+     * if we sleep RIFL is inactive and does nothing [no learning, no actions]
+     */
+    void setSleepingMode(bool sleep) ;
+    bool getSleepingMode() const ;
 
     /*
      * hasModel flag means we have a proper model
@@ -133,7 +140,7 @@ namespace whiteice
     mutable std::mutex policy_mutex;
 
     std::vector<unsigned int> hasModel;
-    bool learningMode;
+    bool learningMode, sleepMode;
     
     T epsilon;
     T gamma;

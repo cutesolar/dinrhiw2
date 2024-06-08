@@ -186,6 +186,7 @@ namespace whiteice
       logging.info("CreateRIFL2dataset debug, lagged_policy network diagnostics");
       this->lagged_policy.diagnosticsInfo();
       
+      
       logging.info("CreateRIFL2dataset debug, database diagnostics");
       database_mutex.lock();
 
@@ -361,7 +362,7 @@ namespace whiteice
 		logging.info(line.c_str());
 	      }
 
-#if 1
+#if 0
 	      // add exploration noise..
 	      auto noise = u;
 	      // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
@@ -495,7 +496,7 @@ namespace whiteice
 	    }
 	    
 	    // add exploration noise..
-#if 1
+#if 0
 	    auto noise = u;
 	    // Normal EX[n]=0 StDev[n]=1 [OPTMIZE ME: don't create new RNG everytime but use global one]
 	    rng.normal(noise);
