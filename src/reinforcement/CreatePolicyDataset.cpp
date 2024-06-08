@@ -164,7 +164,7 @@ namespace whiteice
       {
 	data.add(0, datum.state);
 
-	std::cout << "policy dataset: state = " << datum.state << std::endl;
+	// std::cout << "policy dataset: state = " << datum.state << std::endl;
       }
       
     }
