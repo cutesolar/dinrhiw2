@@ -797,9 +797,9 @@ namespace whiteice
       {
 	
 	if(performAction(action, newstate, reinforcement, endFlag) == false){
-	  std::cout << "ERROR: RIFL_abstract2::performAction() FAILED." << std::endl;
+	  //std::cout << "ERROR: RIFL_abstract2::performAction() FAILED." << std::endl;
 	  whiteice::logging.error("ERROR: RIFL_abstact::performAction() FAILED.");
-	  continue;
+	  goto optimization_step;
 	}
 	
       }
@@ -879,6 +879,7 @@ namespace whiteice
 	database_counter++;
       }
 
+    optimization_step:
       
       if(learningMode == false){
 	continue; // we do not do learning
