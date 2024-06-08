@@ -425,6 +425,14 @@ namespace whiteice
     return latestError;
   }
 
+  template <typename T>
+  unsigned int RIFL_abstract2<T>::getDatabaseSize() const
+  {
+    std::lock_guard<std::mutex> lock(database_mutex);
+    
+    return database.size();
+  }
+
   
   // saves learnt Reinforcement Learning Model to file
   template <typename T>

@@ -41,6 +41,17 @@ namespace whiteice
 
   template <typename T>
     class CreatePolicyDataset;
+  
+  template <typename T>
+  struct rifl2_datapoint
+  {
+    whiteice::math::vertex<T> state, newstate;
+    whiteice::math::vertex<T> action;
+    T reinforcement;
+    
+    bool lastStep; // true if was the last step of the simulation
+  };
+  
 
   template <typename T = math::blas_real<float> >
   class RIFL_abstract2
@@ -96,6 +107,8 @@ namespace whiteice
 
     float getLatestEpisodeError() const;
 
+    unsigned int getDatabaseSize() const;
+
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
@@ -141,6 +154,11 @@ namespace whiteice
     whiteice::dataset<T> policy_preprocess;
     mutable std::mutex policy_mutex;
 
+    // database
+    std::vector< rifl2_datapoint<T> > database;
+    mutable std::mutex database_mutex;
+    
+    
     std::vector<unsigned int> hasModel;
     float latestError;
     bool learningMode, sleepMode;
@@ -166,15 +184,6 @@ namespace whiteice
     
     };
 
-  template <typename T>
-    struct rifl2_datapoint
-    {
-      whiteice::math::vertex<T> state, newstate;
-      whiteice::math::vertex<T> action;
-      T reinforcement;
-      
-      bool lastStep; // true if was the last step of the simulation
-    };
 
 
   extern template class RIFL_abstract2< math::blas_real<float> >;
