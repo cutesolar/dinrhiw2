@@ -568,9 +568,6 @@ namespace whiteice
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(1.0); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
     
-    std::vector< rifl2_datapoint<T> > database;
-    std::mutex database_mutex;
-    
     std::vector< std::vector< rifl2_datapoint<T> > > episodes;
     std::vector< rifl2_datapoint<T> > episode;
 
@@ -808,11 +805,6 @@ namespace whiteice
       }
 
       
-      if(learningMode == false){
-	continue; // we do not do learning
-      }
-      
-
       // 4. updates database (of actions and responses)
       {
 	struct rifl2_datapoint<T> datum;
@@ -874,21 +866,9 @@ namespace whiteice
 	if(datum.reinforcement.c[0]){
 
 	  if(database.size() >= DATASIZE){
-	    
-	    while(true){
-	      const unsigned int index = rng.rand() % database.size();
-	      
-	      if(database[index].reinforcement == T(0.0f)){ // always replace zero reinforcement-cases
-		database[index] = datum;
-		break;
-	      }
-	      else if((rng.rand() % 5) == 0){ // 20% probability to replace non-zero entry
-		database[index] = datum;
-		break;
-	      }
-	    }
-	    
-	    // database[database_counter] = datum;
+	    const unsigned int index = rng.rand() % database.size();
+
+	    database[index] = datum;
 	  }
 	  else{
 	    database.push_back(datum);
@@ -899,6 +879,10 @@ namespace whiteice
 	database_counter++;
       }
 
+      
+      if(learningMode == false){
+	continue; // we do not do learning
+      }
       
       // 5. update/optimize Q(state, action) network
       // activates batch learning if it is not running
