@@ -578,7 +578,7 @@ namespace whiteice
     T value = 0.0; 
     
     unsigned int no_improvements_counter = 0;
-    const unsigned int MAX_NO_IMPROVE_ITERS = 500;
+    const unsigned int MAX_NO_IMPROVE_ITERS = 300;
     
     whiteice::math::vertex<T> m(policy->exportdatasize());
     whiteice::math::vertex<T> v(policy->exportdatasize());
