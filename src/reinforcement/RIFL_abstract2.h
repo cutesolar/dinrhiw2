@@ -94,6 +94,8 @@ namespace whiteice
     void setHasModel(unsigned int hasModel) ;
     unsigned int getHasModel() ;
 
+    float getLatestEpisodeError() const;
+
     unsigned int getNumActions() const { return numActions; }
     unsigned int getNumStates() const { return numStates; }
 
@@ -140,6 +142,7 @@ namespace whiteice
     mutable std::mutex policy_mutex;
 
     std::vector<unsigned int> hasModel;
+    float latestError;
     bool learningMode, sleepMode;
     
     T epsilon;

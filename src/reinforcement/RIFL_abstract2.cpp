@@ -35,6 +35,8 @@ namespace whiteice
       hasModel[0] = 0; // Q-network
       hasModel[1] = 0; // policy-network
 
+      latestError = 0.0f;
+
       assert(numActions > 0);
       assert(numStates > 0);
       
@@ -172,6 +174,8 @@ namespace whiteice
       hasModel.resize(2);
       hasModel[0] = 0; // Q-network
       hasModel[1] = 0; // policy-network
+
+      latestError = 0.0f;
 
       assert(numActions > 0);
       assert(numStates > 0);
@@ -414,6 +418,13 @@ namespace whiteice
     else return hasModel[1];
   }
 
+
+  template <typename T>
+  float RIFL_abstract2<T>::getLatestEpisodeError() const
+  {
+    return latestError;
+  }
+
   
   // saves learnt Reinforcement Learning Model to file
   template <typename T>
@@ -590,6 +601,8 @@ namespace whiteice
     const unsigned long SAMPLESIZE = 5000; // number of samples used in learning, was: 5000
     unsigned long database_counter = 0;
     unsigned long episodes_counter = 0;
+
+    latestError = 0.0f;
     
     bool firstTime = true;
     whiteice::math::vertex<T> state;
@@ -684,7 +697,7 @@ namespace whiteice
 	}
 
 	// if there's no model then make random selection (normally distributed)
-#if 0
+#if 1
 	if(hasModel[0] == 0 || hasModel[1] == 0){
 	  rng.normal(u);
 	  random = true;
@@ -828,6 +841,8 @@ namespace whiteice
 
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
 	  fflush(episodesFile);
+
+	  latestError = (float)total_reward.c[0];
 
 	  if(useEpisodes){
 	    
