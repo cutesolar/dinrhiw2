@@ -615,6 +615,7 @@ namespace whiteice
 	  if(heuristics){
 	    normalize_weights_to_unity(*policy);
 	  }
+
 	}
 	else{
 	  whiteice::logging.info("PolicyGradAscent: use previous/old policy network");

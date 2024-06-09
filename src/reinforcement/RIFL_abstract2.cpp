@@ -134,7 +134,7 @@ namespace whiteice
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
-	  nn.randomize(2, T(0.5)); // was 1.0
+	  nn.randomize(2, T(0.9)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
@@ -250,7 +250,7 @@ namespace whiteice
 	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  
-	  nn.randomize(2, T(0.5)); // was 1.0
+	  nn.randomize(2, T(0.9)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
