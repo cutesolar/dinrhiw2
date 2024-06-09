@@ -135,10 +135,10 @@ namespace whiteice
    */
   template <typename T>
   bool PolicyGradAscent<T>::startOptimize(const whiteice::dataset<T>* data_,
-					  const whiteice::nnetwork<T>& Q,
-					  const whiteice::dataset<T>& Q_preprocess,
+					  const whiteice::nnetwork<T>& Q_,
+					  const whiteice::dataset<T>& Q_preprocess_,
 					  // optimized policy
-					  const whiteice::nnetwork<T>& policy, 
+					  const whiteice::nnetwork<T>& policy_, 
 					  unsigned int NTHREADS,
 					  unsigned int MAXITERS,
 					  bool dropout,
@@ -152,8 +152,8 @@ namespace whiteice
     // need at least 1 datapoint(s)
     if(data_->size(0) < 1) return false;
     
-    if(data_->dimension(0) != policy.input_size() ||
-       data_->dimension(0) + policy.output_size() != Q.input_size())
+    if(data_->dimension(0) != policy_.input_size() ||
+       data_->dimension(0) + policy_.output_size() != Q_.input_size())
       return false;
     
     start_lock.lock();
@@ -185,8 +185,8 @@ namespace whiteice
 
     // FIXME can run out of memory and throw exception!
     {
-      auto newQ = new nnetwork<T>(Q); // copies network (settings)      
-      auto newpreprocess = new dataset<T>(Q_preprocess);
+      auto newQ = new nnetwork<T>(Q_); // copies network (settings)      
+      auto newpreprocess = new dataset<T>(Q_preprocess_);
       
       if(this->Q) delete this->Q;
       if(this->Q_preprocess) delete this->Q_preprocess;
@@ -195,26 +195,23 @@ namespace whiteice
       this->Q_preprocess = newpreprocess;
 
 
-      auto newpolicy = new nnetwork<T>(policy);
+      auto newpolicy = new nnetwork<T>(policy_);
       
       if(this->policy) delete this->policy;
       this->policy = newpolicy;
       
-      if(initiallyUseNN == false) this->policy->randomize();
-
       whiteice::logging.info("PolicyGradAscent: input Q weights diagnostics");
       this->Q->diagnosticsInfo();
 
       whiteice::logging.info("PolicyGradAscent: input policy weights diagnostics");
       this->policy->diagnosticsInfo();
-      
     }
 
     this->policy->exportdata(bestx);
     this->dropout = dropout;
     
     best_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
-    best_q_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
+    best_q_value = best_value;
     
     for(unsigned int i=0;i<optimizer_thread.size();i++){
       if(optimizer_thread[i]){
