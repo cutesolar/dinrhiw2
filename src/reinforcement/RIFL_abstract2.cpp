@@ -81,9 +81,9 @@ namespace whiteice
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  
-	  nn.randomize(2, T(0.8)); // was 1.0
+	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
@@ -131,10 +131,10 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
-	  nn.randomize(2, T(0.8)); // was 1.0
+	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
@@ -215,18 +215,13 @@ namespace whiteice
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  
-	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  Q.importNetwork(nn);
 
-	  whiteice::math::vertex<T> weights;
-	  nn.exportdata(weights);
-	  weights.zero();
-	  nn.importdata(weights);
-	  
 	  lagged_Q.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
@@ -253,18 +248,13 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
+	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  
-	  nn.randomize(2, T(1.0)); // was 1.0
+	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
 	  
 	  policy.importNetwork(nn);
 
-	  whiteice::math::vertex<T> weights;
-	  nn.exportdata(weights);
-	  weights.zero();
-	  nn.importdata(weights);
-	  
 	  lagged_policy.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
