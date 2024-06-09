@@ -90,7 +90,7 @@ namespace whiteice
 	  lagged_Q.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
-	  Q.diagnosticsInfo();
+	  lagged_Q.diagnosticsInfo();
 
 	  Q_preprocess.createCluster("input-state", numStates + numActions);
 	  Q_preprocess.createCluster("output-state", 1); // q-value
@@ -141,7 +141,7 @@ namespace whiteice
 	  lagged_policy.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
-	  policy.diagnosticsInfo();
+	  lagged_policy.diagnosticsInfo();
 
 	  policy_preprocess.createCluster("input-state", numStates);
 	  policy_preprocess.createCluster("output-state", numActions);
@@ -225,7 +225,7 @@ namespace whiteice
 	  lagged_Q.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor Q diagnostics");
-	  Q.diagnosticsInfo();
+	  lagged_Q.diagnosticsInfo();
 
 	  Q_preprocess.createCluster("input-state", numStates + numActions);
 	  Q_preprocess.createCluster("output-state", 1); // q-value
@@ -258,7 +258,7 @@ namespace whiteice
 	  lagged_policy.importNetwork(nn);
 
 	  whiteice::logging.info("RIFL_abstract2: ctor policy diagnostics");
-	  policy.diagnosticsInfo();
+	  lagged_policy.diagnosticsInfo();
 
 	  policy_preprocess.createCluster("input-state", numStates);
 	  policy_preprocess.createCluster("output-state", numActions);

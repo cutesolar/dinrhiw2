@@ -586,15 +586,12 @@ namespace whiteice
     m.zero();
     v.zero();
     
+    // starting position for neural network
+    std::unique_ptr< whiteice::nnetwork<T> > policy(new nnetwork<T>(*(this->policy)));      
     
     while(running && iterations < MAXITERS && no_improvements_counter < MAX_NO_IMPROVE_ITERS){
       // keep looking for solution until MAXITERS
-	
-      // starting position for neural network
-      // whiteice::nnetwork<T> policy(*(this->policy));
-      std::unique_ptr< whiteice::nnetwork<T> > policy(new nnetwork<T>(*(this->policy)));      
       
-
 #if 1
       {
 	std::lock_guard<std::mutex> lock(first_time_lock);
@@ -628,9 +625,9 @@ namespace whiteice
 #endif
 
       {
-	solution_lock.lock();
-
 	value = getValue(*policy, *Q, *Q_preprocess, dtest);
+
+	solution_lock.lock();
 	
 	if(value > best_value){
 	  // improvement (larger mean q-value of the policy)
@@ -859,117 +856,50 @@ namespace whiteice
 
 	  // sumgrad.normalize(); // normalizes gradient length to unit..
 	  
-	  // lrate = T(0.5f);
-	  lrate = sqrt(lrate);
-	  lrate *= T(100.0);
+	  lrate = T(0.5f);
 	  
-	  do{
-	    if(use_Adam){ // use ADAM optimizer
-
-	      const T alpha = T(0.001);
-	      const T beta1 = T(0.9);
-	      const T beta2 = T(0.999);
-	      const T epsilon = T(1e-8);
-	      
-	      weights = w0;
-
-#pragma omp parallel for schedule(static)
-	      for(unsigned int i=0;i<sumgrad.size();i++){
-		// should ASCEND the error.. (-sumgrad goes to larger values)
-		
-		m[i] = beta1 * m[i] + (T(1.0) - beta1)*(-sumgrad[i]);
-		v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
-
-		const T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
-		const T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
-
-		weights[i] -= (alpha / (whiteice::math::sqrt(v_hat) + epsilon)) * m_hat;
-	      }
-
-	      policy->importdata(weights);
-
-	      if(heuristics){
-		normalize_weights_to_unity(*policy);
-	      }
-	      
-	      value = getValue(*policy, *Q, *Q_preprocess, dtest);
-	      
-	      break;
-	    }
+	  { // use ADAM optimizer
 	    
-	    if(use_SGD){ // just single step towards gradient instead of line search
-	      weights = w0;
-	      weights += sgd_lrate * sumgrad;
+	    const T alpha = T(0.001);
+	    const T beta1 = T(0.9);
+	    const T beta2 = T(0.999);
+	    const T epsilon = T(1e-8);
 	      
-	      policy->importdata(weights);
-
-	      //if(dropout) policy->removeDropOut();
-	      
-	      if(heuristics){
-		normalize_weights_to_unity(*policy);
-	      }
-	      
-	      value = getValue(*policy, *Q, *Q_preprocess, dtest);
-
-	      break;
-	    }
-	    
 	    weights = w0;
-	    weights += lrate * sumgrad;
 	    
-	    if(policy->importdata(weights) == false)
-	      whiteice::logging.error("PolicyGradAscent: weight import failed");
+#pragma omp parallel for schedule(static)
+	    for(unsigned int i=0;i<sumgrad.size();i++){
+	      // should ASCEND the error.. (-sumgrad goes to larger values)
+	      
+	      m[i] = beta1 * m[i] + (T(1.0) - beta1)*(-sumgrad[i]);
+	      v[i] = beta2 * v[i] + (T(1.0) - beta2)*sumgrad[i]*sumgrad[i];
+	      
+	      const T m_hat = m[i] / (T(1.0) - whiteice::math::pow(beta1[0], T(iterations+1)[0]));
+	      const T v_hat = v[i] / (T(1.0) - whiteice::math::pow(beta2[0], T(iterations+1)[0]));
+	      
+	      weights[i] -= (alpha / (whiteice::math::sqrt(v_hat) + epsilon)) * m_hat;
+	    }
 	    
-	    //if(dropout) policy->removeDropOut();
+	    policy->importdata(weights);
 	    
 	    if(heuristics){
 	      normalize_weights_to_unity(*policy);
 	    }
 	    
-	    value = getValue(*policy, *Q, *Q_preprocess, dtrain);
-	    
-	    delta_value = (prev_value - value); // negative value means value has increased
-
-	    {
-	      char buffer[128];
-	      
-	      double v, p, d, l;
-	      whiteice::math::convert(v, value);
-	      whiteice::math::convert(p, prev_value);
-	      whiteice::math::convert(d, delta_value);
-	      whiteice::math::convert(l, lrate);
-	      
-	      snprintf(buffer, 128,
-		       "PolicyGradAscent: gradstep curvalue %f prevvalue %f delta %e lrate %e\n",
-		       v, p, d, l);
-	      whiteice::logging.info(buffer);
-	    }
-	    
-	    // if value becomes smaller we reduce learning rate
-	    if(delta_value >= T(0.0)){ 
-	      lrate *= T(0.50);
-	    }
-	    // value becomes larger we increase learning rate
-	    else if(delta_value < T(0.0)){ 
-	      lrate *= T(1.0/0.50);
-	    }
-	    
+	    value = getValue(*policy, *Q, *Q_preprocess, dtest);
 	  }
-	  while(delta_value >= T(0.0) && lrate >= T(10e-30) && running);
 
 	  
-	  if(use_SGD == false){
+	  {
 	    char buffer[128];
 	    
-	    double v, d, l;
+	    double v;
 	    whiteice::math::convert(v, value);
-	    whiteice::math::convert(d, delta_value);
-	    whiteice::math::convert(l, lrate);
 	    
 	    snprintf(buffer, 128,
-		     "PolicyGradAscent (%d/%d): policy updated value %f delta %e lrate %e\n",
+		     "PolicyGradAscent (%d/%d): policy updated value %f\n",
 		     iterations, MAXITERS,
-		     v, d, l);
+		     v);
 	    whiteice::logging.info(buffer);
 	  }
 	  
@@ -995,6 +925,7 @@ namespace whiteice
 	    
 	    if(value > best_value){
 	      // improvement (larger mean q-value of the policy)
+ 
 	      best_value = value;
 	      best_q_value = value; // getValue(*policy, *Q, *Q_preprocess, dtest);
 	      policy->exportdata(bestx);
@@ -1024,8 +955,7 @@ namespace whiteice
 	  }
 	  
 	}
-	while(lrate >= T(10e-30) && 
-	      iterations < MAXITERS &&
+	while(iterations < MAXITERS &&
 	      no_improvements_counter < MAX_NO_IMPROVE_ITERS &&
 	      running);
 	
