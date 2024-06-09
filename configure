@@ -721,6 +721,7 @@ enable_cublas
 enable_nvblas
 enable_native
 enable_cppdebug
+enable_threadsdebug
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1363,6 +1364,7 @@ Optional Features:
   --disable-nvblas        Disable NVIDIA NVBLAS library
   --enable-native         Enable native optimization
   --enable-cppdebug       Enable C++ debugging flags (stdc++)
+  --enable-threadsdebug   Enable g++ thread sanitizer debugging
 
 Some influential environment variables:
   CC          C compiler command
@@ -5554,6 +5556,21 @@ then :
 
   optimization_flags="$optimization_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
   conf_flags="$conf_flags -D_GLIBCXX_DEBUG -fsanitize=address -fsanitize=undefined"
+
+fi
+
+# Check whether --enable-threadsdebug was given.
+if test ${enable_threadsdebug+y}
+then :
+  enableval=$enable_threadsdebug;
+fi
+
+
+if test "x$enable_threadsdebug" = "xyes"
+then :
+
+  optimization_flags="$optimization_flags -fsanitize=thread"
+  conf_flags="$conf_flags -fsanitize=thread"
 
 fi
 
