@@ -1,7 +1,9 @@
 Code is only tested and known to compile on Debian/Linux (amd64) and 
 Windows 64bit platform. Minimal testing has been done on Intel 32bit plaform.
 
-* assert(f()) calls don't often call the f() function at all, remove such assert()s
+* assert(f()) calls don't often call the f() function at all. This is because python flags -DNDEBUG which disable assert sentences
+
+* Intel MKL BLAS don't work in 2020 versions, use newer MKL BLAS versions so the bugs disappears. 
 
 * t-SNE is a bit buggy(?) and don't scale now to large number of data points
 
