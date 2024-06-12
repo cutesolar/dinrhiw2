@@ -26,8 +26,8 @@ namespace whiteice
 		       std::vector< rifl2_datapoint<T> > const & database,
 		       std::vector< std::vector< rifl2_datapoint<T> > > const & episodes,
 		       std::mutex & database_mutex,
-		       unsigned int const& epoch, 
-		       whiteice::dataset<T>& data);
+		       unsigned int const& epoch);
+
       
     virtual ~CreateRIFL2dataset();
 
@@ -67,11 +67,11 @@ namespace whiteice
     unsigned int const& epoch;
 
     unsigned int NUMDATA; // number of datapoints to create
-    whiteice::dataset<T>& data;
+    whiteice::dataset<T> data;
     bool completed = false;;
 
     std::thread* worker_thread = NULL;
-    std::mutex   thread_mutex;
+    mutable std::mutex   thread_mutex;
     bool running = false;
 
     // worker thread loop

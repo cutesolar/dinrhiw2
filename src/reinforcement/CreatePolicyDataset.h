@@ -60,7 +60,7 @@ namespace whiteice
     bool completed;
 
     std::thread* worker_thread;
-    std::mutex   thread_mutex;
+    mutable std::mutex   thread_mutex;
     bool running;
 
     // worker thread loop

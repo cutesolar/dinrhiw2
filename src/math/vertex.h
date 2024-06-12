@@ -280,7 +280,13 @@ namespace whiteice
     
     
     template <typename T>
-      vertex<T> operator*(const T& s, const vertex<T>& v);
+    vertex<T> operator*(const T& s, const vertex<T>& v)
+    {
+      vertex<T> r = v*s;
+      
+      return r; 
+    }
+
     
     template <typename T>
       std::ostream& operator<<(std::ostream& ios,

@@ -553,7 +553,7 @@ namespace whiteice
   }
 #endif
 
-  // calculates E[f(input,w)] and Var[f(x,w)] for given input
+  // calculates E[f(input,w)] for given input
   template <typename T>
   bool bayesian_nnetwork<T>::calculate(const math::vertex<T>& input,
 				       math::vertex<T>& mean,

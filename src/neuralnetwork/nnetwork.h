@@ -108,6 +108,8 @@ namespace whiteice
     // simple thread-safe version [parallelizable version of calculate: don't calculate gradient nor collect samples]
     bool calculate(const math::vertex<T>& input, math::vertex<T>& output) const;
 
+    bool calculate_logged(const math::vertex<T>& input, math::vertex<T>& output) const;
+
     bool calculate(const math::vertex<T>& input, math::vertex<T>& output,
 		   const std::vector< std::vector<bool> >& dropout) const;
 

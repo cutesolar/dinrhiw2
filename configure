@@ -5222,8 +5222,8 @@ fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for Intel MKL library (2) (Linux, pkg-config)" >&5
 printf %s "checking for Intel MKL library (2) (Linux, pkg-config)... " >&6; }
-PKG_MKL_CFLAGS=`pkg-config mkl-sdl-ilp64 --cflags 2> /dev/null`
-PKG_MKL_LIBS=`pkg-config mkl-sdl-ilp64 --libs 2> /dev/null`
+PKG_MKL_CFLAGS=`pkg-config mkl-sdl-lp64 --cflags 2> /dev/null`
+PKG_MKL_LIBS=`pkg-config mkl-sdl-lp64 --libs 2> /dev/null`
 `g++ -o openblastest openblastest.c -DINTELMKL $PKG_MKL_CFLAGS $PKG_MKL_LIBS > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then
@@ -5239,8 +5239,8 @@ else $as_nop
      INTELMKL="yes"
      BLAS_CFLAGS="$PKG_MKL_CFLAGS -DINTELMKL"
      BLAS_LIBS="$PKG_MKL_LIBS"
-     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config mkl-sdl-ilp64 FOUND." >&5
-printf "%s\n" "yes, pkg-config mkl-sdl-ilp64 FOUND." >&6; }
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config mkl-sdl-lp64 FOUND." >&5
+printf "%s\n" "yes, pkg-config mkl-sdl-lp64 FOUND." >&6; }
 
 fi
 else

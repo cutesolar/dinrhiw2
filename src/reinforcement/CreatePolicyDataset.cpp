@@ -28,6 +28,8 @@ namespace whiteice
     database_mutex(database_mutex_),
     data(data_)
   {
+    std::lock_guard<std::mutex> lock(thread_mutex);
+    
     worker_thread = nullptr;
     running = false;
     completed = false;
@@ -56,8 +58,14 @@ namespace whiteice
 
     std::lock_guard<std::mutex> lock(thread_mutex);
 
-    if(running == true || worker_thread != nullptr)
+    if(running == true || worker_thread != nullptr){
+      char buf[256];
+      snprintf(buf, 256, "CreatePolicyDataset<T>::start() FAILED (%d 0x%lx)",
+	       (int)running, (long unsigned int)worker_thread);
+      
+      logging.info(buf);
       return false;
+    } 
 
     try{
       NUMDATA = NUMDATAPOINTS;
@@ -83,6 +91,7 @@ namespace whiteice
   template <typename T>
   bool CreatePolicyDataset<T>::isCompleted() const
   {
+    std::lock_guard<std::mutex> lock(thread_mutex);
     return completed;
   }
   
@@ -90,6 +99,7 @@ namespace whiteice
   template <typename T>
   bool CreatePolicyDataset<T>::isRunning() const
   {
+    std::lock_guard<std::mutex> lock(thread_mutex);
     return running;
   }
 
@@ -145,20 +155,30 @@ namespace whiteice
 #endif	
     }
 
-    
+    {
+      char buf[256];
+      snprintf(buf, 256, "CreatePolicyDataset:loop() started: NUMDATA = %d\n", (int)NUMDATA);
+      logging.info(buf);
+    }
+
 #pragma omp parallel for schedule(guided)
     for(unsigned int i=0;i<NUMDATA;i++){
 
-      if(running == false) // we don't do anything anymore..
-	continue; // exits OpenMP loop
+      {
+	std::lock_guard<std::mutex> lock(thread_mutex);
+	
+	if(running == false) // we don't do anything anymore..
+	  continue; // exits OpenMP loop
+      }
 
       database_mutex.lock();
       
       const unsigned int index = rng.rand() % database.size();
-
+      
       const auto datum = database[index];
-
+      
       database_mutex.unlock();
+      
       
 #pragma omp critical
       {
@@ -169,8 +189,12 @@ namespace whiteice
       
     }
 
-    if(running == false)
-      return; // exit point
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      
+      if(running == false)
+	return; // exit point
+    }
 
 #if 0
     // add preprocessing to dataset
@@ -180,10 +204,27 @@ namespace whiteice
     }
 #endif
 
-    completed = true;
-
     {
-      // std::lock_guard<std::mutex> lock(thread_mutex);
+      unsigned int state_dimensions = 0;
+      
+      {
+	database_mutex.lock();
+	
+	if(database.size() > 0){
+	  state_dimensions = database[0].state.size();
+	}
+	
+	database_mutex.unlock();
+      }
+    
+      char buf[256];
+      snprintf(buf, 256, "CreatePolicyDataset:loop(): data.size(0) = %d data.dimension(0) = %d dim(state) = %d\n", (int)data.size(0), (int)data.dimension(0), (int)state_dimensions);
+      logging.info(buf);
+    }
+      
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      completed = true;
       running = false;
     }
     

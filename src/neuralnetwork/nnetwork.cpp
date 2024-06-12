@@ -621,6 +621,44 @@ namespace whiteice
     return true;
   }
 
+
+  // simple thread-safe version
+  // [parallelizable version of calculate: don't calculate gradient nor collect samples]
+  template <typename T>
+  bool nnetwork<T>::calculate_logged(const math::vertex<T>& input, math::vertex<T>& output) const
+  {
+    if(input.size() != input_size()) return false; // input vector has wrong dimension
+    
+    // TODO write cblas and cuBLAS optimized version which uses
+    // direct accesses to matrix/vertex memory areas
+
+    output = input;
+    auto& state = output;
+
+    math::vertex<T> skipValue;
+
+    if(residual) skipValue = state;
+    
+    for(unsigned int l=0;l<getLayers();l++){
+      
+      if(residual && (l % 2) == 0 && l != 0 && W[l].ysize() == skipValue.size())
+	state = W[l]*state + b[l] + skipValue;
+      else
+	state = W[l]*state + b[l];
+
+      for(unsigned int i=0;i<state.size();i++){
+	state[i] = nonlin(state[i], l, i);
+      }
+
+      std::cout << "calculate() layer " << l << " state = " << state << std::endl;
+
+      if(residual && (l % 2) == 0 && l != 0)
+	skipValue = state;
+    }
+
+    return true;
+  }
+
   
   // thread safe calculate(). Uses dropout data provided by user.
   // This allows same nnetwork<> object to be used in thread safe manner (const).
@@ -2174,7 +2212,7 @@ namespace whiteice
 	return T(0.0f);
     }
 
-    const float RELUcoef = 0.01f; // original was 0.01f
+    const float RELUcoef = 0.001f; // original was 0.01f
 
     if(nonlinearity[layer] == softmax){
       const T k = T(1.50f);
@@ -2532,7 +2570,7 @@ namespace whiteice
 	return T(0.0f); // this neuron is disabled 
     }
 
-    const float RELUcoef = 0.01f; // original was 0.01f
+    const float RELUcoef = 0.001f; // original was 0.01f
 
     if(nonlinearity[layer] == softmax){
       const T k = T(1.50f);
@@ -2972,7 +3010,7 @@ namespace whiteice
   {
     // no dropout checking
     
-    const float RELUcoef = 0.01f; // original was 0.01f
+    const float RELUcoef = 0.001f; // original was 0.01f
     
     if(nonlinearity[layer] == softmax){
       const T k = T(1.50f);
@@ -3264,7 +3302,7 @@ namespace whiteice
   {
     // no dropout checking
 
-    const float RELUcoef = 0.01f; // original was 0.01f
+    const float RELUcoef = 0.001f; // original was 0.01f
 
     if(nonlinearity[layer] == softmax){
       const T k = T(1.50f);
@@ -3759,7 +3797,7 @@ namespace whiteice
     // inverse of non-linearity used
     T output = input;
 
-    const float RELUcoef = 0.01f; // original was 0.01f
+    const float RELUcoef = 0.001f; // original was 0.01f
 
     if(nonlinearity[layer] == pureLinear){
       if(batchnorm && layer != getLayers()-1){

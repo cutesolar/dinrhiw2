@@ -2858,7 +2858,7 @@ namespace whiteice
     }
     
     
-    
+#if 0    
     // scalar times vertex
     template <typename T>
     vertex<T> operator*(const T& s, const vertex<T>& v)
@@ -2968,7 +2968,7 @@ namespace whiteice
       return r;
 #endif
     }
-    
+#endif
     
     // multiplies matrix from left: return v = (*this)*M
     template <typename T>

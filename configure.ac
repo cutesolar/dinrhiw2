@@ -456,8 +456,8 @@ fi
 
 
 AC_MSG_CHECKING([for Intel MKL library (2) (Linux, pkg-config)])
-PKG_MKL_CFLAGS=`pkg-config mkl-sdl-ilp64 --cflags 2> /dev/null`
-PKG_MKL_LIBS=`pkg-config mkl-sdl-ilp64 --libs 2> /dev/null`
+PKG_MKL_CFLAGS=`pkg-config mkl-sdl-lp64 --cflags 2> /dev/null`
+PKG_MKL_LIBS=`pkg-config mkl-sdl-lp64 --libs 2> /dev/null`
 `g++ -o openblastest openblastest.c -DINTELMKL $PKG_MKL_CFLAGS $PKG_MKL_LIBS > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then
@@ -469,7 +469,7 @@ if [[ $? -eq 0 ]]; then
      INTELMKL="yes"
      BLAS_CFLAGS="$PKG_MKL_CFLAGS -DINTELMKL"
      BLAS_LIBS="$PKG_MKL_LIBS"
-     AC_MSG_RESULT([yes, pkg-config mkl-sdl-ilp64 FOUND.])
+     AC_MSG_RESULT([yes, pkg-config mkl-sdl-lp64 FOUND.])
   ])
 else
    AC_MSG_RESULT([no Intel MKL detected])

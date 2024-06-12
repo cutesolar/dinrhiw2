@@ -17,6 +17,8 @@ namespace whiteice
   template <typename T>
   PolicyGradAscent<T>::PolicyGradAscent(bool deep_pretraining)
   {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
     best_value = T(-INFINITY);
     best_q_value = T(-INFINITY);
     iterations = 0;
@@ -52,6 +54,9 @@ namespace whiteice
   template <typename T>
   PolicyGradAscent<T>::PolicyGradAscent(const PolicyGradAscent<T>& grad)
   {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    std::lock_guard<std::mutex> lock2(grad.solution_lock);
+    
     best_value = grad.best_value;
     best_q_value = grad.best_q_value;
     iterations = grad.iterations;
@@ -112,15 +117,20 @@ namespace whiteice
       }
     }
 
-    if(Q) delete Q;
-    if(Q_preprocess) delete Q_preprocess;
-    if(policy) delete policy;
-
-    Q = NULL;
-    Q_preprocess = NULL;
-    policy = NULL;
-
     start_lock.unlock();
+    
+    {
+      std::lock_guard<std::mutex> lock(solution_lock);
+      
+      if(Q) delete Q;
+      if(Q_preprocess) delete Q_preprocess;
+      if(policy) delete policy;
+      
+      Q = NULL;
+      Q_preprocess = NULL;
+      policy = NULL;
+    }
+
   }
 
 
@@ -144,17 +154,37 @@ namespace whiteice
 					  bool dropout,
 					  bool initiallyUseNN)
   {
-    if(data_ == NULL) return false;
+    if(data_ == NULL){
+      logging.error("PolicyGradAscent:startOptimize(): data_ == NULL error");
+      return false;
+    }
     
-    if(data_->getNumberOfClusters() != 1) // dataset only contains state variables
-      return false; 
+    if(data_->getNumberOfClusters() != 1){ // dataset only contains state variables
+      char buf[256];
+      snprintf(buf, 256, "PolicyGradAscent:startOptimize(): data_->getNumberOfclusters() = %d",
+	       data_->getNumberOfClusters());
+      logging.error(buf);
+      return false;
+    }
     
     // need at least 1 datapoint(s)
-    if(data_->size(0) < 1) return false;
+    if(data_->size(0) < 1){
+      logging.error("PolicyGradAscent:startOptimize(): data_->size(0) < 1 error");
+      return false;
+    }
     
     if(data_->dimension(0) != policy_.input_size() ||
        data_->dimension(0) + policy_.output_size() != Q_.input_size())
+    {
+      char buf[256];
+      snprintf(buf, 256, "PolicyGradAscent:startOptimize(): dimensions error: %d %d %d %d",
+	       data_->dimension(0), policy_.input_size(), policy_.output_size(),
+	       Q_.input_size());
+      
+      logging.error(buf);
+      
       return false;
+    }
     
     start_lock.lock();
     
@@ -162,10 +192,12 @@ namespace whiteice
       std::lock_guard<std::mutex> lock(thread_is_running_mutex);
       if(thread_is_running > 0){
 	start_lock.unlock();
+	logging.error("PolicyGradAscent::startOptimize(): thread_is_running > 0 error");
 	return false;
       }
     }
 
+    std::lock_guard<std::mutex> lock(solution_lock);
     
     this->data = *data_;
     
@@ -212,6 +244,8 @@ namespace whiteice
     
     best_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
     best_q_value = best_value;
+
+    std::cout << "INITIAL Q-value for policy: " << best_q_value << std::endl;
     
     for(unsigned int i=0;i<optimizer_thread.size();i++){
       if(optimizer_thread[i]){
@@ -251,8 +285,8 @@ namespace whiteice
   template <typename T>
   bool PolicyGradAscent<T>::isRunning()
   {
-    std::lock_guard<std::mutex>  lock1(start_lock);
-    std::unique_lock<std::mutex> lock2(thread_is_running_mutex);
+    std::lock_guard<std::mutex> lock1(start_lock);
+    std::lock_guard<std::mutex> lock2(thread_is_running_mutex);
     return running && (thread_is_running > 0);
   }
 
@@ -267,18 +301,16 @@ namespace whiteice
 					T& value,
 					unsigned int& iterations) const
   {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
     // checks if the neural network architecture is the correct one
     if(this->policy == NULL) return false;
-    
-    solution_lock.lock();
     
     policy = *(this->policy);
     policy.importdata(bestx);
     
     value = best_q_value;
     iterations = this->iterations;
-    
-    solution_lock.unlock();
     
     return true;
   }
@@ -288,14 +320,12 @@ namespace whiteice
   bool PolicyGradAscent<T>::getSolutionStatistics(T& value,
 						  unsigned int& iterations) const
   {
-    if(this->policy == NULL) return false;
+    std::lock_guard<std::mutex> lock(solution_lock);
 
-    solution_lock.lock();
+    if(this->policy == NULL) return false;
 
     value = best_q_value;
     iterations = this->iterations;
-
-    solution_lock.unlock();
 
     return true;
   }
@@ -304,15 +334,13 @@ namespace whiteice
   template <typename T>
   bool PolicyGradAscent<T>::getSolution(whiteice::nnetwork<T>& policy) const
   {
+    std::lock_guard<std::mutex> lock(solution_lock);
+    
     // checks if the neural network architecture is the correct one
     if(this->policy == NULL) return false;
     
-    solution_lock.lock();
-    
     policy = *(this->policy);
     policy.importdata(bestx);
-    
-    solution_lock.unlock();
     
     return true;
   }
@@ -422,6 +450,11 @@ namespace whiteice
     T value = T(0.0);
       
     // calculates mean q-value of policy
+
+    if(0){
+      logging.info("getValue() Q:");
+      Q.diagnosticsInfo();
+    }
     
 #pragma omp parallel
     {
@@ -451,6 +484,7 @@ namespace whiteice
 	if(Q_preprocess.preprocess(0, in) == false) assert(0);
 
 	if(Q.calculate(in, q) == false) assert(0);
+	// if(Q.calculate_logged(in, q) == false) assert(0);
 
 	if(Q_preprocess.invpreprocess(1, q) == false) assert(0);
 	

@@ -25,7 +25,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
@@ -59,12 +59,13 @@ namespace whiteice
 	arch.push_back(numStates + numActions);
 	arch.push_back(50);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	
 	//arch.push_back(50);
 	//arch.push_back(50);
 	//arch.push_back(50);
@@ -106,12 +107,14 @@ namespace whiteice
 	arch.push_back(numStates);
 	arch.push_back(50);
 	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
-	arch.push_back(50);
+	
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	//arch.push_back(50);
+	
 	//arch.push_back(50);
 	//arch.push_back(50);
 	//arch.push_back(50);
@@ -165,7 +168,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.80); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
       epsilon = T(0.80);
 
       learningMode = true;
@@ -428,28 +431,105 @@ namespace whiteice
   template <typename T>
   bool RIFL_abstract2<T>::save(const std::string& filename) const
   {
-    std::lock_guard<std::mutex> lock1(Q_mutex);
-    std::lock_guard<std::mutex> lock2(policy_mutex);
-
     char buffer[256];
     
-    snprintf(buffer, 256, "%s-q", filename.c_str());    
-    if(Q.save(buffer) == false) return false;
+    {
+      std::lock_guard<std::mutex> lock1(Q_mutex);
+      std::lock_guard<std::mutex> lock2(policy_mutex);
+      
+      snprintf(buffer, 256, "%s-q", filename.c_str());    
+      if(Q.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving Q failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-policy", filename.c_str());
+      if(policy.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving policy failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-lagged-q", filename.c_str());    
+      if(lagged_Q.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving lagged-q failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
+      logging.error("RIFL_abstract2::save() saving lagged-policy failed");
+      if(lagged_policy.save(buffer) == false){
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-q-preprocess", filename.c_str());    
+      if(Q_preprocess.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving q-preprocess failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
+      if(policy_preprocess.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving policy-preprocess failed");
+	return false;
+      }
+    }
 
-    snprintf(buffer, 256, "%s-policy", filename.c_str());
-    if(policy.save(buffer) == false) return false;
+    {
+      snprintf(buffer, 256, "%s-database", filename.c_str());
 
-    snprintf(buffer, 256, "%s-lagged-q", filename.c_str());    
-    if(lagged_Q.save(buffer) == false) return false;
+      whiteice::dataset<T> db;
 
-    snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
-    if(lagged_policy.save(buffer) == false) return false;
+      std::lock_guard<std::mutex> lock1(database_mutex);
 
-    snprintf(buffer, 256, "%s-q-preprocess", filename.c_str());    
-    if(Q_preprocess.save(buffer) == false) return false;
+      if(database.size() > 0)
+	db.createCluster("state", database[0].state.size());
+      else
+	db.createCluster("state", 1);
 
-    snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
-    if(policy_preprocess.save(buffer) == false) return false;
+      if(database.size() > 0)
+	db.createCluster("newstate", database[0].newstate.size());
+      else
+	db.createCluster("newstate", 1);
+
+      if(database.size() > 0)
+	db.createCluster("action", database[0].action.size());
+      else
+	db.createCluster("action", 1);
+
+      if(database.size() > 0)
+	db.createCluster("reinforcement", 1);
+      else
+	db.createCluster("reinforcement", 1);
+
+      if(database.size() > 0)
+	db.createCluster("last_step", 1);
+      else
+	db.createCluster("last_step", 1);
+
+      for(unsigned int i=0;i<database.size();i++){
+	db.add(0, database[i].state);
+	db.add(1, database[i].newstate);
+	db.add(2, database[i].action);
+
+	whiteice::math::vertex<T> v;
+	v.resize(1);
+	v[0] = database[i].reinforcement;
+
+	db.add(3, v);
+
+	if(database[i].lastStep)
+	  v[0] = T(1.0f);
+	else
+	  v[0] = T(0.0f);
+
+	db.add(4, v);
+      }
+
+      if(db.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving database failed");
+	return false;
+      }
+    }
 
     return true;
   }
@@ -459,28 +539,125 @@ namespace whiteice
   template <typename T>
   bool RIFL_abstract2<T>::load(const std::string& filename)
   {
-    std::lock_guard<std::mutex> lock1(Q_mutex);
-    std::lock_guard<std::mutex> lock2(policy_mutex);
-
     char buffer[256];
-        
-    snprintf(buffer, 256, "%s-q", filename.c_str());    
-    if(Q.load(buffer) == false) return false;
+    
+    {
+      std::lock_guard<std::mutex> lock1(Q_mutex);
+      std::lock_guard<std::mutex> lock2(policy_mutex);
+      
+      snprintf(buffer, 256, "%s-q", filename.c_str());    
+      if(Q.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading Q failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-policy", filename.c_str());
+      if(policy.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading policy failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-lagged-q", filename.c_str());    
+      if(lagged_Q.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading lagged-q failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
+      if(lagged_policy.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading lagged-policy failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-q-preprocess", filename.c_str());    
+      if(Q_preprocess.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading q_preprocess failed");
+	return false;
+      }
+      
+      snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
+      if(policy_preprocess.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading policy_preprocess failed");
+	return false;
+      }
+    }
+    
 
-    snprintf(buffer, 256, "%s-policy", filename.c_str());
-    if(policy.load(buffer) == false) return false;
+    {
+      snprintf(buffer, 256, "%s-database", filename.c_str());
+      
+      whiteice::dataset<T> db;
 
-    snprintf(buffer, 256, "%s-lagged-q", filename.c_str());    
-    if(lagged_Q.load(buffer) == false) return false;
+      if(db.load(buffer) == false){
+	char buf[128];
+	snprintf(buf, 128, "RIFL_abstract2::load(\"%s\") loading dataset FAILED", buffer);
+	logging.error(buf);
+	return false;
+      }
 
-    snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
-    if(lagged_policy.load(buffer) == false) return false;
+      if(db.getNumberOfClusters() != 5){
+	logging.error("RIFL_abstract2::load() database wrong number of clusters");
+	return false;
+      }
 
-    snprintf(buffer, 256, "%s-q-preprocess", filename.c_str());    
-    if(Q_preprocess.load(buffer) == false) return false;
+      if(db.dimension(0) != db.dimension(1) || db.dimension(3) != 1 || db.dimension(4) != 1){
+	char buf[128];
+	snprintf(buf, 128, "RIFL_abstract2::load() database wrong dimensions %d %d %d %d",
+		 db.dimension(0), db.dimension(1), db.dimension(3), db.dimension(3),
+		 db.dimension(4));
+	logging.error(buf);
+	return false;
+      }
 
-    snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
-    if(policy_preprocess.load(buffer) == false) return false;
+      if(db.dimension(0) != this->numStates){
+	char buf[128];
+	snprintf(buf, 128, "RIFL_abstract2::load() database wrong dimensions %d %d (2)",
+		 db.dimension(0), this->numStates);
+	logging.error(buf);
+	return false;
+      }
+      
+      if(db.dimension(2) != this->numActions){
+	char buf[128];
+	snprintf(buf, 128, "RIFL_abstract2::load() database wrong dimensions %d %d (3)",
+		 db.dimension(2), this->numActions);
+	logging.error(buf);
+
+	return false;
+      }
+
+      if(db.size(0) != db.size(1) || db.size(1) != db.size(2) || db.size(2) != db.size(3) ||
+	 db.size(3) != db.size(4)){
+
+	char buf[128];
+	snprintf(buf, 128, "RIFL_abstract2::load() database wrong size %d %d %d %d %d",
+		 db.size(0), db.size(1), db.size(2), db.size(3), db.size(4)); 
+	logging.error(buf);
+	
+	return false;
+      }
+					     
+      std::lock_guard<std::mutex> lock1(database_mutex);
+
+      database.clear();
+      
+      whiteice::rifl2_datapoint<T> p;
+      whiteice::math::vertex<T> v;
+
+      for(unsigned int i=0;i<db.size(0);i++){
+	p.state = db.access(0, i);
+	p.newstate = db.access(1, i);
+	p.action = db.access(2, i);
+	v = db.access(3, i);
+	p.reinforcement = v[0];
+	v = db.access(4, i);
+	if(v[0] > T(0.5)) p.lastStep = true;
+	else p.lastStep = false;
+	
+	database.push_back(p);
+      }
+      
+    }
     
     return true;
   }
@@ -552,8 +729,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 5000; // 40, was 1 (dont work), 5, 10, WAS: 500
-    const unsigned int P_OPTIMIZE_ITERATIONS = 1000; // 10, was 1 (dont work), 5, 10, WAS: 500
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 500; // 40, was 1 (dont work), 5, 10, WAS: 5000
+    const unsigned int P_OPTIMIZE_ITERATIONS = 500; // 10, was 1 (dont work), 5, 10, WAS: 1000
     
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(1.0); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
@@ -592,8 +769,8 @@ namespace whiteice
     // assumes each episode length is 100 so this is ~ equal to 1.000.000 samples
     const unsigned long EPISODES_MAX_SIZE = 10000;
     const unsigned long MINIMUM_EPISODE_SIZE = 25;
-    const unsigned long MINIMUM_DATASIZE = 2000; // samples required to start learning, was:10000
-    const unsigned long SAMPLESIZE = 2000; // number of samples used in learning, was: 5000 
+    const unsigned long MINIMUM_DATASIZE = 2000; // samples required to start learning, was:10000,2000,1000
+    const unsigned long SAMPLESIZE = 2000; // number of samples used in learning, was: 5000,2000,1000 
     unsigned long database_counter = 0;
     unsigned long episodes_counter = 0;
 
@@ -694,7 +871,7 @@ namespace whiteice
 	// if there's no model then make random selection (normally distributed)
 #if 1
 	if(hasModel[0] == 0 || hasModel[1] == 0){
-	  rng.normal(u);
+	  rng.uniform(u);
 	  random = true;
 	}
 #endif
@@ -894,14 +1071,13 @@ namespace whiteice
 	if(grad.isRunning() == false){
 
 	  if(grad.getSolutionStatistics(error, iters) == false){
+	    // grad is reset()ed having no solution anymore (read once it) 
 	  }
 	  else{
 	    // gradient have stopped running
 
 	    if(dataset_thread == nullptr){
 
-	      grad.getSolution(nn);
-	      
 	      char buffer[128];
 	      double tmp = 0.0;
 	      whiteice::math::convert(tmp, error);
@@ -911,13 +1087,17 @@ namespace whiteice
 	      whiteice::logging.info(buffer);
 	      
 	      {
+		logging.info("========> Q RESULT LOADING");
+		
+		if(grad.getSolution(nn) == false) assert(0);
+		
 		std::lock_guard<std::mutex> lock(Q_mutex);
 		Q.importNetwork(nn);
 
-		data.clearData(0);
-		data.clearData(1);
+		//data.clearData(0);
+		//data.clearData(1);
 
-		Q_preprocess = data;
+		//Q_preprocess = data;
 
 #if 1
 		whiteice::nnetwork<T> nn2;
@@ -926,14 +1106,101 @@ namespace whiteice
 
 		if(lagged_weights.size() > 0){
 
+		  if(0){
+		    whiteice::logging.info("RIFL_abstract2: current Q diagnostics");
+		    lagged_Q.diagnosticsInfo();
+		    whiteice::logging.info("RIFL_abstract2: current Q-model imported");
+		    
+		    whiteice::logging.info("RIFL_abstract2: solved Q diagnostics");
+		    Q.diagnosticsInfo();
+		    whiteice::logging.info("RIFL_abstract2: solved Q-model imported");
+		  }
+		    
 		  math::vertex<T> weights;
-		  nn.exportdata(weights);
+		  if(nn.exportdata(weights) == false) assert(0);
 
-		  logging.info("lagged_Q updated");
+		  if(hasModel[1] == 0){
+		    // don't lag results with the first update
+		    lagged_weights[0] = weights;
+		  }
 		  
-		  lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
-		  nn2.importdata(lagged_weights[0]);
-		  lagged_Q.importNetwork(nn2);
+		  if(0){
+		    logging.info("lagged_Q update:");
+		    
+		    char buffer[256];
+		    
+		    snprintf(buffer, 256, "lw.size %d lw[0].size() %d w.size() %d tau %f\n",
+			     (int)lagged_weights.size(), (int)lagged_weights[0].size(),
+			     (int)weights.size(),
+			     tau.c[0]);
+		    
+		    logging.info(buffer);
+		  }
+
+		  if(0){
+		    char buffer[256];
+
+		    snprintf(buffer, 256, "before lw v: %f %f %f %f %f",
+			     lagged_weights[0][0].c[0],lagged_weights[0][1].c[0],
+			     lagged_weights[0][2].c[0],lagged_weights[0][3].c[0],
+			     lagged_weights[0][4].c[0]);
+		    
+		    logging.info(buffer);
+
+		    snprintf(buffer, 256, "before w v: %f %f %f %f %f",
+			     weights[0].c[0],weights[1].c[0],
+			     weights[2].c[0],weights[3].c[0],
+			     weights[4].c[0]);
+		    
+		    logging.info(buffer);
+		  }
+
+		  // lagged_weights[0] = tau*weights + (T(1.0)-tau)*lagged_weights[0];
+
+		  auto part1 = tau*weights; // THIS DOES NOT WORK PROPERLY (BUG!)
+		  auto part2 = (T(1.0)-tau)*lagged_weights[0];
+
+		  if(0){
+		    char buffer[256];
+		    
+		    snprintf(buffer, 256, "part1 v: %f %f %f %f %f",
+			     part1[0].c[0],part1[1].c[0],
+			     part1[2].c[0],part1[3].c[0],
+			     part1[4].c[0]);
+		    
+		    logging.info(buffer);
+		    
+		    snprintf(buffer, 256, "part2 v: %f %f %f %f %f",
+			     part2[0].c[0],part2[1].c[0],
+			     part2[2].c[0],part2[3].c[0],
+			     part2[4].c[0]);
+		    
+		    logging.info(buffer);
+		  }
+
+		  
+		  lagged_weights[0] = part1 + part2;
+		  
+		  if(0){
+		    char buffer[256];
+		    
+		    snprintf(buffer, 256, "after lw v: %f %f %f %f %f",
+			     lagged_weights[0][0].c[0],lagged_weights[0][1].c[0],
+			     lagged_weights[0][2].c[0],lagged_weights[0][3].c[0],
+			     lagged_weights[0][4].c[0]);
+		    
+		    logging.info(buffer);
+		    
+		    snprintf(buffer, 256, "after w v: %f %f %f %f %f",
+			     weights[0].c[0],weights[1].c[0],
+			     weights[2].c[0],weights[3].c[0],
+			     weights[4].c[0]);
+		    
+		    logging.info(buffer);
+		  }
+		  
+		  if(nn2.importdata(lagged_weights[0]) == false) assert(0);
+		  if(lagged_Q.importNetwork(nn2) == false) assert(0);
 		}
 		else{
 		  logging.info("lagged_Q updated: NO LAG");
@@ -944,7 +1211,6 @@ namespace whiteice
 		
 		whiteice::logging.info("RIFL_abstract2: new Q diagnostics");
 		lagged_Q.diagnosticsInfo();
-		
 		whiteice::logging.info("RIFL_abstract2: new Q-model imported");
 	      }
 
@@ -980,8 +1246,7 @@ namespace whiteice
 							 database,
 							 episodes,
 							 database_mutex,
-							 epoch[0],
-							 data);
+							 epoch[0]);
 	    }
 	    
 	    dataset_thread->start(SAMPLESIZE, useEpisodes);
@@ -994,6 +1259,9 @@ namespace whiteice
 	  else{
 	    if(dataset_thread->isCompleted() != true){
 	      continue; // we havent computed proper dataset yet..
+	    }
+	    else{
+	      data = dataset_thread->getDataset();
 	    }
 	  }
 	  
@@ -1032,21 +1300,28 @@ namespace whiteice
 	  grad.setNormalizeError(false); // calculate real error values	  
 	  
 	  
-	  if(hasModel[0] >= 0){
+	  if(hasModel[0] >= 1){
+	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS/10);
+
+	    grad.setUseMinibatch(false);
+	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	    
+	    if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS/10,
+				  dropout, useInitialNN) == true)
+	      logging.info("========> Q OPTIMIZATION STARTED");
+	    else
+	      logging.info("========> Q OPTIMIZATION STARTED FAILED");
+	  }
+	  else{
 	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
 
 	    grad.setUseMinibatch(false);
 	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	    
-	    grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN);
-	  }
-	  else{
-	    eta.start(0.0, 15);
-
-	    grad.setUseMinibatch(false);
-	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
-	    
-	    grad.startOptimize(data, qnn, 1, 15, dropout, useInitialNN);
+	    if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN) == true)
+	      logging.info("========> Q OPTIMIZATION STARTED");
+	    else
+	      logging.info("========> Q OPTIMIZATION STARTED FAILED");
 	  }
 	  
 
@@ -1118,24 +1393,27 @@ namespace whiteice
 	    
 	    if(dataset2_thread == nullptr){
 
-	      grad2.getSolution(nn);
-	      grad2.getDataset(this->policy_preprocess);
-	      
-	      char buffer[128];
-	      double tmp = 0.0;
-	      whiteice::math::convert(tmp, meanq);
-	      snprintf(buffer, 128,
-		       "RIFL_abstract2: new optimized policy-model (%f mean-q, %d iters, epoch %d)",
-		       tmp, iters, epoch[1]);
-	      whiteice::logging.info(buffer);
-
 	      {
+		logging.info("========> POLICY RESULT LOADING");
+		
 		std::lock_guard<std::mutex> lock(policy_mutex);
+		
+		if(grad2.getSolution(nn) == false) assert(0);
+		//if(grad2.getDataset(this->policy_preprocess) == false) assert(0);
+		
+		char buffer[128];
+		double tmp = 0.0;
+		whiteice::math::convert(tmp, meanq);
+		snprintf(buffer, 128,
+			 "RIFL_abstract2: new optimized policy-model (%f mean-q, %d iters, epoch %d)",
+			 tmp, iters, epoch[1]);
+		whiteice::logging.info(buffer);
+		
 		
 		policy.importNetwork(nn);
 
-		policy_preprocess.clearData(0);
-		policy_preprocess.clearData(1);
+		//policy_preprocess.clearData(0);
+		//policy_preprocess.clearData(1);
 		
 #if 1
 		whiteice::nnetwork<T> nn2;
@@ -1144,6 +1422,12 @@ namespace whiteice
 
 		math::vertex<T> weights;
 		nn.exportdata(weights);
+
+		if(hasModel[1] == 0){
+		  // don't lag results with the first update
+		  lagged_weights[0] = weights;
+		}
+
 
 		if(lagged_weights.size() > 0){
 
@@ -1208,7 +1492,7 @@ namespace whiteice
 	    continue;
 	  }
 	  else{
-	    if(dataset2_thread->isCompleted() != true)
+	    if(dataset2_thread->isCompleted() == false)
 	      continue; // we havent computed proper dataset yet..
 	  }
 
@@ -1260,23 +1544,35 @@ namespace whiteice
 	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
 	    
-	    if(hasModel[1] >= 0){
+	    if(hasModel[1] >= 1){
+	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS/10);
+
+	      grad2.setUseMinibatch(false);
+	      grad2.setSGD(T(-1.0)); // what is correct learning rate???
+	      
+	      if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
+				     P_OPTIMIZE_ITERATIONS/10,
+				     dropout, useInitialNN) == true){
+		logging.info("========> POLICY OPTIMIZATION STARTED (1)");
+	      }
+	      else{
+		logging.info("========> POLICY OPTIMIZATION START FAILED (1)");
+	      }
+	    }
+	    else{
 	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
 
 	      grad2.setUseMinibatch(false);
 	      grad2.setSGD(T(-1.0)); // what is correct learning rate???
 	      
-	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, P_OPTIMIZE_ITERATIONS,
-				  dropout, useInitialNN);
-	    }
-	    else{
-	      eta2.start(0.0, 15);
-
-	      grad2.setUseMinibatch(false);
-	      grad2.setSGD(T(-1.0f)); // disable stochastic gradient descent
-	      
-	      grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1, 15,
-				  dropout, useInitialNN);
+	      if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
+				     P_OPTIMIZE_ITERATIONS,
+				     dropout, useInitialNN) == true){
+		logging.info("========> POLICY OPTIMIZATION STARTED (2)");
+	      }
+	      else{
+		logging.info("========> POLICY OPTIMIZATION START FAILED (2)");
+	      }
 	    }
 
 	    

@@ -319,7 +319,7 @@ namespace whiteice
 
 	this->nn = new nnetwork<T>(nn); // copies network (settings)
 	nn.exportdata(bestx);
-	best_error = getError(nn, this->data, (real(regularizer)>real(T(0.0f))), dropout);
+	best_error = getError(*(this->nn), this->data, (real(regularizer)>real(T(0.0f))), dropout);
 	
 	if(dropout){
 	  auto nn_without_dropout = nn;
@@ -327,7 +327,7 @@ namespace whiteice
 	  best_pure_error = getError(nn_without_dropout, this->data, false, false);
 	}
 	else{
-	  best_pure_error = getError(nn, this->data, false, false);
+	  best_pure_error = getError(*(this->nn), this->data, false, false);
 	}
 	
       }
@@ -385,8 +385,8 @@ namespace whiteice
     template <typename T>
     bool NNGradDescent<T>::isRunning()
     {
-      std::lock_guard<std::mutex>  lock1(start_lock);
-      std::unique_lock<std::mutex> lock2(thread_is_running_mutex);
+      std::lock_guard<std::mutex> lock1(start_lock);
+      std::lock_guard<std::mutex> lock2(thread_is_running_mutex); // was unique_lock????
       return running && (thread_is_running > 0);
     }
 

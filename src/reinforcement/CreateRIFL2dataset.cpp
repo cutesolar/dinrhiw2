@@ -24,15 +24,13 @@ namespace whiteice
 					    std::vector< rifl2_datapoint<T> > const & database_,
 					    std::vector< std::vector< rifl2_datapoint<T> > > const & episodes_,
 					    std::mutex & database_mutex_,
-					    unsigned int const& epoch_, 
-					    whiteice::dataset<T>& data_) : 
+					    unsigned int const& epoch_) : 
   
     rifl(rifl_), 
     database(database_),
     episodes(episodes_),
     database_mutex(database_mutex_),
-    epoch(epoch_),
-    data(data_)
+    epoch(epoch_)
   {
     worker_thread = nullptr;
     running = false;
@@ -87,8 +85,6 @@ namespace whiteice
       this->smartEpisodes = smartEpisodes;
 
       {
-	std::lock_guard<std::mutex> lock(database_mutex);
-	
 	data.clear();
 	data.createCluster("input-state", rifl.numStates + rifl.numActions);
 	data.createCluster("output-action", 1);
@@ -124,6 +120,8 @@ namespace whiteice
   template <typename T>
   bool CreateRIFL2dataset<T>::isRunning() const
   {
+    std::lock_guard<std::mutex> lock(thread_mutex);
+    
     return running;
   }
 
@@ -279,7 +277,7 @@ namespace whiteice
       unsigned int counter = 0;
 
       while(counter < NUMDATA){
-	
+
 	if(running == false) // we don't do anything anymore..
 	  break; // exits loop
 	
@@ -307,9 +305,13 @@ namespace whiteice
 
 #pragma omp parallel for schedule(guided)
 	for(unsigned i=0;i<episode.size();i++){
-	  
-	  if(running == false) // we don't do anything anymore..
-	    continue; // exits OpenMP loop
+
+	  {
+	    std::lock_guard<std::mutex> lock(thread_mutex);
+	    
+	    if(running == false) // we don't do anything anymore..
+	      continue; // exits OpenMP loop
+	  }
 
 	  const rifl2_datapoint<T>& datum = episode[i];
 	  
@@ -434,9 +436,13 @@ namespace whiteice
 
 #pragma omp parallel for schedule(guided)
       for(unsigned int i=0;i<NUMDATA;i++){
-	
-	if(running == false) // we don't do anything anymore..
-	  continue; // exits OpenMP loop
+
+	{
+	  std::lock_guard<std::mutex> lock(thread_mutex);
+	  
+	  if(running == false) // we don't do anything anymore..
+	    continue; // exits OpenMP loop
+	}
 	
 	database_mutex.lock();
 	
@@ -561,7 +567,6 @@ namespace whiteice
 	
 #pragma omp critical
 	{
-	  std::lock_guard<std::mutex> lock(database_mutex);
 	  data.add(0, in);
 	  data.add(1, out);
 	  
@@ -572,8 +577,12 @@ namespace whiteice
       
     }
 
-    if(running == false)
-      return; // exit point
+    {
+      std::lock_guard<std::mutex> lock(thread_mutex);
+      
+      if(running == false)
+	return; // exit point
+    }
 
     // add preprocessing to dataset
 #if 0
@@ -609,7 +618,7 @@ namespace whiteice
     completed = true;
 
     {
-      // std::lock_guard<std::mutex> lock(thread_mutex);
+      std::lock_guard<std::mutex> lock(thread_mutex);
       running = false;
     }
     
