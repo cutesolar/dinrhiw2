@@ -57,7 +57,8 @@ int main(int argc, char** argv)
   if(useFlag == false){
     whiteice::CartPole2< whiteice::math::blas_real<double> > system;
 
-    system.setEpsilon(0.50); // 50% of control choices are random
+    system.setEpsilon(0.75); // 25% of control choices are random
+    system.setSleepingMode(false);
     system.setLearningMode(true);
     system.setVerbose(false);
 
@@ -106,7 +107,8 @@ int main(int argc, char** argv)
 
     system.setEpsilon(1.00); // 100% of examples are selected accoring to model
     system.setLearningMode(false);
-    system.setHasModel(1);
+    system.setSleepingMode(false);
+    //system.setHasModel(1);
     system.setVerbose(true);
     
     if(system.load("rifl.dat") == false){
