@@ -19,14 +19,20 @@ namespace whiteice
 {
 
   template <typename T>
-  RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions,
-				    unsigned int numStates)
+  RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions_,
+				    unsigned int numStates_) :
+    numActions(numActions_),
+    numStates(numStates_)
   {
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
       gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
-      epsilon = T(0.80);
+      
+      {
+	std::lock_guard<std::mutex> locke(epsilon_mutex);
+	epsilon = T(0.80);
+      }
 
       learningMode = true;
       sleepMode = true;
@@ -43,9 +49,6 @@ namespace whiteice
 
       assert(numActions > 0);
       assert(numStates > 0);
-      
-      this->numActions = numActions;
-      this->numStates  = numStates;
     }
 
     
@@ -164,16 +167,21 @@ namespace whiteice
 
   
   template <typename T>
-  RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions,
-				    unsigned int numStates,
+  RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions_,
+				    unsigned int numStates_,
 				    std::vector<unsigned int> Q_arch,
-				    std::vector<unsigned int> policy_arch)
+				    std::vector<unsigned int> policy_arch) :
+    numActions(numActions_), numStates(numStates_)
   {
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
       gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
-      epsilon = T(0.80);
+      
+      {
+	std::lock_guard<std::mutex> locke(epsilon_mutex);
+	epsilon = T(0.80);
+      }
 
       learningMode = true;
       sleepMode = true;
@@ -191,8 +199,6 @@ namespace whiteice
       assert(numActions > 0);
       assert(numStates > 0);
       
-      this->numActions = numActions;
-      this->numStates  = numStates;
 
       if(Q_arch.size() < 2){
 	Q_arch.resize(2);
@@ -367,8 +373,11 @@ namespace whiteice
   template <typename T>
   bool RIFL_abstract2<T>::setEpsilon(T epsilon) 
   {
+    std::lock_guard<std::mutex> locke(epsilon_mutex);
+    
     if(epsilon < T(0.0) || epsilon > T(1.0)) return false;
     this->epsilon = epsilon;
+    
     return true;
   }
   
@@ -376,6 +385,7 @@ namespace whiteice
   template <typename T>
   T RIFL_abstract2<T>::getEpsilon() const 
   {
+    std::lock_guard<std::mutex> locke(epsilon_mutex);
     return epsilon;
   }
 
@@ -948,14 +958,18 @@ namespace whiteice
 
 	// FIXME add better random normally distributed noise (exploration)
 	{
+	  std::lock_guard<std::mutex> locke(epsilon_mutex);
+	  
 	  if(rng.uniform() > epsilon){ // 1-epsilon % are chosen randomly
 	    
 	    // rng.normal(u); // Normal E[n]=0 StDev[n]=1
 
-	    rng.uniform(u); // [0,1]
+	    rng.uniform(u); // [0,1] valued actions!
 
+#if 0
 	    for(unsigned int i=0;i<u.size();i++)
 	      u[i] = T(2.0f)*u[i] - T(1.0f); // [-1,+1]
+#endif
 
 	    random = true;
 	  }

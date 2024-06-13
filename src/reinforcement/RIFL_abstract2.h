@@ -26,6 +26,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 #include "dinrhiw_blas.h"
 #include "vertex.h"
@@ -130,7 +131,7 @@ namespace whiteice
 
   protected:
     
-    unsigned int numActions, numStates; // dimensions of R^d vectors
+    const unsigned int numActions, numStates; // dimensions of R^d vectors
     
     virtual bool getState(whiteice::math::vertex<T>& state) = 0;
 
@@ -164,10 +165,12 @@ namespace whiteice
     std::vector<unsigned int> hasModel;
     mutable std::mutex has_model_mutex;
     
-    float latestError;
-    bool learningMode, sleepMode;
+    std::atomic<float> latestError;
+    std::atomic<bool> learningMode, sleepMode;
     
     T epsilon;
+    mutable std::mutex epsilon_mutex;
+    
     T gamma;
     bool oneHotEncodedAction = false;
     bool useEpisodes = false;

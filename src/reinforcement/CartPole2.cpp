@@ -292,7 +292,10 @@ namespace whiteice
     assert(action.size() > 0);
     
     {
-      Fstep = 100.0*action[0].c[0]; // action values are [0,0.2] from model.
+      // action values are [0,0.2] from model. [really now: [0.0,1.0]
+      
+      const T value = action[0]*T(2.0) - T(1.0); // converts action to [-1,+1] valued value 
+      Fstep = 100.0*value.c[0];
       
       // should cause action values to be larger [0,1] to give meaningful results
       // Fstep = 4.0*action[0].c[0]; 
@@ -367,9 +370,13 @@ namespace whiteice
 
 	  T a1 = theta/T(2.0*M_PI);
 
-	  const T epsilon = T(1e-2);
+	  const T epsilon = T(0.1);
 	  reinforcement = T(1.0)/(abs(a1)+epsilon);
+	  if(reinforcement >= T(10.0f)) reinforcement = T(10.0f);
+	  if(reinforcement <= T(0.0)) reinforcement = T(0.0f);
 	  reinforcement /= T(10.0f);
+
+	  reinforcement *= T(0.1f); // reinforcement is in the range of [0, 0.1]
 
 	  //std::cout << "theta = " << theta << " reinforcement = " << reinforcement << std::endl;
 	  
