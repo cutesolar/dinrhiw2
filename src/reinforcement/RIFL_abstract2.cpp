@@ -31,10 +31,14 @@ namespace whiteice
       learningMode = true;
       sleepMode = true;
 
-      hasModel.resize(2);
-      hasModel[0] = 0; // Q-network
-      hasModel[1] = 0; // policy-network
-
+      {
+	std::lock_guard<std::mutex> lockh(has_model_mutex);
+	
+	hasModel.resize(2);
+	hasModel[0] = 0; // Q-network
+	hasModel[1] = 0; // policy-network
+      }
+	
       latestError = 0.0f;
 
       assert(numActions > 0);
@@ -174,9 +178,13 @@ namespace whiteice
       learningMode = true;
       sleepMode = true;
 
-      hasModel.resize(2);
-      hasModel[0] = 0; // Q-network
-      hasModel[1] = 0; // policy-network
+      {
+	std::lock_guard<std::mutex> lockh(has_model_mutex);
+	
+	hasModel.resize(2);
+	hasModel[0] = 0; // Q-network
+	hasModel[1] = 0; // policy-network
+      }
 
       latestError = 0.0f;
 
@@ -400,6 +408,8 @@ namespace whiteice
   template <typename T>
   void RIFL_abstract2<T>::setHasModel(unsigned int hasModel) 
   {
+    std::lock_guard<std::mutex> lockh(has_model_mutex);
+    
     this->hasModel[0] = hasModel;
     this->hasModel[1] = hasModel;
   }
@@ -407,6 +417,8 @@ namespace whiteice
   template <typename T>
   unsigned int RIFL_abstract2<T>::getHasModel() 
   {
+    std::lock_guard<std::mutex> lockh(has_model_mutex);
+    
     if(hasModel[0] < hasModel[1]) return hasModel[0];
     else return hasModel[1];
   }
@@ -470,6 +482,35 @@ namespace whiteice
       snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
       if(policy_preprocess.save(buffer) == false){
 	logging.error("RIFL_abstract2::save() saving policy-preprocess failed");
+	return false;
+      }
+    }
+
+    {
+      snprintf(buffer, 256, "%s-hasmodel", filename.c_str());
+
+      whiteice::dataset<T> db;
+
+      db.createCluster("has_model", 2);
+
+      whiteice::math::vertex<T> v;
+      v.resize(2);
+      v.zero();
+
+      std::lock_guard<std::mutex> lockh(has_model_mutex);
+      
+      if(hasModel.size() == 2){
+	v[0] = T(hasModel[0]);
+	v[1] = T(hasModel[1]);
+      }
+
+      if(db.add(0, v) == false){
+	logging.error("RIFL_abstract2::save(): saving hasModel data failed.");
+	return false;
+      }
+
+      if(db.save(buffer) == false){
+	logging.error("RIFL_abstract2::save(): saving hasModel dataset file failed.");
 	return false;
       }
     }
@@ -581,7 +622,34 @@ namespace whiteice
 	return false;
       }
     }
-    
+
+    {
+      snprintf(buffer, 256, "%s-hasmodel", filename.c_str());
+      
+      whiteice::dataset<T> db;
+
+      if(db.load(buffer) == false){
+	logging.error("RIFL_abstract2::load() loading hasModel dataset file failed");
+	return false;
+      }
+
+      if(db.size(0) != 1 && db.dimension(0) != 2){
+	logging.error("RIFL_abstract2::load() loading hasModel dataset file failed (2)");
+	return false;
+      }
+
+      whiteice::math::vertex<T> v;
+      v.resize(2);
+      v.zero();
+
+      v = db.access(0,0);
+
+      std::lock_guard<std::mutex> lockh(has_model_mutex);
+
+      hasModel.resize(2);
+      hasModel[0] = (int)v[0].c[0];
+      hasModel[1] = (int)v[1].c[0];
+    }
 
     {
       snprintf(buffer, 256, "%s-database", filename.c_str());
@@ -602,7 +670,7 @@ namespace whiteice
 
       if(db.dimension(0) != db.dimension(1) || db.dimension(3) != 1 || db.dimension(4) != 1){
 	char buf[128];
-	snprintf(buf, 128, "RIFL_abstract2::load() database wrong dimensions %d %d %d %d",
+	snprintf(buf, 128, "RIFL_abstract2::load() database wrong dimensions %d %d %d %d %d",
 		 db.dimension(0), db.dimension(1), db.dimension(3), db.dimension(3),
 		 db.dimension(4));
 	logging.error(buf);
@@ -870,9 +938,13 @@ namespace whiteice
 
 	// if there's no model then make random selection (normally distributed)
 #if 1
-	if(hasModel[0] == 0 || hasModel[1] == 0){
-	  rng.uniform(u);
-	  random = true;
+	{
+	  std::lock_guard<std::mutex> lockh(has_model_mutex);
+	  
+	  if(hasModel[0] == 0 || hasModel[1] == 0){
+	    rng.uniform(u);
+	    random = true;
+	  }
 	}
 #endif
 	
@@ -918,6 +990,8 @@ namespace whiteice
 	  auto norm2 = result.norm();
 
 #if 0
+	  std::lock_guard<std::mutex> lockh(has_model_mutex);
+	  
 	  if(norm2 < norm1){
 	    std::cout << counter << " "
 		      << "Q(STATE,POLICY_ACTION) = " << u
@@ -945,6 +1019,8 @@ namespace whiteice
 	}
 	else{
 #if 0
+	  std::lock_guard<std::mutex> lockh(has_model_mutex);
+	  
 	  std::cout << counter << " " 
 		    << "Q(STATE,POLICY_ACTION) = " << u
 		    << ", STATE = " << state
@@ -997,13 +1073,17 @@ namespace whiteice
 
 	  total_reward /= T(episode.size());
 
-	  char buffer[80];
+	  {
+	    char buffer[80];
 
-	  snprintf(buffer, 80, "Episode %d avg reward: %f (%d moves) [%d %d models]",
-		   (int)episodes_counter, total_reward.c[0], (int)episode.size(),
-		   hasModel[0], hasModel[1]);
+	    std::lock_guard<std::mutex> lockh(has_model_mutex);
+	    
+	    snprintf(buffer, 80, "Episode %d avg reward: %f (%d moves) [%d %d models]",
+		     (int)episodes_counter, total_reward.c[0], (int)episode.size(),
+		     hasModel[0], hasModel[1]);
 
-	  whiteice::logging.info(buffer);
+	    whiteice::logging.info(buffer);
+	  }
 
 
 	  fprintf(episodesFile, "%f\n", total_reward.c[0]);
@@ -1119,9 +1199,13 @@ namespace whiteice
 		  math::vertex<T> weights;
 		  if(nn.exportdata(weights) == false) assert(0);
 
-		  if(hasModel[1] == 0){
-		    // don't lag results with the first update
-		    lagged_weights[0] = weights;
+		  {
+		    std::lock_guard<std::mutex> lockh(has_model_mutex);
+		    
+		    if(hasModel[1] == 0){
+		      // don't lag results with the first update
+		      lagged_weights[0] = weights;
+		    }
 		  }
 		  
 		  if(0){
@@ -1217,7 +1301,11 @@ namespace whiteice
 	      grad.reset(); // resets gradient to empty gradient descent
 
 	      epoch[0]++;
-	      hasModel[0]++;
+	      
+	      {
+		std::lock_guard<std::mutex> lockh(has_model_mutex);
+		hasModel[0]++;
+	      }
 	    }
 	  }
 
@@ -1299,29 +1387,32 @@ namespace whiteice
 	  grad.setRegularizer(T(0.0f)); // DISABLE REGULARIZER FOR Q-NETWORK (was: 0.001f)
 	  grad.setNormalizeError(false); // calculate real error values	  
 	  
-	  
-	  if(hasModel[0] >= 1){
-	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS/10);
-
-	    grad.setUseMinibatch(false);
-	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	  {
+	    std::lock_guard<std::mutex> lockh(has_model_mutex);
 	    
-	    if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS/10,
-				  dropout, useInitialNN) == true)
-	      logging.info("========> Q OPTIMIZATION STARTED");
-	    else
-	      logging.info("========> Q OPTIMIZATION STARTED FAILED");
-	  }
-	  else{
-	    eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
-
-	    grad.setUseMinibatch(false);
-	    grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
-	    
-	    if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN) == true)
-	      logging.info("========> Q OPTIMIZATION STARTED");
-	    else
-	      logging.info("========> Q OPTIMIZATION STARTED FAILED");
+	    if(hasModel[0] >= 1){
+	      eta.start(0.0, Q_OPTIMIZE_ITERATIONS/10);
+	      
+	      grad.setUseMinibatch(false);
+	      grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	      
+	      if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS/10,
+				    dropout, useInitialNN) == true)
+		logging.info("========> Q OPTIMIZATION STARTED");
+	      else
+		logging.info("========> Q OPTIMIZATION STARTED FAILED");
+	    }
+	    else{
+	      eta.start(0.0, Q_OPTIMIZE_ITERATIONS);
+	      
+	      grad.setUseMinibatch(false);
+	      grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
+	      
+	      if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS, dropout, useInitialNN) == true)
+		logging.info("========> Q OPTIMIZATION STARTED");
+	      else
+		logging.info("========> Q OPTIMIZATION STARTED FAILED");
+	    }
 	  }
 	  
 
@@ -1333,19 +1424,23 @@ namespace whiteice
 
 	  if(grad.getSolutionStatistics(error, iters)){
 	    if(((signed int)iters) > old_grad_iterations){
-	      char buffer[128];
-
-	      eta.update(iters);
-	      
-	      double e;
-	      whiteice::math::convert(e, error);
-	      
-	      snprintf(buffer, 128,
-		       "RIFL_abstract2: Q-optimizer epoch %d iter %d error %f hasmodel %d [ETA %.2f mins]",
-		       epoch[0], iters, e, hasModel[0], eta.estimate()/60.0);
-	      
-	      whiteice::logging.info(buffer);
-
+	      {
+		std::lock_guard<std::mutex> lockh(has_model_mutex);
+		
+		char buffer[128];
+		
+		eta.update(iters);
+		
+		double e;
+		whiteice::math::convert(e, error);
+		
+		snprintf(buffer, 128,
+			 "RIFL_abstract2: Q-optimizer epoch %d iter %d error %f hasmodel %d [ETA %.2f mins]",
+			 epoch[0], iters, e, hasModel[0], eta.estimate()/60.0);
+		
+		whiteice::logging.info(buffer);
+	      }
+		
 	      old_grad_iterations = (int)iters;
 	    }
 	  }
@@ -1423,12 +1518,15 @@ namespace whiteice
 		math::vertex<T> weights;
 		nn.exportdata(weights);
 
-		if(hasModel[1] == 0){
-		  // don't lag results with the first update
-		  lagged_weights[0] = weights;
+		{
+		  std::lock_guard<std::mutex> lockh(has_model_mutex);
+		  
+		  if(hasModel[1] == 0){
+		    // don't lag results with the first update
+		    lagged_weights[0] = weights;
+		  }
 		}
-
-
+		  
 		if(lagged_weights.size() > 0){
 
 		  if(weights.size() == lagged_weights[0].size()){
@@ -1462,7 +1560,12 @@ namespace whiteice
 	      grad2.reset();
 
 	      epoch[1]++;
-	      hasModel[1]++;
+
+	      {
+		std::lock_guard<std::mutex> lockh(has_model_mutex);
+		
+		hasModel[1]++;
+	      }
 	    }
 	    
 	  }
@@ -1543,35 +1646,39 @@ namespace whiteice
 	    const bool dropout = false;
 	    const bool useInitialNN = true; // WAS: start from scratch everytime
 	    
-	    
-	    if(hasModel[1] >= 1){
-	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS/10);
 
-	      grad2.setUseMinibatch(false);
-	      grad2.setSGD(T(-1.0)); // what is correct learning rate???
+	    {
+	      std::lock_guard<std::mutex> lockh(has_model_mutex);
 	      
-	      if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
-				     P_OPTIMIZE_ITERATIONS/10,
-				     dropout, useInitialNN) == true){
-		logging.info("========> POLICY OPTIMIZATION STARTED (1)");
+	      if(hasModel[1] >= 1){
+		eta2.start(0.0, P_OPTIMIZE_ITERATIONS/10);
+		
+		grad2.setUseMinibatch(false);
+		grad2.setSGD(T(-1.0)); // what is correct learning rate???
+		
+		if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
+				       P_OPTIMIZE_ITERATIONS/10,
+				       dropout, useInitialNN) == true){
+		  logging.info("========> POLICY OPTIMIZATION STARTED (1)");
+		}
+		else{
+		  logging.info("========> POLICY OPTIMIZATION START FAILED (1)");
+		}
 	      }
 	      else{
-		logging.info("========> POLICY OPTIMIZATION START FAILED (1)");
-	      }
-	    }
-	    else{
-	      eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
-
-	      grad2.setUseMinibatch(false);
-	      grad2.setSGD(T(-1.0)); // what is correct learning rate???
-	      
-	      if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
-				     P_OPTIMIZE_ITERATIONS,
-				     dropout, useInitialNN) == true){
-		logging.info("========> POLICY OPTIMIZATION STARTED (2)");
-	      }
-	      else{
-		logging.info("========> POLICY OPTIMIZATION START FAILED (2)");
+		eta2.start(0.0, P_OPTIMIZE_ITERATIONS);
+		
+		grad2.setUseMinibatch(false);
+		grad2.setSGD(T(-1.0)); // what is correct learning rate???
+		
+		if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
+				       P_OPTIMIZE_ITERATIONS,
+				       dropout, useInitialNN) == true){
+		  logging.info("========> POLICY OPTIMIZATION STARTED (2)");
+		}
+		else{
+		  logging.info("========> POLICY OPTIMIZATION START FAILED (2)");
+		}
 	      }
 	    }
 

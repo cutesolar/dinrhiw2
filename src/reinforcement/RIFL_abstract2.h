@@ -158,8 +158,12 @@ namespace whiteice
     std::vector< rifl2_datapoint<T> > database;
     mutable std::mutex database_mutex;
     
+
+
     
     std::vector<unsigned int> hasModel;
+    mutable std::mutex has_model_mutex;
+    
     float latestError;
     bool learningMode, sleepMode;
     
