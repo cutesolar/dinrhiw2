@@ -581,43 +581,60 @@ namespace whiteice
   bool RIFL_abstract2<T>::load(const std::string& filename)
   {
     char buffer[256];
+
+    Q_mutex.lock();
+    policy_mutex.lock();
+    has_model_mutex.lock();
+    database_mutex.lock();
+
+    auto Q_load = Q;
+    auto policy_load = policy;
+    auto lagged_Q_load = lagged_Q;
+    auto lagged_policy_load = lagged_policy;
+    auto Q_preprocess_load = Q_preprocess;
+    auto policy_preprocess_load = policy_preprocess;
+    auto hasModel_load = hasModel;
+    auto database_load = database;
+
+    Q_mutex.unlock();
+    policy_mutex.unlock();
+    has_model_mutex.unlock();
+    database_mutex.unlock();
+    
     
     {
-      std::lock_guard<std::mutex> lock1(Q_mutex);
-      std::lock_guard<std::mutex> lock2(policy_mutex);
-      
       snprintf(buffer, 256, "%s-q", filename.c_str());    
-      if(Q.load(buffer) == false){
+      if(Q_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading Q failed");
 	return false;
       }
       
       snprintf(buffer, 256, "%s-policy", filename.c_str());
-      if(policy.load(buffer) == false){
+      if(policy_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading policy failed");
 	return false;
       }
       
       snprintf(buffer, 256, "%s-lagged-q", filename.c_str());    
-      if(lagged_Q.load(buffer) == false){
+      if(lagged_Q_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading lagged-q failed");
 	return false;
       }
       
       snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
-      if(lagged_policy.load(buffer) == false){
+      if(lagged_policy_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading lagged-policy failed");
 	return false;
       }
       
       snprintf(buffer, 256, "%s-q-preprocess", filename.c_str());    
-      if(Q_preprocess.load(buffer) == false){
+      if(Q_preprocess_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading q_preprocess failed");
 	return false;
       }
       
       snprintf(buffer, 256, "%s-policy-preprocess", filename.c_str());
-      if(policy_preprocess.load(buffer) == false){
+      if(policy_preprocess_load.load(buffer) == false){
 	logging.error("RIFL_abstract2::load() loading policy_preprocess failed");
 	return false;
       }
@@ -644,11 +661,9 @@ namespace whiteice
 
       v = db.access(0,0);
 
-      std::lock_guard<std::mutex> lockh(has_model_mutex);
-
-      hasModel.resize(2);
-      hasModel[0] = (int)v[0].c[0];
-      hasModel[1] = (int)v[1].c[0];
+      hasModel_load.resize(2);
+      hasModel_load[0] = (int)v[0].c[0];
+      hasModel_load[1] = (int)v[1].c[0];
     }
 
     {
@@ -705,9 +720,9 @@ namespace whiteice
 	return false;
       }
 					     
-      std::lock_guard<std::mutex> lock1(database_mutex);
-
-      database.clear();
+      
+      
+      database_load.clear();
       
       whiteice::rifl2_datapoint<T> p;
       whiteice::math::vertex<T> v;
@@ -722,9 +737,25 @@ namespace whiteice
 	if(v[0] > T(0.5)) p.lastStep = true;
 	else p.lastStep = false;
 	
-	database.push_back(p);
+	database_load.push_back(p);
       }
       
+    }
+    
+    {
+      std::lock_guard<std::mutex> lock1(Q_mutex);
+      std::lock_guard<std::mutex> lock2(policy_mutex);
+      std::lock_guard<std::mutex> lockh(has_model_mutex);
+      std::lock_guard<std::mutex> lockd(database_mutex);
+      
+      Q = Q_load;
+      policy = policy_load;
+      lagged_Q = lagged_Q_load;
+      lagged_policy = lagged_policy_load;
+      Q_preprocess = Q_preprocess_load;
+      policy_preprocess = policy_preprocess_load;
+      hasModel = hasModel_load;
+      database = database_load;
     }
     
     return true;

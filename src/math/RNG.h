@@ -32,8 +32,9 @@ namespace whiteice {
   class RNG {
   public:
     
-    // rdrand() is SLOW so avoid using hardware
-    RNG(const bool usehw = false);
+    // rdrand() is SLOW (avoid using hardware)
+    // [not using HW rand() is NOT thread-safe (uses rand()) so uses now hardware which is thread-safe!]
+    RNG(const bool usehw = true);
     
     virtual ~RNG(){
       if(distrib) delete distrib;

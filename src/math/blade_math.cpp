@@ -1344,6 +1344,46 @@ namespace whiteice
     }
 
 
+    //////////////////////////////////////////////////////////////////////
+    // tohex
+
+    std::string tohex(float v)
+    {
+      char buffer[80]; snprintf(buffer, 80, "0x%x", *((unsigned int*)&v));
+      return std::string(buffer);
+    }
+
+    std::string tohex(double v)
+    {
+      whiteice::dword lower = 0, upper = 0;
+      lower = ((whiteice::dword*)(&v))[0];
+      upper = ((whiteice::dword*)(&v))[1];
+      
+      char buffer[80];
+      snprintf(buffer, 80, "0x%x%x",
+	       (unsigned int)upper, (unsigned int)lower);
+      return std::string(buffer);
+    }
+
+    std::string tohex(blas_real<float> v)
+    {
+      char buffer[80]; snprintf(buffer, 80, "0x%x", *((unsigned int*)&(v.c[0])));
+      return std::string(buffer);
+    }
+
+    std::string tohex(blas_real<double> v)
+    {
+      whiteice::dword lower = 0, upper = 0;
+      lower = ((whiteice::dword*)(&v))[0];
+      upper = ((whiteice::dword*)(&v))[1];
+      
+      char buffer[80];
+      snprintf(buffer, 80, "0x%x%x",
+	       (unsigned int)upper, (unsigned int)lower);
+      return std::string(buffer);
+    }
+    
+    //////////////////////////////////////////////////////////////////////
     
     // for FFT . bits must be smaller than 8*sizeof(int)
     // (32bits nowadays - assuming 8 bit bytes)

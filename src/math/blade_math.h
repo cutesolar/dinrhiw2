@@ -503,9 +503,16 @@ namespace whiteice
     bool isinf(superresolution<blas_complex<double>, modular<unsigned int> > v);    
 
     // fpclassify() is buggy.. for some reason it does not detect NaNs correctly (sometimes) .. or it is a compiler bug
-    inline bool isnan(float v){ return (std::fpclassify(v) == FP_NAN) || (*((unsigned int*)&v) == 0xFFC00000); }
+    inline bool isnan(float v){
+      return (std::fpclassify(v) == FP_NAN);
+      //|| (*((unsigned int*)&v) == 0xFFC00000);
+    }
+    
     // inline bool isnan(double v){ return (std::fpclassify(v) == FP_NAN) || (*((unsigned long long*)&v) == 0xFFF8000000000000); }
-    inline bool isnan(double v){ return (std::isnan(v) || (*((unsigned long long*)&v) == 0xFFF8000000000000) || (*((unsigned long long*)&v) == 0x7FF8000000000000)); }
+  inline bool isnan(double v){
+    return (std::isnan(v));
+	    // || ( *((unsigned long long*)&v) == 0xFFF8000000000000) || (*((unsigned long long*)&v) == 0x7FF8000000000000));
+	    }
     inline bool isnan(blas_real<float> v){ return whiteice::math::isnan(v.c[0]); };
     inline bool isnan(blas_real<double> v){ return whiteice::math::isnan(v.c[0]); }
     inline bool isnan(blas_complex<float> v){ return whiteice::math::isnan(v.c[0]) || whiteice::math::isnan(v.c[1]); }
@@ -520,41 +527,11 @@ namespace whiteice
     bool isnan(superresolution<blas_complex<double>, modular<unsigned int> > v);
     
     
-    inline std::string tohex(float v)
-    {
-      char buffer[80]; snprintf(buffer, 80, "0x%x", *((unsigned int*)&v));
-      return std::string(buffer);
-    }
+    std::string tohex(float v);
+    std::string tohex(double v);
+    std::string tohex(blas_real<float> v);
+    std::string tohex(blas_real<double> v);
     
-    inline std::string tohex(double v)
-    {
-      whiteice::dword lower = 0, upper = 0;
-      lower = ((whiteice::dword*)(&v))[0];
-      upper = ((whiteice::dword*)(&v))[1];
-      
-      char buffer[80];
-      snprintf(buffer, 80, "0x%x%x",
-	       (unsigned int)upper, (unsigned int)lower);
-      return std::string(buffer);
-    }
-    
-    inline std::string tohex(blas_real<float> v)
-    {
-      char buffer[80]; snprintf(buffer, 80, "0x%x", *((unsigned int*)&(v.c[0])));
-      return std::string(buffer);
-    }
-    
-    inline std::string tohex(blas_real<double> v)
-    {
-      whiteice::dword lower = 0, upper = 0;
-      lower = ((whiteice::dword*)(&v))[0];
-      upper = ((whiteice::dword*)(&v))[1];
-      
-      char buffer[80];
-      snprintf(buffer, 80, "0x%x%x",
-	       (unsigned int)upper, (unsigned int)lower);
-      return std::string(buffer);
-    }
     
     //////////////////////////////////////////////////////////////////////
     // square root
