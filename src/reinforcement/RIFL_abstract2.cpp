@@ -330,7 +330,7 @@ namespace whiteice
       rifl_thread = new std::thread(std::bind(&RIFL_abstract2<T>::loop, this));
     }
     catch(std::exception& e){
-      thread_is_running--;
+      thread_is_running = 0;
       rifl_thread = nullptr;
 
       return false;
@@ -894,8 +894,15 @@ namespace whiteice
     
     whiteice::logging.info("RIFL_abstract2: starting optimization loop");
 
-    whiteice::logging.info("RIFL_abstract2: initial Q diagnostics");
-    Q.diagnosticsInfo();
+    {
+      std::lock_guard<std::mutex> lock1(Q_mutex), lock2(policy_mutex);
+      
+      whiteice::logging.info("RIFL_abstract2: initial Q diagnostics");
+      lagged_Q.diagnosticsInfo();
+      
+      whiteice::logging.info("RIFL_abstract2: initial policy diagnostics");
+      lagged_policy.diagnosticsInfo();
+    }
 
     
     while(thread_is_running > 0){
@@ -925,8 +932,7 @@ namespace whiteice
       // (+ random selection if there is no model or in
       //    1-epsilon probability)
       whiteice::math::vertex<T> action(numActions);
-      bool random = false;
-      
+            
       {
 	std::lock_guard<std::mutex> lock(policy_mutex);
 
@@ -971,7 +977,7 @@ namespace whiteice
 	      u[i] = T(2.0f)*u[i] - T(1.0f); // [-1,+1]
 #endif
 
-	    random = true;
+	    // random = true;
 	  }
 	  else{ // just adds random noise to action [mini-exploration]
 	    auto noise = u;
@@ -988,7 +994,7 @@ namespace whiteice
 	  
 	  if(hasModel[0] == 0 || hasModel[1] == 0){
 	    rng.uniform(u);
-	    random = true;
+	    //random = true;
 	  }
 	}
 #endif

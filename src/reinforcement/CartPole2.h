@@ -93,6 +93,8 @@ namespace whiteice
       std::thread* physics_thread;
       std::mutex physics_mutex;
 
+      whiteice::RNG<T> rng;
+
       void physicsLoop();
       
     };
