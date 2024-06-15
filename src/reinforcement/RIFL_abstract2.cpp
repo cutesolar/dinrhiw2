@@ -1161,8 +1161,7 @@ namespace whiteice
 	if(database_counter >= DATASIZE)
 	  database_counter = database_counter % database.size();
 
-	if(datum.reinforcement.c[0]){
-
+	{
 	  if(database.size() >= DATASIZE){
 	    const unsigned int index = rng.rand() % database.size();
 
