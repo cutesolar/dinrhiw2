@@ -245,7 +245,7 @@ namespace whiteice
     best_value = getValue(*(this->policy), *(this->Q), *(this->Q_preprocess), data);
     best_q_value = best_value;
 
-    std::cout << "INITIAL Q-value for policy: " << best_q_value << std::endl;
+    // std::cout << "INITIAL Q-value for policy: " << best_q_value << std::endl;
     
     for(unsigned int i=0;i<optimizer_thread.size();i++){
       if(optimizer_thread[i]){
