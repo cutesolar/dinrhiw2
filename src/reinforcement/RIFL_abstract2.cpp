@@ -1485,7 +1485,7 @@ namespace whiteice
 		whiteice::math::convert(e, error);
 		
 		snprintf(buffer, 128,
-			 "RIFL_abstract2: Q-optimizer epoch %d iter %d error %f hasmodel %d [ETA %.2f mins]",
+			 "RIFL_abstract2: Q-optimizer epoch %d iter %d error %.12f hasmodel %d [ETA %.2f mins]",
 			 epoch[0], iters, e, hasModel[0], eta.estimate()/60.0);
 		
 		whiteice::logging.info(buffer);
@@ -1757,7 +1757,7 @@ namespace whiteice
 	      {
 		std::lock_guard<std::mutex> lockh(has_model_mutex);
 		snprintf(buffer, 128,
-			 "RIFL_abstract2: grad2 policy-optimizer epoch %d hasmodel %d iter %d mean q-value %f [ETA %.2f mins]",
+			 "RIFL_abstract2: grad2 policy-optimizer epoch %d hasmodel %d iter %d mean q-value %.12f [ETA %.2f mins]",
 			 epoch[1], hasModel[1], iters, v, eta2.estimate()/60.0);
 	      }
 	      
