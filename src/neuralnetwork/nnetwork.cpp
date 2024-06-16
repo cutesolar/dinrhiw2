@@ -1030,8 +1030,8 @@ namespace whiteice
 
       if(l != getLayers()-1){ // not the last layer
 	for(unsigned int j=0;j<W[l].ysize();j++){
-	  unsigned int k1 = rand() % inputdata.size();
-	  unsigned int k2 = rand() % inputdata.size();
+	  unsigned int k1 = rng.rand() % inputdata.size();
+	  unsigned int k2 = rng.rand() % inputdata.size();
 
 	  T norm1 = inputdata[k1].norm(); norm1 = norm1*norm1;
 	  T norm2 = inputdata[k2].norm(); norm2 = norm2*norm2;
@@ -2259,8 +2259,8 @@ namespace whiteice
       out = math::blas_complex<double>(1.0f) / (math::blas_complex<double>(1.0f) + math::exp(-in));
 
       // IS THIS REALLY CORRECT(?)
-      const auto rand_real = abs(T(((double)rand())/((double)RAND_MAX)));
-      const auto rand_imag = abs(T(((double)rand())/((double)RAND_MAX)));
+      const auto rand_real = abs(T(rng.uniformf()));
+      const auto rand_imag = abs(T(rng.uniformf()));
 
       whiteice::math::blas_complex<double> value;
 
@@ -3058,11 +3058,11 @@ namespace whiteice
       out = math::blas_complex<double>(1.0f) / (math::blas_complex<double>(1.0f) + math::exp(-in));
 
       // IS THIS REALLY CORRECT(?)
-      const auto rand_real = abs(T(((double)rand())/((double)RAND_MAX)));
-      const auto rand_imag = abs(T(((double)rand())/((double)RAND_MAX)));
+      const auto rand_real = abs(T(rng.uniformf()));
+      const auto rand_imag = abs(T(rng.uniformf()));
 
       whiteice::math::blas_complex<double> value;
-
+      
       if(abs(math::real(out)) > rand_real.first()){ value.real(1.0f); }
       else{ value.real(0.0f); }
       
