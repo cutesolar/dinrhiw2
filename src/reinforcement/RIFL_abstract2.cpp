@@ -478,8 +478,8 @@ namespace whiteice
       }
       
       snprintf(buffer, 256, "%s-lagged-policy", filename.c_str());
-      logging.error("RIFL_abstract2::save() saving lagged-policy failed");
       if(lagged_policy.save(buffer) == false){
+	logging.error("RIFL_abstract2::save() saving lagged-policy failed");
 	return false;
       }
       
@@ -1753,10 +1753,13 @@ namespace whiteice
 	      whiteice::math::convert(v, meanq);
 
 	      eta2.update(iters);
-	      
-	      snprintf(buffer, 128,
-		       "RIFL_abstract2: grad2 policy-optimizer epoch %d iter %d mean q-value %f [ETA %.2f mins]",
-		       epoch[1], iters, v, eta2.estimate()/60.0);
+
+	      {
+		std::lock_guard<std::mutex> lockh(has_model_mutex);
+		snprintf(buffer, 128,
+			 "RIFL_abstract2: grad2 policy-optimizer epoch %d hasmodel %d iter %d mean q-value %f [ETA %.2f mins]",
+			 epoch[1], hasModel[1], iters, v, eta2.estimate()/60.0);
+	      }
 	      
 	      whiteice::logging.info(buffer);
 
