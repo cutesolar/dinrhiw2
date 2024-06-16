@@ -29,7 +29,7 @@ namespace whiteice
     bytetable = new unsigned char[coef_size];
     
     for(T i=0;i<coef_size;i++){
-      bytetable[i] = rand() % table_size; /* ?? */
+      bytetable[i] = whiteice::rng.rand() % table_size; /* ?? */
     }
   }
   

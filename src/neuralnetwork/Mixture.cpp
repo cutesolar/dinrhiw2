@@ -2,6 +2,7 @@
 #include "Mixture.h"
 #include "nnetwork.h"
 #include "rLBFGS_nnetwork.h"
+#include "RNG.h"
 
 #include <chrono>
 
@@ -272,7 +273,7 @@ namespace whiteice
 
 	// random assingments on the first round..
 	if(first_time)
-	  index = rand() % N;
+	  index = whiteice::rng.rand() % N;
 
 	if(index != assignments[i])
 	  changes++;

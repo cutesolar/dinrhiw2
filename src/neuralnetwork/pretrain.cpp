@@ -32,6 +32,7 @@
 #include "nnetwork.h"
 #include "linear_equations.h"
 
+#include "RNG.h"
 #include "Log.h"
 
 
@@ -454,7 +455,7 @@ namespace whiteice
       // first calculates x values for the layer
 
       for(unsigned int s=0;s<SAMPLES;s++){
-	const unsigned int index = rand() % data.size(0);
+	const unsigned int index = whiteice::rng.rand() % data.size(0);
 	samples.push_back(data.access(0, index));
 	nnet.input() = data.access(0, index);
 	
@@ -916,7 +917,6 @@ namespace whiteice
       {
 #if 0
 	if((whiteice::rng.rand()%(31*nnet.getLayers()))==0){ // was 1000, which means 31 for two runs which must both happen..
-
 	  // printf("RANDOM MATRIX\n");
 
 	  // sets weights to random values! (jumps out of local minimum)

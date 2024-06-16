@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 #include "unique_id.h"
-
+#include "RNG.h"
 
 using namespace std;
 
@@ -48,12 +48,12 @@ namespace whiteice
       // it takes still only a few guesses before free number is found
       // (todo: support for given length.  times (native) word size)
       
-      unsigned int candidate = rand(); // srand() must have been called!
+      unsigned int candidate = whiteice::rng.rand(); // srand() must have been called!
       
       while(i->second.ids.find(candidate) !=
 	    i->second.ids.end())
       {
-	candidate = rand();
+	candidate = whiteice::rng.rand();
       }
 
       i->second.ids.insert(candidate);

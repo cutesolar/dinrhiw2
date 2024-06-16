@@ -1,6 +1,7 @@
 
 #include "LBFGS_BBRBM.h"
 #include "deep_ica_network_priming.h"
+#include "RNG.h"
 
 namespace whiteice
 {
@@ -56,7 +57,7 @@ namespace whiteice
       for(unsigned int i=0;i<1000;i++){
 	// std::cout << "data in  = " << dtest.access(0, i) << std::endl;
 	// std::cout << "data out = " << dtest.access(1, i) << std::endl;
-	unsigned int index = rand()%data.size(0);
+	unsigned int index = whiteice::rng.rand() % data.size(0);
 
 	auto v = data.access(0, index);
 

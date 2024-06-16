@@ -14,7 +14,7 @@
 #include <thread>
 #include <chrono>
 
-
+#include "RNG.h"
 
 namespace whiteice {
 
@@ -214,7 +214,7 @@ void PTHMC<T>::parallel_tempering()
 
 			T p = math::exp( (E1 - E2)*(T(1.0)/T1 - T(1.0)/T2) );
 
-			if(T(rand()/(double)RAND_MAX) < p){
+			if(T(whiteice::rng.uniformf()) < p){
 				accepts++;
 /*
 				if(i == 1){

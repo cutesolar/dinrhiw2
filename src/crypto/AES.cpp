@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <new>
 #include "global.h"
+#include "RNG.h"
 
 #include <stdlib.h>
 
@@ -719,7 +720,7 @@ namespace whiteice
       for(unsigned int i=0;i<1000;i++){
 	
 	for(unsigned int j=0;j<a.blocks();j++){
-	  a.value(j) = rand() & 0xFF;
+	  a.value(j) = whiteice::rng.rand() & 0xFF;
 	}
 	b = a;
 	
@@ -737,7 +738,7 @@ namespace whiteice
       for(unsigned int i=0;i<1000;i++){
 	
 	for(unsigned int j=0;j<a.blocks();j++){
-	  a.value(j) = rand() & 0xFF;
+	  a.value(j) = whiteice::rng.rand() & 0xFF;
 	}
 	b = a;
 	
@@ -755,7 +756,7 @@ namespace whiteice
       for(unsigned int i=0;i<1000;i++){
 	
 	for(unsigned int j=0;j<a.blocks();j++){
-	  a.value(j) = rand() & 0xFF;
+	  a.value(j) = whiteice::rng.rand() & 0xFF;
 	}
 	b = a;
 	

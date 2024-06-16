@@ -1,6 +1,7 @@
 
 #include "DSA.h"
 #include "SHA.h"
+#include "RNG.h"
 
 #include <stdlib.h>
 
@@ -215,7 +216,7 @@ namespace whiteice
       // terrible unsecure (& slow) way to generate bits
       // (useful for testing)
       
-      return (rand() & 1);
+      return (whiteice::rng.rand() & 1);
     }
     
     
@@ -511,7 +512,7 @@ namespace whiteice
       // terrible unsecure (& slow) way to generate bits
       // (useful for testing)
       
-      return (rand() & 1);
+      return (whiteice::rng.rand() & 1);
     }
     
     

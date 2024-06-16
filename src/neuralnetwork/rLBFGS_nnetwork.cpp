@@ -1,6 +1,7 @@
 
 #include "rLBFGS_nnetwork.h"
 #include "deep_ica_network_priming.h"
+#include "RNG.h"
 
 #include "eig.h"
 #include "EnsembleMeans.h"
@@ -52,7 +53,7 @@ namespace whiteice
       
       
       for(unsigned int i=0;i<data.size(0);i++){
-	const unsigned int r = (rand() & 3);
+	const unsigned int r = (whiteice::rng.rand() & 3);
 	
 	if(r != 0){ // 75% will to training data
 	  math::vertex<T> in  = data.access(0,i);

@@ -1,6 +1,7 @@
 
 #include "GA3.h"
 #include <unistd.h>
+#include "RNG.h"
 #include <map>
 
 
@@ -88,7 +89,7 @@ namespace whiteice
       math::vertex<T> v;
       v.resize(DIM);
       for(unsigned int j=0;j<DIM;j++)
-	v[j] = T(2.0f*((float)rand())/((float)RAND_MAX) - 1.0f);
+	v[j] = T(2.0f*(whiteice::rng.uniformf()) - 1.0f);
 
       T r = f->calculate(v);
       
@@ -108,10 +109,10 @@ namespace whiteice
 
       // 1.cross-over step
       for(unsigned int i=0;i<POPSIZE;i++){
-	T r = T(rand()/((float)RAND_MAX));
+	T r = T(whiteice::rng.uniformf());
 	
 	if(r < p_crossover){
-	  unsigned int mate = rand() % POPSIZE;
+	  unsigned int mate = whiteice::rng.rand() % POPSIZE;
 
 	  math::vertex<T> in1, in2;
 	  math::vertex<T> out1, out2;
@@ -143,7 +144,7 @@ namespace whiteice
 
       // 2. mutation step
       for(unsigned int i=0;i<POPSIZE;i++){
-	T r = T(rand()/((float)RAND_MAX));
+	T r = T(whiteice::rng.uniformf());
 	
 	if(r < p_mutation){
 	  math::vertex<T> in1;
@@ -202,7 +203,7 @@ namespace whiteice
 			 math::vertex<T>& out1,
 			 math::vertex<T>& out2)
   {
-    unsigned int crossover_point = rand() % DIM;
+    unsigned int crossover_point = whiteice::rng.rand() % DIM;
 
     out1.resize(in1.size());
     out2.resize(in2.size());
@@ -228,7 +229,7 @@ namespace whiteice
     // add random noise (NOTE: should be normally distributed)
     
     for(unsigned i=0;i<DIM;i++){
-      T r = T(((float)rand())/((float)RAND_MAX) - 0.5f);
+      T r = T(whiteice::rng.uniformf() - 0.5f);
       
       out1[i] = in1[i] + r;
     }

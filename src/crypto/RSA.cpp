@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "RSA.h"
+#include "RNG.h"
 
 
 namespace whiteice
@@ -271,7 +272,7 @@ namespace whiteice
       // terrible unsecure way to generate bits
       // (useful for testing)
       
-      return (rand() & 1);
+      return (whiteice::rng.rand() & 1);
     }
     
     

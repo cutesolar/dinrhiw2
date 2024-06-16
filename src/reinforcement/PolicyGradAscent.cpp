@@ -3,6 +3,7 @@
 
 #include "Log.h"
 #include "blade_math.h"
+#include "RNG.h"
 
 #ifdef WINOS
 #include <windows.h>
@@ -564,7 +565,7 @@ namespace whiteice
       //dtest.clearData(1);
       
       for(unsigned int i=0;i<data.size(0);i++){
-	const unsigned int r = (rand() & 3);
+	const unsigned int r = (whiteice::rng.rand() & 3);
 	
 	const math::vertex<T>& in  = data.access(0, i);
 	//const math::vertex<T>& out = data.access(1, i);

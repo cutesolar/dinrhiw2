@@ -4,7 +4,7 @@
 #include "PSO.h"
 #include "negative_function.h"
 #include "stretched_function.h"
-
+#include "RNG.h"
 
 namespace whiteice
 {
@@ -248,8 +248,8 @@ namespace whiteice
 
 				// updates velocity and location
 
-			        T r1 = T(rand())/T((float)RAND_MAX);
-				T r2 = T(rand())/T((float)RAND_MAX);
+			  T r1 = T(whiteice::rng.uniformf());
+			  T r2 = T(whiteice::rng.uniformf());
 
 				i->velocity += (c1*r1) * ( (i->best) - (i->value) );
 				i->velocity += (c2*r2) * ( (gbest.best) - (i->value) );
@@ -391,7 +391,7 @@ namespace whiteice
     
     // sampling:
     {
-      T value = T(rand()/((float)RAND_MAX))*cumdistrib_maxvalue;
+      T value = T(whiteice::rng.uniformf())*cumdistrib_maxvalue;
       
       unsigned int index = 0;
       
@@ -439,16 +439,16 @@ namespace whiteice
 
     			// creates random location
     			for(i=0;i<f->dimension();i++){ // [0,1]
-    				T temp = T((double)rand()/((double)RAND_MAX)) *
+    				T temp = T(whiteice::rng.uniformf()) *
     						(datarange[i].max - datarange[i].min) + datarange[i].min;
     				swarm[j].value[i] = temp;
     			}
 
     			// create random velocity
     			for(i=0;i<f->dimension();i++){ // [-0.25, 0.25]*range
-    				T temp = (T((double)rand()/((double)RAND_MAX))/T(2.0) - T(0.25)) *
-    						(datarange[i].max - datarange[i].min);
-    				swarm[j].velocity[i] = temp;
+			  T temp = (T(whiteice::rng.uniformf())/T(2.0) - T(0.25)) *
+			    (datarange[i].max - datarange[i].min);
+			  swarm[j].velocity[i] = temp;
     			}
     		}
 
@@ -520,7 +520,7 @@ namespace whiteice
 	// create random velocity
 	for(i=0;i<f->dimension();i++) // [-0.25, 0.25]
 	  swarm[j].velocity[i] = 
-	    (T((double)rand()/((double)RAND_MAX))*T(0.5) - T(0.25)) * 
+	    (T(whiteice::rng.uniformf())*T(0.5) - T(0.25)) * 
 	    (datarange[i].max - datarange[i].min);
 
 	

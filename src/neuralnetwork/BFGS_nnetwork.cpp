@@ -1,7 +1,7 @@
 
 #include "BFGS_nnetwork.h"
 #include "deep_ica_network_priming.h"
-
+#include "RNG.h"
 
 namespace whiteice
 {
@@ -25,7 +25,7 @@ namespace whiteice
     
     
     for(unsigned int i=0;i<data.size(0);i++){
-      const unsigned int r = (rand() & 1);
+      const unsigned int r = (whiteice::rng.rand() & 1);
       
       if(r == 0){
 	math::vertex<T> in  = data.access(0,i);

@@ -7,6 +7,7 @@
 #include "optimized_function.h"
 #include "eig.h"
 #include "correlation.h"
+#include "RNG.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -76,8 +77,6 @@ namespace whiteice
     unsigned int StochasticOptimizer<T>::optimize(whiteice::optimized_function<T>* f,
 					       float secs) 
     {
-      srand(time(0));
-      
       if(f == 0) return 0;
       this->f   = f;
       
@@ -90,7 +89,7 @@ namespace whiteice
       candidate.resize(dimensions);
       
       for(unsigned int i=0;i<dimensions;i++)
-	solution[i] = T(2.0f*(((float)rand())/(float)RAND_MAX) - 1.0f);
+	solution[i] = T(2.0f*(whiteice::rng.uniformf()) - 1.0f);
       
       solutionValue = (f->calculate(solution));
       
@@ -229,7 +228,7 @@ namespace whiteice
 	  // algorithm gets 50 dimensions
 	  
 	  while(fulldims.size() < 50){
-	    unsigned index = rand() % (f->dimension());
+	    unsigned index = whiteice::rng.rand() % (f->dimension());
 	    
 	    for(unsigned int i=0;i<fulldims.size();i++){
 	      if(fulldims[i] == index) continue; // try again
@@ -393,7 +392,7 @@ namespace whiteice
       
       while(1){
 	for(unsigned int i=0;i<this->dimensions;i++)
-	  dir[i] = T(2.0f*(((float)rand())/((float)RAND_MAX)) - 1.0f);
+	  dir[i] = T(2.0f*(whiteice::rng.uniformf()) - 1.0f);
 	
 	dir.normalize();
 	
@@ -417,7 +416,7 @@ namespace whiteice
 	
 	// randomly selects scaling within a range [smin, smax]
 	
-	scaling = (smax-smin)*T(((float)rand())/((float)RAND_MAX)) + smin;
+	scaling = (smax-smin)*T(whiteice::rng.uniformf()) + smin;
 	this->candidate = this->getInternalSolution() + scaling*dir;
       
 	this->candValue = this->calculate(this->candidate);
@@ -430,7 +429,7 @@ namespace whiteice
 	  
 	  T p = exp(-2.0f*((this->solutionValue - this->candValue)*(this->solutionValue - this->candValue)/meanSQDif));
 	  
-	  if(((float)rand()/(float)RAND_MAX) <= p)
+	  if(whiteice::rng.uniformf() <= p)
 	    return;
 	}
       }
@@ -472,7 +471,7 @@ namespace whiteice
       
       for(unsigned int p=0;p<25;p++){
 	for(unsigned int i=0;i<this->dimensions;i++)
-	  dir[i] = T(2.0f*(((float)rand())/((float)RAND_MAX)) - 1.0f);
+	  dir[i] = T(2.0f*(whiteice::rng.uniformf()) - 1.0f);
 	
 	dir.normalize();
 	

@@ -12,6 +12,7 @@
 #include "LBFGS_GBRBM.h"
 #include "linear_ETA.h"
 #include "Log.h"
+#include "RNG.h"
 
 #include <unistd.h>
 
@@ -1830,7 +1831,7 @@ whiteice::math::vertex<T> GBRBM<T>::Ugrad(const whiteice::math::vertex<T>& q) co
 		}
 		
 #if 0
-		if(rand()%1){
+		if(whiteice::rng.rand()&1){
 		  gz.zero();
 		}
 		else{

@@ -665,7 +665,7 @@ namespace whiteice
 	  // calculates error from the testing dataset
 #pragma omp for nowait schedule(guided)
 	  for(unsigned int i=0;i<MINIBATCHSIZE;i++){
-	    const unsigned int index = rng.rand() % dtest.size(0);
+	    const unsigned int index = whiteice::rng.rand() % dtest.size(0);
 	    
 	    auto yvalue = dtest.access(1, index);
 	    
@@ -853,7 +853,7 @@ namespace whiteice
 	  dtest.clearData(1);
 	  
 	  for(unsigned int i=0;i<data.size(0);i++){
-	    const unsigned int r = (rand() & 3);
+	    const unsigned int r = (whiteice::rng.rand() & 3);
 	    
 	    if(r != 0){ // 75% will go to training data
 	      math::vertex<T> in  = data.access(0,i);

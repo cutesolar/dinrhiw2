@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "GeneticAlgorithm.h"
+#include "RNG.h"
 
 namespace whiteice
 {
@@ -178,7 +179,7 @@ namespace whiteice
       // selects genes for new population
       for(unsigned int i=0;i<size;i++){
 	
-	double r = rand()/((double)RAND_MAX);
+	double r = whiteice::rng.uniformf();
 	double sum = 0;
 	unsigned int l = 0;
 	
@@ -194,16 +195,16 @@ namespace whiteice
       
       // crossovers
       for(unsigned int i=0;i<size;i++){
-	double r = rand()/((double)RAND_MAX);
+	double r = whiteice::rng.uniformf();
 	
 	if(r < p_crossover){
 	  // partner
-	  unsigned int j = rand() % size;
+	  unsigned int j = whiteice::rng.rand() % size;
 	  
 	  // shifting invariant:
 	  // crossover starting position and length
-	  unsigned int index = rand() % (sizeof(T)*8);
-	  unsigned int clen  = rand() % (sizeof(T)*8);
+	  unsigned int index = whiteice::rng.rand() % (sizeof(T)*8);
+	  unsigned int clen  = whiteice::rng.rand() % (sizeof(T)*8);
 	  
 	  for(unsigned int k=0;k<clen;k++){
 	    int K = (k + index) % (sizeof(T) * 8);
@@ -217,10 +218,10 @@ namespace whiteice
       
       // mutates
       for(unsigned int i=0;i<size;i++){
-	double r = rand()/((double)RAND_MAX);
+	double r = whiteice::rng.uniformf();
 	
 	if(r < p_mutation){
-	  unsigned int index = rand() % (sizeof(T)*8);
+	  unsigned int index = whiteice::rng.rand() % (sizeof(T)*8);
 	  
 	  (*p[1])[i].flip(index); // mutation
 	}
@@ -265,7 +266,7 @@ namespace whiteice
 	
 	for(unsigned int j=0;j<sizeof(T)*8;j++){
 	  
-	  if(rand() < RAND_MAX/2)
+	  if(whiteice::rng.rand() & 1)
 	    (*i).set(j, 0); // bit is zero
 	  else
 	    (*i).set(j, 1); // bit is one

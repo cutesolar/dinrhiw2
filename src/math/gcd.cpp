@@ -3,6 +3,7 @@
 #define gcd_cpp
 
 #include "gcd.h"
+#include "RNG.h"
 #include <stdlib.h>
 #include <algorithm>
 
@@ -42,7 +43,7 @@ namespace whiteice
     
     for(unsigned int i=0;i<(N - 1);i++){
       
-      j = i + ( rand() % (N - i) );
+      j = i + ( whiteice::rng.rand() % (N - i) );
       
       std::swap<T>(A[i], A[j]);
     }

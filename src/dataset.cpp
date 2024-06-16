@@ -39,6 +39,7 @@
 #include "dataset.h"
 #include "blade_math.h"
 #include "norms.h"
+#include "RNG.h"
 #include "Log.h"
 
 /**************************************************/
@@ -544,7 +545,7 @@ namespace whiteice
     d.resize(clusters.size());
 
     for(unsigned int i=0;i<samples;i++){
-      unsigned int index = rand() % N;
+      unsigned int index = whiteice::rng.rand() % N;
       
       for(unsigned int j=0;j<clusters.size();j++){
 	d[j].data.push_back(clusters[j].data[index]);

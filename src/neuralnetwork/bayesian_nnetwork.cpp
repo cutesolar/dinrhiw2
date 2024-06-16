@@ -15,6 +15,7 @@
 #include "dataset.h"
 #include "dinrhiw_blas.h"
 #include "Log.h"
+#include "RNG.h"
 
 
 namespace whiteice
@@ -376,7 +377,7 @@ namespace whiteice
     std::vector<whiteice::nnetwork<T>*> nets;
 
     for(unsigned int i=0;i<bnn->nnets.size();i++){
-      nets.push_back(new nnetwork<T>(*nnets[rand() % nnets.size()]));
+      nets.push_back(new nnetwork<T>(*nnets[whiteice::rng.rand() % nnets.size()]));
       if(nets[i]->injectSubnet(fromLayer, bnn->nnets[i]) == false)
 	return false;
     }
@@ -427,7 +428,7 @@ namespace whiteice
     
     while(nn.size() < N){ 
       auto iter = samples.begin();
-      int i = rand() % samples.size();
+      int i = whiteice::rng.rand() % samples.size();
       while(i > 0){ iter++; i--; }
       const int index = *iter;
       
