@@ -183,7 +183,7 @@ namespace whiteice
     // initializes parameters
     {
       // zero = learn pure Q(state,action) = x function which action=policy(state) is optimized
-      gamma = T(0.95); // how much weight future values Q() have: was 0.95 WAS: 0.80
+      gamma = T(0.95); // how much weight future values Q() have: WAS: 0.95
       
       {
 	std::lock_guard<std::mutex> locke(epsilon_mutex);
@@ -379,6 +379,22 @@ namespace whiteice
     return (thread_is_running > 0);
   }
 
+  template <typename T>
+  bool RIFL_abstract2<T>::setGamma(T gamma)
+  {
+    if(gamma <= T(0.0) || gamma >= T(1.0))
+      return false;
+    
+    this->gamma = gamma;
+    
+    return true;
+  }
+
+  template <typename T>
+  T RIFL_abstract2<T>::getGamma() const
+  {
+    return gamma;
+  }
 
   // epsilon E [0,1] percentage of actions are chosen according to model
   //                 1-e percentage of actions are random (exploration)

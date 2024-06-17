@@ -78,6 +78,11 @@ namespace whiteice
     
     bool isRunning() const;
 
+    // gamma value [0,1], how much predicted future rewards are calculated into Q-value
+    bool setGamma(T gamma);
+
+    T getGamma() const;
+
     // epsilon E [0,1] percentage of actions are chosen according to model
     //                 1-e percentage of actions are random (exploration)
     bool setEpsilon(T epsilon) ;
