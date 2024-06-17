@@ -20,7 +20,7 @@ namespace whiteice
 
   template <typename T>
   AdditionProblem<T>::AdditionProblem() :
-    RIFL_abstract2<T>(3, 3, {50,50,50}, {50,50,50})
+    RIFL_abstract2<T>(3, 3, false, {50,50,50}, {50,50,50})
   {
     this->setOneHotAction(false);
     this->setSmartEpisodes(false); // gives more weight to reinforcement values when calculating Q

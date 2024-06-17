@@ -30,9 +30,9 @@ namespace whiteice
   // observation space size is 51 (5x5 char environment + player stats) [and action is one-hot-encoded value: NOT]
   template <typename T>
   MinihackRIFL2<T>::MinihackRIFL2(const std::string& pythonScript) 
-    : // RIFL_abstract2<T>(8, 51, {50,50,50,50}, {50,50,50,50})
-    RIFL_abstract2<T>(8, 51, {100,100,100,100}, {100,100,100,100})
-    //RIFL_abstract2<T>(8, 51, {200,200,200,200}, {200,200,200,200})
+    : // RIFL_abstract2<T>(8, 51, false, {50,50,50,50}, {50,50,50,50})
+    RIFL_abstract2<T>(8, 51, false, {100,100,100,100}, {100,100,100,100})
+    //RIFL_abstract2<T>(8, 51, false, {200,200,200,200}, {200,200,200,200})
   {
     // we inteprete action values as one hot encoded probabilistic values from which one-hot-encoded
     // vector is chosen: [0 0 1 0] means 3rd action is chosen.

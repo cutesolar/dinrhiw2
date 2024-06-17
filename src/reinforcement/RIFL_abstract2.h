@@ -60,9 +60,11 @@ namespace whiteice
   public:
     
     // parameters are dimensions of vectors dimActions and dimStates: R^d
-    RIFL_abstract2(unsigned int numActions, unsigned int numStates);
+    RIFL_abstract2(unsigned int numActions, unsigned int numStates,
+		   const bool alsoNegativeQValues = true);
     
     RIFL_abstract2(unsigned int numActions, unsigned int numStates,
+		   const bool alsoNegativeQValues, 
 		   std::vector<unsigned int> Q_arch,
 		   std::vector<unsigned int> policy_arch);
 

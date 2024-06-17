@@ -20,7 +20,8 @@ namespace whiteice
 
   template <typename T>
   RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions_,
-				    unsigned int numStates_) :
+				    unsigned int numStates_,
+				    const bool alsoNegativeQValues) :
     numActions(numActions_),
     numStates(numStates_)
   {
@@ -89,7 +90,12 @@ namespace whiteice
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid); // ([-1,+1])
+	  if(alsoNegativeQValues == false){
+	    nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid); // ([-1,+1])
+	  }
+	  else{
+	    nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // ([0,1])
+	  }
 	  
 	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
@@ -134,7 +140,7 @@ namespace whiteice
 	//arch.push_back(50);	
 	arch.push_back(numActions);
 
-	// policy outputs action is (should be) +[-1,+1]^D vector
+	// policy outputs action is (should be) +[0,+1]^D vector
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
@@ -169,6 +175,7 @@ namespace whiteice
   template <typename T>
   RIFL_abstract2<T>::RIFL_abstract2(unsigned int numActions_,
 				    unsigned int numStates_,
+				    const bool alsoNegativeQValues,
 				    std::vector<unsigned int> Q_arch,
 				    std::vector<unsigned int> policy_arch) :
     numActions(numActions_), numStates(numStates_)
@@ -232,7 +239,12 @@ namespace whiteice
 	{
 	  whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::rectifier);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid); // tanh, sigmoid, halfLinear
-	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid); // [-1,+1]
+	  if(alsoNegativeQValues == false){
+	    nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid); // [0,+1]
+	  }
+	  else{
+	    nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh); // [-1,+1]
+	  }
 	  
 	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
