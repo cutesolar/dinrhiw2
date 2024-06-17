@@ -887,6 +887,11 @@ namespace whiteice
     
     bool firstTime = true;
     whiteice::math::vertex<T> state;
+    whiteice::math::vertex<T> action(numActions);
+
+    // to properly handle cases where performAction() fails
+    // [don't getState() or use policy network again] until performAction() is successful
+    unsigned int performActionFailed = 0; 
 
     whiteice::nnetwork<T> nn;
 
@@ -915,7 +920,7 @@ namespace whiteice
       counter++;
 
       // 1. gets current state
-      {
+      if(performActionFailed == 0){
 	auto oldstate = state;
       
 	if(getState(state) == false){
@@ -931,9 +936,9 @@ namespace whiteice
       // 2. selects action using policy
       // (+ random selection if there is no model or in
       //    1-epsilon probability)
-      whiteice::math::vertex<T> action(numActions);
+      
             
-      {
+      if(performActionFailed == 0){
 	std::lock_guard<std::mutex> lock(policy_mutex);
 
 	whiteice::math::vertex<T> u;
@@ -1000,21 +1005,21 @@ namespace whiteice
 #endif
 	
 	action = u;
+
+	if(oneHotEncodedAction){
+	  whiteice::math::vertex<T> new_action;
+	  
+	  const T temperature = T(0.10f);
+	  
+	  // maps probabilistic vector values to a single value
+	  onehot_prob_select(action, new_action, temperature);
+	  
+	  action = new_action;
+	}
       }
 
       
       
-      if(oneHotEncodedAction){
-	whiteice::math::vertex<T> new_action;
-
-	const T temperature = T(0.10f);
-
-	// maps probabilistic vector values to a single value
-	onehot_prob_select(action, new_action, temperature);
-	
-	action = new_action;
-      }
-
       //std::cout << "action = " << action << " ";
       //std::cout << "random = " << random << std::endl;
 
@@ -1093,14 +1098,18 @@ namespace whiteice
 	if(performAction(action, newstate, reinforcement, endFlag) == false){
 	  //std::cout << "ERROR: RIFL_abstract2::performAction() FAILED." << std::endl;
 	  whiteice::logging.error("ERROR: RIFL_abstact::performAction() FAILED.");
+	  performActionFailed++;
 	  goto optimization_step;
+	}
+	else{
+	  performActionFailed = 0;
 	}
 	
       }
 
       
       // 4. updates database (of actions and responses)
-      {
+      if(performActionFailed == 0){ // successful action..
 	struct rifl2_datapoint<T> datum;
 
 	datum.state = state;
