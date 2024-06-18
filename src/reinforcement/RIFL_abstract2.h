@@ -130,6 +130,9 @@ namespace whiteice
     void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
     bool getSmartEpisodes() const{ return useEpisodes; }
 
+    // how many percent smaller is reinforcement value with random actions vs policy actions
+    bool executionStatistics(T& percent_change) const;
+    
     // saves learnt Reinforcement Learning Model to file
     bool save(const std::string& filename) const;
     
@@ -165,8 +168,10 @@ namespace whiteice
     // database
     std::vector< rifl2_datapoint<T> > database;
     mutable std::mutex database_mutex;
-    
 
+    mutable std::mutex reinforcements_mutex;
+    std::vector<T> reinforcements;
+    std::vector<T> reinforcements_random;
 
     
     std::vector<unsigned int> hasModel;

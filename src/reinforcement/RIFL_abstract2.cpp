@@ -476,6 +476,59 @@ namespace whiteice
     return database.size();
   }
 
+
+  // how many percent smaller is reinforcement value with random actions vs policy actions
+  template <typename T>
+  bool RIFL_abstract2<T>::executionStatistics(T& percent_change) const
+  {
+    std::lock_guard<std::mutex> lock(reinforcements_mutex);
+    
+    percent_change = T(0.0f);
+    
+    if(reinforcements.size() <= 10 || reinforcements_random.size() <= 10)
+      return false; 
+
+    T mean = T(0.0), stdev = T(0.0);
+    T mean_random = T(0.0), stdev_random = T(0.0);
+
+    for(const auto& r : reinforcements){
+      mean += r;
+      stdev += r*r;
+    }
+
+    mean /= reinforcements.size();
+    stdev /= reinforcements.size();
+    
+    stdev -= mean*mean;
+    if(stdev < T(0.0))
+      stdev = T(0.0);
+
+    stdev = sqrt(stdev/reinforcements.size()); // mean's stdev 
+
+    for(const auto& r : reinforcements_random){
+      mean_random += r;
+      stdev_random += r*r;
+    }
+
+    mean_random /= reinforcements_random.size();
+    stdev_random /= reinforcements_random.size();
+    
+    stdev_random -= mean_random*mean_random;
+    if(stdev_random < T(0.0))
+      stdev_random = T(0.0);
+
+    stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
+
+    // p% = (mean - mean_random)/mean
+    // min(p%) = (mean-stdev -(mean_random+stdev_random))/(mean+stdev)
+
+    if(mean+stdev <= T(0.0)) return false;
+
+    percent_change = (mean-stdev - (mean_random+stdev_random))/(mean+stdev);
+
+    return true;
+  }
+
   
   // saves learnt Reinforcement Learning Model to file
   template <typename T>
@@ -917,6 +970,14 @@ namespace whiteice
     whiteice::math::vertex<T> state;
     whiteice::math::vertex<T> action(numActions);
 
+    {
+      std::lock_guard<std::mutex> lockr(reinforcements_mutex);
+      reinforcements.clear();
+      reinforcements_random.clear();
+    }
+
+    bool random = false;
+
     // to properly handle cases where performAction() fails
     // [don't getState() or use policy network again] until performAction() is successful
     unsigned int performActionFailed = 0; 
@@ -980,9 +1041,12 @@ namespace whiteice
 	    for(unsigned int i=0;i<numActions;i++){
 	      u[i] = T(0.0);
 	    }
+
+	    random = true;
 	  }
 	  else{
 	    policy_preprocess.invpreprocess(1, u);
+	    random = false;
 	  }
 	}
 	else{
@@ -990,6 +1054,8 @@ namespace whiteice
 	  for(unsigned int i=0;i<numActions;i++){
 	    u[i] = T(0.0);
 	  }
+
+	  random = true;
 	}
 
 	// it is assumed that action data should have zero mean and is roughly
@@ -1009,13 +1075,13 @@ namespace whiteice
 	    for(unsigned int i=0;i<u.size();i++)
 	      u[i] = T(2.0f)*u[i] - T(1.0f); // [-1,+1]
 #endif
-
-	    // random = true;
+	    
+	    random = true;
 	  }
 	  else{ // just adds random noise to action [mini-exploration]
 	    auto noise = u;
 	    rng.normal(noise); // Normal EX[n]=0 StDev[n]=1
-	    u += T(0.05)*noise;
+	    u += T(0.025)*noise;
 	  }
 	  
 	}
@@ -1027,7 +1093,7 @@ namespace whiteice
 	  
 	  if(hasModel[0] == 0 || hasModel[1] == 0){
 	    rng.uniform(u);
-	    //random = true;
+	    random = true;
 	  }
 	}
 #endif
@@ -1145,6 +1211,13 @@ namespace whiteice
 	datum.newstate = newstate;
 	datum.reinforcement = reinforcement;
 	datum.lastStep = endFlag;
+
+	{
+	  std::lock_guard<std::mutex> lockr(reinforcements_mutex);
+
+	  if(random) reinforcements_random.push_back(reinforcement);
+	  else reinforcements.push_back(reinforcement);
+	}
 
 	// for synchronizing access to database datastructure
 	// (also used by CreateRIFL2dataset class/thread)
