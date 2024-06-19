@@ -54,6 +54,9 @@ namespace whiteice
     bool exportNetworks(std::vector< whiteice::nnetwork<T>* >& nnlist,
 			int latestN = 0) const;
 
+    bool calculateBatchNorm(const std::vector< math::vertex<T> >& data); 
+
+      
     const whiteice::nnetwork<T>& getNetwork() const {
       assert(nnets.size()>0); return (*(nnets[0]));
     }

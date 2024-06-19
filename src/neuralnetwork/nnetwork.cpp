@@ -67,9 +67,9 @@ namespace whiteice
     // residual = false;
     residual = true; // ENABLES residual neural networks as the default.
 
-    batchnorm = false;
-
     randomize();
+
+    this->setBatchNorm(true); // ENABLES batch normalization!
   }
   
   
@@ -154,10 +154,10 @@ namespace whiteice
 
     // residual = false;
     residual = true; // ENABLES residual neural networks as the default.
-
-    batchnorm = false;
-
+    
     randomize();
+    
+    this->setBatchNorm(true); // ENABLES batch normalization!
   }
   
   

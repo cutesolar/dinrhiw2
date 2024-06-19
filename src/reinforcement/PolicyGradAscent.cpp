@@ -232,6 +232,16 @@ namespace whiteice
       
       if(this->policy) delete this->policy;
       this->policy = newpolicy;
+
+      // enable batch normalization for policy optimization (once after start of opti)???
+      if(1){
+	std::vector< whiteice::math::vertex<T> > xdata;
+	
+	this->data.getData(0, xdata);
+	
+	this->policy->calculateBatchNorm(xdata);
+      }
+      
       
       whiteice::logging.info("PolicyGradAscent: input Q weights diagnostics");
       this->Q->diagnosticsInfo();
@@ -619,7 +629,17 @@ namespace whiteice
     v.zero();
     
     // starting position for neural network
-    std::unique_ptr< whiteice::nnetwork<T> > policy(new nnetwork<T>(*(this->policy)));      
+    std::unique_ptr< whiteice::nnetwork<T> > policy(new nnetwork<T>(*(this->policy)));
+
+    if(0){
+      std::vector< whiteice::math::vertex<T> > xdata;
+      
+      dtrain.getData(0, xdata);
+      
+      policy->calculateBatchNorm(xdata);
+    }
+    
+
     
     while(running && iterations < MAXITERS && no_improvements_counter < MAX_NO_IMPROVE_ITERS){
       // keep looking for solution until MAXITERS
@@ -668,6 +688,10 @@ namespace whiteice
 	  best_q_value = value; // 
 	  policy->exportdata(bestx);
 	  this->policy->importdata(bestx);
+
+	  whiteice::math::vertex<T> bndata;
+	  policy->exportBNdata(bndata);
+	  this->policy->importBNdata(bndata);
 	  
 	  //auto ptr = this->policy;
 	  //this->policy = new whiteice::nnetwork<T>(*policy);
@@ -706,7 +730,7 @@ namespace whiteice
 	  const unsigned int MINIBATCHSIZE = 100;
 	  
 	  const T ninv = use_minibatch ? T(1.0f/MINIBATCHSIZE) : T(1.0f/dtrain.size(0));
-	  
+
 
 #pragma omp parallel shared(sumgrad)
 	  {
@@ -917,6 +941,14 @@ namespace whiteice
 	    
 	    if(heuristics){
 	      normalize_weights_to_unity(*policy);
+	    }
+
+	    if(0){
+	      std::vector< whiteice::math::vertex<T> > xdata;
+	      
+	      dtrain.getData(0, xdata);
+	      
+	      policy->calculateBatchNorm(xdata);
 	    }
 	    
 	    value = getValue(*policy, *Q, *Q_preprocess, dtest);

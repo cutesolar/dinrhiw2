@@ -67,7 +67,8 @@ namespace whiteice
 	arch.push_back(numStates + numActions);
 	arch.push_back(50);
 	arch.push_back(50);
-	//arch.push_back(50);
+	arch.push_back(50);
+	
 	//arch.push_back(50);
 	//arch.push_back(50);
 	//arch.push_back(50);
@@ -120,8 +121,8 @@ namespace whiteice
 	arch.push_back(numStates);
 	arch.push_back(50);
 	arch.push_back(50);
+	arch.push_back(50);
 	
-	//arch.push_back(50);
 	//arch.push_back(50);
 	//arch.push_back(50);
 	//arch.push_back(50);
@@ -147,6 +148,7 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 
+	  nn.setNonlinearity(0, whiteice::nnetwork<T>::pureLinear);
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  //nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::pureLinear);
 	  
@@ -277,10 +279,12 @@ namespace whiteice
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::tanh);
 	  // whiteice::nnetwork<T> nn(arch, whiteice::nnetwork<T>::sigmoid);
 	  // nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::tanh);
+	  nn.setNonlinearity(0, whiteice::nnetwork<T>::pureLinear);
 	  nn.setNonlinearity(nn.getLayers()-1, whiteice::nnetwork<T>::sigmoid);
 	  
 	  nn.randomize(2, T(0.9)); // was 1.0
 	  nn.setResidual(true);
+	  nn.setBatchNorm(true);
 	  
 	  policy.importNetwork(nn);
 

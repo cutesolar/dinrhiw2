@@ -280,6 +280,35 @@ namespace whiteice
     
     return true;
   }
+
+
+  template <typename T>
+  bool bayesian_nnetwork<T>::calculateBatchNorm(const std::vector< math::vertex<T> >& data)
+  {
+    if(nnets.size() <= 0) return false;
+
+    std::vector< nnetwork<T>* > nets;
+
+    for(unsigned int i=0;i<nnets.size();i++){
+      whiteice::nnetwork<T>* nn = new nnetwork<T>(*nnets[i]);
+      if(nn->calculateBatchNorm(data) == false){
+	for(unsigned int j=0;j<nets.size();j++){
+	  delete nets[j];
+	}
+	return false;
+      }
+      else{
+	nets.push_back(nn);
+      }
+    }
+
+    for(unsigned int i=0;i<nnets.size();i++){
+      delete nnets[i];
+      nnets[i] = nets[i];
+    }
+
+    return true;
+  }
   
   
   template <typename T>
@@ -684,8 +713,8 @@ namespace whiteice
       std::vector<float> floats;
       std::vector<std::string> strings;
       bool residual = false;
-      bool batchnorm = false;
-      
+      bool batchnorm = true;
+
       if(configuration.load(filename) == false)
 	return false;
       

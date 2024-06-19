@@ -232,6 +232,8 @@ namespace whiteice
 					 bool dropout,
 					 bool initiallyUseNN)
     {
+      const bool batchnorm = false; // don't activate batchnorm preprocess step before optimization
+      
       if(data.getNumberOfClusters() < 2){
 	char buffer[256];
 	sprintf(buffer, "NNGradDescent::startOptimize(): data.getNumberOfClusters() < 2: %d",
@@ -319,10 +321,19 @@ namespace whiteice
 
 	this->nn = new nnetwork<T>(nn); // copies network (settings)
 	nn.exportdata(bestx);
+
+	if(batchnorm){
+	  std::vector< whiteice::math::vertex<T> > xdata;
+	  
+	  this->data.getData(0, xdata);
+	  
+	  this->nn->calculateBatchNorm(xdata);
+	}
+	
 	best_error = getError(*(this->nn), this->data, (real(regularizer)>real(T(0.0f))), dropout);
 	
 	if(dropout){
-	  auto nn_without_dropout = nn;
+	  auto nn_without_dropout = *(this->nn);
 	  nn_without_dropout.removeDropOut();
 	  best_pure_error = getError(nn_without_dropout, this->data, false, false);
 	}
@@ -649,7 +660,7 @@ namespace whiteice
       if(use_minibatch){
 
 	// number of samples used to estimate error
-	const unsigned int MINIBATCHSIZE = 1000 > dtest.size(0) ? dtest.size(0) : 1000; 
+	const unsigned int MINIBATCHSIZE = 1000 > dtest.size(0) ? dtest.size(0) : 1000;
 
 	// calculates error
 #pragma omp parallel
@@ -657,6 +668,7 @@ namespace whiteice
 	  T esum = T(0.0f);
 	  
 	  const whiteice::nnetwork<T>& nnet = net;
+	  
 	  std::vector< std::vector<bool> > net_dropout;
 	  
 	  math::vertex<T> err;
@@ -921,6 +933,14 @@ namespace whiteice
 	{
 	  nn->exportdata(x);
 
+	  if(0){
+	    std::vector< whiteice::math::vertex<T> > xdata;
+	    
+	    dtrain.getData(0, xdata);
+	    
+	    nn->calculateBatchNorm(xdata);
+	  }
+
 	  if(dropout){
 	    auto nn_without_dropout = *nn;
 	    nn_without_dropout.removeDropOut();
@@ -1121,6 +1141,14 @@ namespace whiteice
 	  // if(heuristics) heuristics(x);
 	  
 	  nn->importdata(x);
+
+	  if(0){
+	    std::vector< whiteice::math::vertex<T> > xdata;
+	    
+	    dtrain.getData(0, xdata);
+	    
+	    nn->calculateBatchNorm(xdata);
+	  }
 
 	  T new_error = T(0.0);
 
