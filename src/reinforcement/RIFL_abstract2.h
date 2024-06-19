@@ -130,6 +130,9 @@ namespace whiteice
     void setSmartEpisodes(bool use_episodes){ useEpisodes = use_episodes; }
     bool getSmartEpisodes() const{ return useEpisodes; }
 
+    // clear reinforcement statistics
+    bool clearStatistics();
+
     // how many percent smaller is reinforcement value with random actions vs policy actions
     bool executionStatistics(T& percent_change) const;
     

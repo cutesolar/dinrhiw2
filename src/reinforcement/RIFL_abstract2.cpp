@@ -479,6 +479,19 @@ namespace whiteice
 
   // how many percent smaller is reinforcement value with random actions vs policy actions
   template <typename T>
+  bool RIFL_abstract2<T>::clearStatistics()
+  {
+    std::lock_guard<std::mutex> lock(reinforcements_mutex);
+
+    reinforcements.clear();
+    reinforcements_random.clear();
+
+    return true; 
+  }
+  
+
+  // how many percent smaller is reinforcement value with random actions vs policy actions
+  template <typename T>
   bool RIFL_abstract2<T>::executionStatistics(T& percent_change) const
   {
     std::lock_guard<std::mutex> lock(reinforcements_mutex);
@@ -828,12 +841,15 @@ namespace whiteice
 
       whiteice::math::vertex<T> v;
       v.resize(db.dimension(0));
+      v = db.access(0,0);
+      
       reinforcements_load.resize(v.size());
-
+      
       for(unsigned int i=0;i<reinforcements_load.size();i++)
 	reinforcements_load[i] = v[i];
 
       v.resize(db.dimension(1));
+      v = db.access(1,0); 
       reinforcements_random_load.resize(v.size());
 
       for(unsigned int i=0;i<reinforcements_random_load.size();i++)
