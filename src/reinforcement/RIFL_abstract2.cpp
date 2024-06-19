@@ -522,9 +522,13 @@ namespace whiteice
     // p% = (mean - mean_random)/mean
     // min(p%) = (mean-stdev -(mean_random+stdev_random))/(mean+stdev)
 
-    if(mean+stdev <= T(0.0)) return false;
+    // if(mean+stdev <= T(0.0)) return false;
 
-    percent_change = (mean-stdev - (mean_random+stdev_random))/(mean+stdev);
+    if(mean_random <= T(0.0)) return false;  
+
+    // percent_change = (mean-stdev - (mean_random+stdev_random))/(mean+stdev);
+
+    percent_change = (mean - mean_random)/mean_random;
 
     return true;
   }
@@ -607,6 +611,45 @@ namespace whiteice
     }
 
     {
+      std::lock_guard<std::mutex> lock(reinforcements_mutex);
+      
+      snprintf(buffer, 256, "%s-measurements", filename.c_str());
+
+      whiteice::dataset<T> db;
+
+      db.createCluster("measurements", reinforcements.size());
+      db.createCluster("measurements_random", reinforcements_random.size());
+
+      whiteice::math::vertex<T> v;
+      v.resize(reinforcements.size());
+      v.zero();
+
+      for(unsigned int i=0;i<reinforcements.size();i++)
+	v[i] = reinforcements[i];
+
+      if(db.add(0, v) == false){
+	logging.error("RIFL_abstract2::save(): saving measurements data failed (1).");
+	return false;
+      }
+
+      v.resize(reinforcements_random.size());
+      v.zero();
+
+      for(unsigned int i=0;i<reinforcements_random.size();i++)
+	v[i] = reinforcements_random[i];
+
+      if(db.add(1, v) == false){
+	logging.error("RIFL_abstract2::save(): saving measurements data failed (2).");
+	return false;
+      }
+
+      if(db.save(buffer) == false){
+	logging.error("RIFL_abstract2::save(): saving measurements data failed.");
+	return false;
+      }
+    }
+
+    {
       snprintf(buffer, 256, "%s-database", filename.c_str());
 
       whiteice::dataset<T> db;
@@ -677,6 +720,7 @@ namespace whiteice
     policy_mutex.lock();
     has_model_mutex.lock();
     database_mutex.lock();
+    reinforcements_mutex.lock();
 
     auto Q_load = Q;
     auto policy_load = policy;
@@ -686,11 +730,14 @@ namespace whiteice
     auto policy_preprocess_load = policy_preprocess;
     auto hasModel_load = hasModel;
     auto database_load = database;
+    auto reinforcements_load = reinforcements;
+    auto reinforcements_random_load = reinforcements_random;
 
     Q_mutex.unlock();
     policy_mutex.unlock();
     has_model_mutex.unlock();
     database_mutex.unlock();
+    reinforcements_mutex.unlock();
     
     
     {
@@ -755,6 +802,43 @@ namespace whiteice
       hasModel_load.resize(2);
       hasModel_load[0] = (int)v[0].c[0];
       hasModel_load[1] = (int)v[1].c[0];
+    }
+
+    {
+      std::lock_guard<std::mutex> lock(reinforcements_mutex);
+      
+      snprintf(buffer, 256, "%s-measurements", filename.c_str());
+
+      whiteice::dataset<T> db;
+
+      if(db.load(buffer) == false){
+	logging.error("RIFL_abstract2::save(): loading measurements data failed.");
+	return false;
+      }
+
+      if(db.getNumberOfClusters() != 2){
+	logging.error("RIFL_abstract2::save(): loading measurements data failed (2).");
+	return false;
+      }
+
+      if(db.size(0) != 1 || db.size(1) != 1){
+	logging.error("RIFL_abstract2::save(): loading measurements data failed (3).");
+	return false;
+      }
+
+      whiteice::math::vertex<T> v;
+      v.resize(db.dimension(0));
+      reinforcements_load.resize(v.size());
+
+      for(unsigned int i=0;i<reinforcements_load.size();i++)
+	reinforcements_load[i] = v[i];
+
+      v.resize(db.dimension(1));
+      reinforcements_random_load.resize(v.size());
+
+      for(unsigned int i=0;i<reinforcements_random_load.size();i++)
+	reinforcements_random_load[i] = v[i];
+      
     }
 
     {
@@ -838,6 +922,7 @@ namespace whiteice
       std::lock_guard<std::mutex> lock2(policy_mutex);
       std::lock_guard<std::mutex> lockh(has_model_mutex);
       std::lock_guard<std::mutex> lockd(database_mutex);
+      std::lock_guard<std::mutex> lockr(reinforcements_mutex);
       
       Q = Q_load;
       policy = policy_load;
@@ -847,6 +932,8 @@ namespace whiteice
       policy_preprocess = policy_preprocess_load;
       hasModel = hasModel_load;
       database = database_load;
+      reinforcements = reinforcements_load;
+      reinforcements_random = reinforcements_random_load;
     }
     
     return true;
