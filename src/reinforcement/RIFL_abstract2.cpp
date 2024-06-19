@@ -528,7 +528,7 @@ namespace whiteice
 
     // percent_change = (mean-stdev - (mean_random+stdev_random))/(mean+stdev);
 
-    percent_change = (mean - mean_random)/mean_random;
+    percent_change = T(100.0)*(mean - mean_random)/mean_random; // percentages
 
     return true;
   }
