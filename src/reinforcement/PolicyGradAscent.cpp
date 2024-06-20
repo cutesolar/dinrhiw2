@@ -636,7 +636,7 @@ namespace whiteice
       
       dtrain.getData(0, xdata);
       
-      policy->calculateBatchNorm(xdata);
+      policy->calculateBatchNorm(xdata, 2); // only first layer is batch normalized..
     }
     
 

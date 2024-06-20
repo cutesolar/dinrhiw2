@@ -5733,10 +5733,14 @@ namespace whiteice
 
   
   template <typename T>
-  bool nnetwork<T>::calculateBatchNorm(const std::vector< math::vertex<T> >& data)
+  bool nnetwork<T>::calculateBatchNorm(const std::vector< math::vertex<T> >& data,
+				       unsigned int NUMLAYERS)
   {
     if(batchnorm == false) return false;
     if(data.size() <= 2) return false;
+
+    if(NUMLAYERS == 0 || NUMLAYERS > W.size())
+      NUMLAYERS = W.size();
 
     // resets batch normalization constants
     {
@@ -5757,7 +5761,7 @@ namespace whiteice
 
     std::vector< math::vertex<T> > u;
 
-    for(unsigned int j=1;j<W.size();j++){
+    for(unsigned int j=1;j<NUMLAYERS;j++){
       u.clear();
 
       // calculates outputs for the data
@@ -5801,18 +5805,23 @@ namespace whiteice
 	  sigma[i] += v[i]*v[i];
       }
 
-      mu /= T(u.size());
-      sigma /= T(u.size());
+      if(u.size()){
+	mu /= T(u.size());
+	sigma /= T(u.size());
+      }
 
-      T epsilon;
-      epsilon.ones();
-      epsilon = epsilon*T(1e-3);
+      //T epsilon;
+      //epsilon.ones();
+      //epsilon = epsilon*T(1e-6);
 
       for(unsigned int i=0;i<mu.size();i++){
 	sigma[i] -= mu[i]*mu[i];
 	sigma[i] = whiteice::math::abs(sigma[i]);
-	sigma[i] += epsilon;
+	//sigma[i] += epsilon;
 	sigma[i] = whiteice::math::sqrt(sigma[i]);
+
+	if(sigma[i] <= T(1e-6)) // don't divide using zeros [keep near zero stdev values zero]
+	  sigma[i] = T(1.0f);
       }
 
       
