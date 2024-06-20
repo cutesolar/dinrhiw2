@@ -232,8 +232,6 @@ namespace whiteice
 					 bool dropout,
 					 bool initiallyUseNN)
     {
-      const bool batchnorm = false; // don't activate batchnorm preprocess step before optimization
-      
       if(data.getNumberOfClusters() < 2){
 	char buffer[256];
 	sprintf(buffer, "NNGradDescent::startOptimize(): data.getNumberOfClusters() < 2: %d",
@@ -322,7 +320,7 @@ namespace whiteice
 	this->nn = new nnetwork<T>(nn); // copies network (settings)
 	nn.exportdata(bestx);
 
-	if(batchnorm){
+	if(this->nn->getBatchNorm()){
 	  std::vector< whiteice::math::vertex<T> > xdata;
 	  
 	  this->data.getData(0, xdata);
@@ -933,14 +931,6 @@ namespace whiteice
 	{
 	  nn->exportdata(x);
 
-	  if(0){
-	    std::vector< whiteice::math::vertex<T> > xdata;
-	    
-	    dtrain.getData(0, xdata);
-	    
-	    nn->calculateBatchNorm(xdata);
-	  }
-
 	  if(dropout){
 	    auto nn_without_dropout = *nn;
 	    nn_without_dropout.removeDropOut();
@@ -980,6 +970,15 @@ namespace whiteice
 	    
 	    iterations++;
 	  }
+
+	  if(nn->getBatchNorm()){
+	    std::vector< whiteice::math::vertex<T> > xdata;
+	    
+	    dtrain.getData(0, xdata);
+	    
+	    nn->calculateBatchNorm(xdata);
+	  }
+
 
 	  
 	  // calculates gradient 
@@ -1170,6 +1169,7 @@ namespace whiteice
 	    this->bestx = x;
 	    this->best_error = new_error;
 	    this->best_pure_error = new_error;
+	    (*(this->nn)) = *nn;
 	    
 	    real_besty = new_error;
 	    pure_real_besty = new_error;

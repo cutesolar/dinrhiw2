@@ -234,7 +234,7 @@ namespace whiteice
       this->policy = newpolicy;
 
       // enable batch normalization for policy optimization (once after start of opti)???
-      if(1){
+      if(this->policy->getBatchNorm()){
 	std::vector< whiteice::math::vertex<T> > xdata;
 	
 	this->data.getData(0, xdata);
@@ -703,6 +703,16 @@ namespace whiteice
       
 
       
+      if(policy->getBatchNorm()){ // all layers batch normalization..
+	std::vector< whiteice::math::vertex<T> > xdata;
+	
+	dtrain.getData(0, xdata);
+	
+	policy->calculateBatchNorm(xdata);
+      }
+	    
+
+      
       // 2. normal gradient ascent
       ///////////////////////////////////////
       {
@@ -943,14 +953,6 @@ namespace whiteice
 	      normalize_weights_to_unity(*policy);
 	    }
 
-	    if(0){
-	      std::vector< whiteice::math::vertex<T> > xdata;
-	      
-	      dtrain.getData(0, xdata);
-	      
-	      policy->calculateBatchNorm(xdata);
-	    }
-	    
 	    value = getValue(*policy, *Q, *Q_preprocess, dtest);
 	  }
 
