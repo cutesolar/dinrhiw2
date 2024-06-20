@@ -3,6 +3,8 @@ Windows 64bit platform. Minimal testing has been done on Intel 32bit plaform.
 
 * assert(f()) calls don't often call the f() function at all. This is because python flags -DNDEBUG which disable assert sentences
 
+* NNGradDescent() don't properly handle multiple parallel threads execution..
+
 * Intel MKL BLAS don't work in 2020 versions, use newer MKL BLAS versions so the bugs disappears. 
 
 * t-SNE is a bit buggy(?) and don't scale now to large number of data points
@@ -17,8 +19,6 @@ Windows 64bit platform. Minimal testing has been done on Intel 32bit plaform.
 
 * OUT OF MEMORY problems with BIG neural networks or BIG DATA
   leads to strange error messages that are not properly handled.
-
-* ICA code probably has some bugs (with bad/singular data)
 
 * static linking of nntool causes problems due to known gcc compiler bug
 
