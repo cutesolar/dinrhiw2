@@ -239,7 +239,7 @@ namespace whiteice
 	
 	this->data.getData(0, xdata);
 	
-	this->policy->calculateBatchNorm(xdata);
+	this->policy->calculateBatchNorm(xdata, 2);
       }
       
       
@@ -630,16 +630,8 @@ namespace whiteice
     
     // starting position for neural network
     std::unique_ptr< whiteice::nnetwork<T> > policy(new nnetwork<T>(*(this->policy)));
-
-    if(0){
-      std::vector< whiteice::math::vertex<T> > xdata;
-      
-      dtrain.getData(0, xdata);
-      
-      policy->calculateBatchNorm(xdata, 2); // only first layer is batch normalized..
-    }
     
-
+    
     
     while(running && iterations < MAXITERS && no_improvements_counter < MAX_NO_IMPROVE_ITERS){
       // keep looking for solution until MAXITERS
@@ -708,7 +700,7 @@ namespace whiteice
 	
 	dtrain.getData(0, xdata);
 	
-	policy->calculateBatchNorm(xdata);
+	policy->calculateBatchNorm(xdata, 2);
       }
 	    
 

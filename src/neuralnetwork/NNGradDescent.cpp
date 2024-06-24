@@ -325,7 +325,7 @@ namespace whiteice
 	  
 	  this->data.getData(0, xdata);
 	  
-	  this->nn->calculateBatchNorm(xdata);
+	  this->nn->calculateBatchNorm(xdata, 2);
 	}
 	
 	best_error = getError(*(this->nn), this->data, (real(regularizer)>real(T(0.0f))), dropout);
@@ -976,10 +976,10 @@ namespace whiteice
 	    
 	    dtrain.getData(0, xdata);
 	    
-	    nn->calculateBatchNorm(xdata);
+	    nn->calculateBatchNorm(xdata, 2);
 	  }
 
-
+	  
 	  
 	  // calculates gradient 
 	  {
@@ -1141,14 +1141,7 @@ namespace whiteice
 	  
 	  nn->importdata(x);
 
-	  if(0){
-	    std::vector< whiteice::math::vertex<T> > xdata;
-	    
-	    dtrain.getData(0, xdata);
-	    
-	    nn->calculateBatchNorm(xdata);
-	  }
-
+	  
 	  T new_error = T(0.0);
 
 	  if(dropout){
