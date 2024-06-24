@@ -384,6 +384,7 @@ void nn_save_load_test()
   {
     std::cout << "NNETWORK SAVE()&LOAD() TEST.." << std::endl;
 
+#pragma omp parallel for
     for(unsigned int k=0;k<10;k++){
       
       whiteice::nnetwork<> net;
@@ -402,14 +403,17 @@ void nn_save_load_test()
       
       whiteice::nnetwork<> net2;
 
-      if(net.save("nnetwork_test.save") == false){
+      char buf[80];
+      snprintf(buf, 80, "nnetwork_test%d.save", k);
+
+      if(net.save(buf) == false){
 	std::cout << "ERROR: nnetwork::save() FAILED." << std::endl;
-	return;
+	continue;
       }
 
-      if(net2.load("nnetwork_test.save") == false){
+      if(net2.load(buf) == false){
 	std::cout << "ERROR: nnetwork::load() FAILED." << std::endl;
-	return;
+	continue;
       }
 
       std::vector<unsigned int> arch2;
@@ -419,13 +423,13 @@ void nn_save_load_test()
       {
 	if(arch.size() != arch2.size()){
 	  std::cout << "ERROR: loaded nnetwork architecture mismatch!." << std::endl;
-	    return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<arch.size();i++){
 	  if(arch[i] != arch2[i]){
 	    std::cout << "ERROR: loaded nnetwork architecture mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
       }
@@ -439,13 +443,13 @@ void nn_save_load_test()
 
 	if(p1.size() != p2.size()){
 	  std::cout << "ERROR: loaded nnetwork params mismatch!." << std::endl;
-	  return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<p1.size();i++){
 	  if(p1[i] != p2[i]){
 	    std::cout << "ERROR: loaded nnetwork params mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
 	
@@ -460,13 +464,13 @@ void nn_save_load_test()
 
 	if(p1.size() != p2.size()){
 	  std::cout << "ERROR: loaded nnetwork BN-params mismatch!." << std::endl;
-	  return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<p1.size();i++){
 	  if(p1[i] != p2[i]){
 	    std::cout << "ERROR: loaded nnetwork BN-params mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
 	
@@ -481,6 +485,7 @@ void nn_save_load_test()
   {
     std::cout << "BAYESIAN NNETWORK SAVE()&LOAD() TEST.." << std::endl;
 
+#pragma omp parallel for
     for(unsigned int k=0;k<10;k++){
       
       whiteice::nnetwork<> net;
@@ -505,14 +510,17 @@ void nn_save_load_test()
       whiteice::bayesian_nnetwork<> bnet2;
       whiteice::nnetwork<> net2;
 
-      if(bnet.save("bnnetwork_test.save") == false){
+      char buf[80];
+      snprintf(buf, 80, "bbnnetwork_test%d.save", k);
+
+      if(bnet.save(buf) == false){
 	std::cout << "ERROR: bayesian_nnetwork::save() FAILED." << std::endl;
-	return;
+	continue;
       }
 
-      if(bnet2.load("bnnetwork_test.save") == false){
+      if(bnet2.load(buf) == false){
 	std::cout << "ERROR: bayesian_nnetwork::load() FAILED." << std::endl;
-	return;
+	continue;
       }
 
       std::vector< math::vertex<> > weights;
@@ -521,12 +529,12 @@ void nn_save_load_test()
 
       if(weights.size() != 1){
 	std::cout << "ERROR: bayesian_nnetwork::load() FAILED (2)." << std::endl;
-	return;
+	continue;
       }
 
       if(net2.importdata(weights[0]) != true){
 	std::cout << "ERROR: bayesian_nnetwork::load() FAILED (3)." << std::endl;
-	return;
+	continue;
       }
 
       std::vector<unsigned int> arch2;
@@ -536,13 +544,13 @@ void nn_save_load_test()
       {
 	if(arch.size() != arch2.size()){
 	  std::cout << "ERROR: loaded bayesian_nnetwork architecture mismatch!." << std::endl;
-	    return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<arch.size();i++){
 	  if(arch[i] != arch2[i]){
 	    std::cout << "ERROR: loaded baeysian_nnetwork architecture mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
       }
@@ -556,13 +564,13 @@ void nn_save_load_test()
 
 	if(p1.size() != p2.size()){
 	  std::cout << "ERROR: loaded bayesian_nnetwork params mismatch!." << std::endl;
-	  return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<p1.size();i++){
 	  if(p1[i] != p2[i]){
 	    std::cout << "ERROR: loaded bayesian_nnetwork params mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
 	
@@ -577,13 +585,13 @@ void nn_save_load_test()
 
 	if(p1.size() != p2.size()){
 	  std::cout << "ERROR: loaded bayesian_nnetwork BN-params mismatch!." << std::endl;
-	  return;
+	  continue;
 	}
 	
 	for(unsigned int i=0;i<p1.size();i++){
 	  if(p1[i] != p2[i]){
 	    std::cout << "ERROR: loaded bayesian_nnetwork BN-params mismatch!.(2)" << std::endl;
-	    return;
+	    continue;
 	  }
 	}
 	
