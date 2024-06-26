@@ -24,7 +24,7 @@ SOURCES = PAD.cpp DES.cpp AES.cpp SHA.cpp RSA.cpp DSA.cpp \
 	../dynamic_bitset.cpp ../math/RNG.cpp \
 	../math/superresolution.cpp ../math/modular.cpp ../math/vertex.cpp ../math/blade_math.cpp \
 	../math/real.cpp ../math/matrix.cpp ../math/correlation.cpp ../math/matrix_rotations.cpp \
-	../math/eig.cpp ../math/ica.cpp ../math/norms.cpp ../math/pocketfft/pocketfft.cpp
+	../math/eig.cpp ../math/ica.cpp ../math/norms.cpp ../math/pocketfft/pocketfft.cpp \
 	test/tst.cpp
 
 
