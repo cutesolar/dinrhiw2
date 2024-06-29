@@ -5216,7 +5216,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
 printf "%s\n" "no Intel MKL detected" >&6; }
-   INTELMKL="no"
+   if [ "x$INTELMKL" != "xyes" ]; then
+      INTELMKL="no"
+   fi
 fi
 
 
@@ -5246,7 +5248,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
 printf "%s\n" "no Intel MKL detected" >&6; }
-   INTELMKL="no"
+   if [ "x$INTELMKL" != "xyes" ]; then
+      INTELMKL="no"
+   fi
 fi
 
 
@@ -5275,7 +5279,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
 printf "%s\n" "no Intel MKL detected" >&6; }
-   INTELMKL="no"
+   if [ "x$INTELMKL" != "xyes" ]; then
+      INTELMKL="no"
+   fi
 fi
 
 
@@ -5304,7 +5310,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no Intel MKL detected" >&5
 printf "%s\n" "no Intel MKL detected" >&6; }
-   INTELMKL="no"
+   if [ "x$INTELMKL" != "xyes" ]; then
+      INTELMKL="no"
+   fi
 fi
 
 MKLROOT=/c/Program\ Files\ \(x86\)/IntelSWTools/compilers_and_libraries/windows/mkl
@@ -5333,7 +5341,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no working Intel MKL detected" >&5
 printf "%s\n" "no working Intel MKL detected" >&6; }
-   INTELMKL="no"
+   if [ "x$INTELMKL" != "xyes" ]; then
+      INTELMKL="no"
+   fi
 fi
 
 # Check whether --enable-amdblis was given.
@@ -5410,7 +5420,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no NVIDIA cuBLAS detected" >&5
 printf "%s\n" "no NVIDIA cuBLAS detected" >&6; }
-   NVIDIACUBLAS="no"
+   if [ "x$NVIDIACUBLAS" != "xyes" ]; then
+      NVIDIACUBLAS="no"
+   fi
 fi
 
 
@@ -5439,7 +5451,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no NVIDIA cuBLAS detected" >&5
 printf "%s\n" "no NVIDIA cuBLAS detected" >&6; }
-   NVIDIACUBLAS="no"
+   if [ "x$NVIDIACUBLAS" != "xyes" ]; then
+      NVIDIACUBLAS="no"
+   fi
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for NVIDIA cuBLAS 12.5 library SLOW (Linux pkg-config)" >&5
@@ -5467,7 +5481,9 @@ fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no NVIDIA cuBLAS detected" >&5
 printf "%s\n" "no NVIDIA cuBLAS detected" >&6; }
-   NVIDIACUBLAS="no"
+   if [ "x$NVIDIACUBLAS" != "xyes" ]; then
+      NVIDIACUBLAS="no"
+   fi
 fi
 
 

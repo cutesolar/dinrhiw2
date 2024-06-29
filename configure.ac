@@ -451,7 +451,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no Intel MKL detected])
-   INTELMKL="no"
+   if [[ "x$INTELMKL" != "xyes" ]]; then
+      INTELMKL="no"
+   fi	
 fi
 
 
@@ -473,7 +475,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no Intel MKL detected])
-   INTELMKL="no"
+   if [[ "x$INTELMKL" != "xyes" ]]; then
+      INTELMKL="no"
+   fi	
 fi
 
 
@@ -494,7 +498,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no Intel MKL detected])
-   INTELMKL="no"
+   if [[ "x$INTELMKL" != "xyes" ]]; then
+      INTELMKL="no"
+   fi	
 fi
 
 
@@ -515,7 +521,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no Intel MKL detected])
-   INTELMKL="no"
+   if [[ "x$INTELMKL" != "xyes" ]]; then
+      INTELMKL="no"
+   fi	
 fi
 
 dnl Intel MKL in Windows
@@ -537,7 +545,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no working Intel MKL detected])
-   INTELMKL="no"
+   if [[ "x$INTELMKL" != "xyes" ]]; then
+      INTELMKL="no"
+   fi	
 fi
 
 dnl AMD BLIS library support
@@ -595,7 +605,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no NVIDIA cuBLAS detected])
-   NVIDIACUBLAS="no"
+   if [[ "x$NVIDIACUBLAS" != "xyes" ]]; then
+      NVIDIACUBLAS="no"
+   fi
 fi
 
 
@@ -616,7 +628,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no NVIDIA cuBLAS detected])
-   NVIDIACUBLAS="no"
+   if [[ "x$NVIDIACUBLAS" != "xyes" ]]; then
+      NVIDIACUBLAS="no"
+   fi	
 fi
 
 AC_MSG_CHECKING([for NVIDIA cuBLAS 12.5 library [SLOW] (Linux pkg-config)])
@@ -636,7 +650,9 @@ if [[ $? -eq 0 ]]; then
   ])
 else
    AC_MSG_RESULT([no NVIDIA cuBLAS detected])
-   NVIDIACUBLAS="no"
+   if [[ "x$NVIDIACUBLAS" != "xyes" ]]; then
+      NVIDIACUBLAS="no"
+   fi
 fi
 
 
