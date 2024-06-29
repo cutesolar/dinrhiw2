@@ -33,8 +33,7 @@ compiler or newer to work around this compiler bug.
 Library dependencies:
 
 * OpenBLAS or Intel MKL (cblas.h interface),
-* GMP (arbitrary precision mathematics)
-* ZLib [not really used]
+* GMP (arbitrary precision mathematics for HMM)
 
 
 To build and install library execute: 
