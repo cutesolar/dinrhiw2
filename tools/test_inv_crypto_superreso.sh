@@ -27,6 +27,8 @@ $DSTOOL -import:0 gendata3-test.ds hash_train_output.csv
 # message is output
 $DSTOOL -import:1 gendata3-test.ds hash_train_input.csv
 
+$DSTOOL -data:1000 gendata3-test.ds
+
 # chars are transformed (output)
 # $DSTOOL -padd:0:meanvar gendata3-test.ds
 #### $DSTOOL -padd:1:meanvar gendata3-test.ds
@@ -41,6 +43,7 @@ $DSTOOL -list gendata3-test.ds
 
 # was 10-100-100-10
 ARCH="$DIM-10000-100-1000-$DIM"
+ARCH="$DIM-20-20-$DIM"
 
 #$NNTOOL -v wine-test.ds $ARCH winenn.cfg mix
 # $NNTOOL -v wine-test.ds $ARCH winenn.cfg lbfgs

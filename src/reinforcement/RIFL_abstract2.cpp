@@ -1026,8 +1026,8 @@ namespace whiteice
   void RIFL_abstract2<T>::loop()
   {
     // number of iteratios to use per epoch for optimization
-    const unsigned int Q_OPTIMIZE_ITERATIONS = 500; // 40, was 1 (dont work), 5, 10, WAS: 5000
-    const unsigned int P_OPTIMIZE_ITERATIONS = 500; // 10, was 1 (dont work), 5, 10, WAS: 1000
+    const unsigned int Q_OPTIMIZE_ITERATIONS = 200; // 40, was 1 (dont work), 5, 10, WAS: 5000
+    const unsigned int P_OPTIMIZE_ITERATIONS = 200; // 10, was 1 (dont work), 5, 10, WAS: 1000
     
     // tau = 1.0 => no lagged neural networks [don't work]
     const T tau = T(1.0); // lagged Q and policy network [keeps tau%=1% of the new weights [was: 0.001, 0.05]
@@ -1658,12 +1658,12 @@ namespace whiteice
 	    std::lock_guard<std::mutex> lockh(has_model_mutex);
 	    
 	    if(hasModel[0] >= 1){
-	      eta.start(0.0, Q_OPTIMIZE_ITERATIONS/10);
+	      eta.start(0.0, Q_OPTIMIZE_ITERATIONS/4);
 	      
 	      grad.setUseMinibatch(false);
 	      grad.setSGD(T(-1.0f)); // disable stochastic gradient descent
 	      
-	      if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS/10,
+	      if(grad.startOptimize(data, qnn, 1, Q_OPTIMIZE_ITERATIONS/4,
 				    dropout, useInitialNN) == true)
 		logging.info("========> Q OPTIMIZATION STARTED");
 	      else
@@ -1918,13 +1918,13 @@ namespace whiteice
 	      std::lock_guard<std::mutex> lockh(has_model_mutex);
 	      
 	      if(hasModel[1] >= 1){
-		eta2.start(0.0, P_OPTIMIZE_ITERATIONS/10);
+		eta2.start(0.0, P_OPTIMIZE_ITERATIONS/4);
 		
 		grad2.setUseMinibatch(false);
 		grad2.setSGD(T(-1.0)); // what is correct learning rate???
 		
 		if(grad2.startOptimize(&data2, q_nn, Q_preprocess_copy, nn, 1,
-				       P_OPTIMIZE_ITERATIONS/10,
+				       P_OPTIMIZE_ITERATIONS/4,
 				       dropout, useInitialNN) == true){
 		  logging.info("========> POLICY OPTIMIZATION STARTED (1)");
 		}

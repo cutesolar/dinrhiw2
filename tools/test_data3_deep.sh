@@ -25,7 +25,7 @@ rm -f commviol-test.ds
 ARCH="141-141-141-141-141-141-141-141-141-4"
 
 # overfitting solution
-./nntool --time 600 -v commviol-test.ds $ARCH commviol-nn.cfg grad
+./nntool --time 600 --threads 1 -v commviol-test.ds $ARCH commviol-nn.cfg grad
 
 # training error is 0.042815/0.00981616/0.00981616 (non-deep) [141-500-4]
 # training error is 0.041531/0.00981616/3.86269    (non-deep) [141-1000-4]

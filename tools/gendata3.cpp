@@ -49,8 +49,8 @@ void generate(std::vector<float>& x)
 
   for(unsigned int i=0;i<v.size();i++){
     message[i] = rand() % 256;
-    v[i] = (float)message[i]; // => NO!: transforms 0-255 values to [0,1] interval
-    x[i] = v[i];
+    v[i] = (float)message[i]; 
+    x[i] = v[i]/255.0f; // => YES!: transforms 0-255 values to [0,1] interval
   }
 
   if(SHA256.hash(&message, v.size()*8, (unsigned char*)hash256) == false){
