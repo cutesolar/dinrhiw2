@@ -34,19 +34,20 @@
 extern cublasHandle_t cublas_handle;
 extern cublasStatus_t cublas_status;
 
-#else
+#endif
 
 // GLOBAL: used to set default GPU sync with on with RAM
 // DO NOT USE/FIXME: NOTE THIS DOES NOT WORK IN MULTITHREADED CODE!!!
 extern bool use_gpu_sync;
 
 inline void gpu_sync(){
-#ifdef CUBLAS
-  if(use_gpu_sync) cudaDeviceSynchronize();
-#endif
+  // managed memory so now device sync!
+  //#ifdef CUBLAS
+  //if(use_gpu_sync) cudaDeviceSynchronize();
+  //#endif
 }
 
-#endif
+
 
 
 namespace whiteice
