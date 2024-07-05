@@ -1152,22 +1152,24 @@ namespace whiteice
 	  else{
 	    new_error = getError(*nn, dtest, false, false);
 	  }	  
-	  
-	  if(new_error >= real_besty){
-	    no_improve_iterations++;
-	  }
-	  else{
+
+	  {
 	    std::lock_guard<std::mutex> lock(solution_lock);
 	    
-	    this->bestx = x;
-	    this->best_error = new_error;
-	    this->best_pure_error = new_error;
-	    (*(this->nn)) = *nn;
-	    
-	    real_besty = new_error;
-	    pure_real_besty = new_error;
-
-	    no_improve_iterations = 0;
+	    if(new_error >= real_besty){
+	      no_improve_iterations++;
+	    }
+	    else{
+	      this->bestx = x;
+	      this->best_error = new_error;
+	      this->best_pure_error = new_error;
+	      (*(this->nn)) = *nn;
+	      
+	      real_besty = new_error;
+	      pure_real_besty = new_error;
+	      
+	      no_improve_iterations = 0;
+	    }
 	  }
 
 	  
