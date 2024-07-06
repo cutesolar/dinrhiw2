@@ -193,67 +193,8 @@ else
 fi
 
 
-dnl checking for CBLAS (BLAS) header files and (and library)
-AC_MSG_CHECKING([for BLAS C headers (1)])
 CBLAS_HEADERS="no"
 
-`gcc -c blastest.c -I/usr/local/include/ -L/usr/local/lib/ > /dev/null 2> /dev/null`
-
-if [[ $? -eq 0 ]]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/usr/local/include/"
-    BLAS_LIBS="-lblas -L/usr/local/lib/"
-    AC_MSG_RESULT([yes])
-else
-    AC_MSG_RESULT([no cblas.h detected])
-fi
-
-
-AC_MSG_CHECKING([for BLAS C headers (2)])
-
-`gcc -c blastest.c -I/opt/OpenBLAS/include/ -L/usr/local/lib/ > /dev/null 2> /dev/null`
-
-if [[ $? -eq 0 ]]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/opt/OpenBLAS/include/"
-    BLAS_LIBS="-lblas -L/usr/local/lib/"
-    AC_MSG_RESULT([yes])
-else
-    AC_MSG_RESULT([no cblas.h detected])
-fi
-
-AC_MSG_CHECKING([for BLAS C headers (3)])
-
-`gcc -c blastest.c -I/opt/include/ -L/opt/lib/ > /dev/null 2> /dev/null`
-
-if [[ $? -eq 0 ]]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/opt/include/"
-    BLAS_LIBS="-lblas -L/opt/lib/"
-    AC_MSG_RESULT([yes])
-else
-    AC_MSG_RESULT([no cblas.h detected])
-fi
-
-
-AC_MSG_CHECKING([for BLAS C headers (4)])
-
-`gcc -c blastest.c -I/ucrt64/include/openblas/ -L/ucrt64/lib/ > /dev/null 2> /dev/null`
-
-if [[ $? -eq 0 ]]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/ucrt64/include/openblas"
-    BLAS_LIBS="-lopenblas -L/ucrt64/lib/"
-    AC_MSG_RESULT([yes])
-else
-    AC_MSG_RESULT([no cblas.h detected])
-fi
-
-
-
-if [[ "$CBLAS_HEADERS" = "no" ]]; then
-   AC_MSG_ERROR([Cannot find cblas.h])
-fi
 
 AC_ARG_ENABLE([openblas],
 	AS_HELP_STRING([--disable-openblas],[Disable OpenBLAS library]))
@@ -555,7 +496,7 @@ AC_ARG_ENABLE([amdblis],
 	AS_HELP_STRING([--disable-amdblis],[Disable AMD BLIS (BLAS) library (must be installed in /opt/amd-blis/ directory)]))
  
 AC_MSG_CHECKING([for AMD BLIS library])
-`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
+`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include/LP64/ -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then
   AS_IF([test "x$enable_amdblis" == "xno"],[
@@ -564,7 +505,7 @@ if [[ $? -eq 0 ]]; then
   ],
   [
      AMDBLIS="yes"
-     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/"
+     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/LP64/"
      BLAS_LIBS="-lblis-mt -L/opt/amd-blis/lib/LP64/"
      AC_MSG_RESULT([yes, headers in /opt/amd-blis/include/])
   ])

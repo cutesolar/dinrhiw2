@@ -4867,78 +4867,8 @@ else
 fi
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BLAS C headers (1)" >&5
-printf %s "checking for BLAS C headers (1)... " >&6; }
 CBLAS_HEADERS="no"
 
-`gcc -c blastest.c -I/usr/local/include/ -L/usr/local/lib/ > /dev/null 2> /dev/null`
-
-if [ $? -eq 0 ]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/usr/local/include/"
-    BLAS_LIBS="-lblas -L/usr/local/lib/"
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no cblas.h detected" >&5
-printf "%s\n" "no cblas.h detected" >&6; }
-fi
-
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BLAS C headers (2)" >&5
-printf %s "checking for BLAS C headers (2)... " >&6; }
-
-`gcc -c blastest.c -I/opt/OpenBLAS/include/ -L/usr/local/lib/ > /dev/null 2> /dev/null`
-
-if [ $? -eq 0 ]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/opt/OpenBLAS/include/"
-    BLAS_LIBS="-lblas -L/usr/local/lib/"
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no cblas.h detected" >&5
-printf "%s\n" "no cblas.h detected" >&6; }
-fi
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BLAS C headers (3)" >&5
-printf %s "checking for BLAS C headers (3)... " >&6; }
-
-`gcc -c blastest.c -I/opt/include/ -L/opt/lib/ > /dev/null 2> /dev/null`
-
-if [ $? -eq 0 ]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/opt/include/"
-    BLAS_LIBS="-lblas -L/opt/lib/"
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no cblas.h detected" >&5
-printf "%s\n" "no cblas.h detected" >&6; }
-fi
-
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for BLAS C headers (4)" >&5
-printf %s "checking for BLAS C headers (4)... " >&6; }
-
-`gcc -c blastest.c -I/ucrt64/include/openblas/ -L/ucrt64/lib/ > /dev/null 2> /dev/null`
-
-if [ $? -eq 0 ]; then
-    CBLAS_HEADERS="yes"
-    BLAS_CFLAGS="-I/ucrt64/include/openblas"
-    BLAS_LIBS="-lopenblas -L/ucrt64/lib/"
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-else
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no cblas.h detected" >&5
-printf "%s\n" "no cblas.h detected" >&6; }
-fi
-
-
-
-if [ "$CBLAS_HEADERS" = "no" ]; then
-   as_fn_error $? "Cannot find cblas.h" "$LINENO" 5
-fi
 
 # Check whether --enable-openblas was given.
 if test ${enable_openblas+y}
@@ -5355,7 +5285,7 @@ fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for AMD BLIS library" >&5
 printf %s "checking for AMD BLIS library... " >&6; }
-`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
+`gcc -o openblastest openblastest.c -DAMDBLIS -I/opt/amd-blis/include/LP64/ -L/opt/amd-blis/lib/LP64/ -lblis-mt > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then
   if test "x$enable_amdblis" == "xno"
@@ -5368,7 +5298,7 @@ printf "%s\n" "yes, but DISABLED" >&6; }
 else $as_nop
 
      AMDBLIS="yes"
-     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/"
+     BLAS_CFLAGS="-DAMDBLIS -I/opt/amd-blis/include/LP64/"
      BLAS_LIBS="-lblis-mt -L/opt/amd-blis/lib/LP64/"
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /opt/amd-blis/include/" >&5
 printf "%s\n" "yes, headers in /opt/amd-blis/include/" >&6; }
