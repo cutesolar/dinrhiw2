@@ -5521,12 +5521,12 @@ then :
 fi
 
 CFLAGS="$CFLAGS"
-conf_flags="-Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
+conf_flags="-Wno-strict-aliasing $conf_flags"
 
 
 
 EXTRA_INCLUDEPATHS="-I/usr/include/ $EXTRA_INCLUDEPATHS $BLAS_CFLAGS $EXTRA_DEFINES"
-EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++ `python3-config --libs --embed`"
+EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++"
 
 EXTRA_INCLUDEPATHS=$EXTRA_INCLUDEPATHS
 

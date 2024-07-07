@@ -693,7 +693,8 @@ dnl enable newer C++ standards
 dnl CFLAGS="-std=gnu++20 $CFLAGS"
 dnl conf_flags="-std=gnu++20 -Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
 CFLAGS="$CFLAGS"
-conf_flags="-Wno-strict-aliasing $conf_flags `python3-config --cflags --embed`"
+conf_flags="-Wno-strict-aliasing $conf_flags"
+dnl `python3-config --cflags --embed`"
 
 dnl 
 dnl AC_ARG_ENABLE([profiling],
@@ -706,7 +707,8 @@ dnl
 
 
 EXTRA_INCLUDEPATHS="-I/usr/include/ $EXTRA_INCLUDEPATHS $BLAS_CFLAGS $EXTRA_DEFINES"
-EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++ `python3-config --libs --embed`"
+EXTRA_LIBS="-L/usr/lib/ $EXTRA_LIBS $BLAS_LIBS -lstdc++"
+dnl `python3-config --libs --embed`"
 
 AC_SUBST([EXTRA_INCLUDEPATHS],[$EXTRA_INCLUDEPATHS])
 AC_SUBST([EXTRA_LIBPATHS],[$EXTRA_LIBPATHS])

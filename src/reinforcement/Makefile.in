@@ -68,7 +68,8 @@ SOURCES = RIFL_abstract.cpp RIFL_abstract3.cpp CartPole.cpp PolicyGradAscent.cpp
 	../math/RNG.cpp ../math/pocketfft/pocketfft.c
 
 OPTIMIZE=@optimization_flags@
-CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@ `python3-config --cflags`
+CFLAGS=@CFLAGS@ -Wno-deprecated -Wno-strict-aliasing -Wno-attributes -Wno-class-memaccess @EXTRA_INCLUDEPATHS@
+# `python3-config --cflags`
 
 # -DUSE_SDL `pkg-config sdl2 --cflags`
 
@@ -80,7 +81,8 @@ TARGET4A=testsuite4a
 TARGET5=minihack_test
 TARGET6=minihack2_test
 
-CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto -I../datamining $(OPTIMIZE) -I/usr/include/python3.9 -I/mingw64/include/python3.9
+CXXFLAGS=-Wall $(CFLAGS) -g -I. -I.. -I../.. -Iexceptions -I../math -I../neuralnetwork -I../hmm -I../rnn -I../crypto -I../datamining $(OPTIMIZE)
+# -I/usr/include/python3.9 -I/mingw64/include/python3.9
 
 LIBS=@EXTRA_LIBPATHS@ -lgmp -lpthread @EXTRA_LIBS@
 
@@ -94,14 +96,16 @@ CD = cd
 
 ##################################################
 
-all: $(TEST1_OBJECTS) $(TEST2_OBJECTS) $(TEST3_OBJECTS) $(TEST4_OBJECTS) $(TEST4A_OBJECTS) $(TEST5_OBJECTS) $(TEST6_OBJECTS)
+# $(TEST5_OBJECTS) $(TEST6_OBJECTS)
+all: $(TEST1_OBJECTS) $(TEST2_OBJECTS) $(TEST3_OBJECTS) $(TEST4_OBJECTS) $(TEST4A_OBJECTS) 
 	$(CXX) $(CXXFLAGS) -o $(TARGET1) $(TEST1_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET2) $(TEST2_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET3) $(TEST3_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4) $(TEST4_OBJECTS) $(LIBS)
 	$(CXX) $(CXXFLAGS) -o $(TARGET4A) $(TEST4A_OBJECTS) $(LIBS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET5) $(TEST5_OBJECTS) $(LIBS) $(LIBS_PYTHON)
-	$(CXX) $(CXXFLAGS) -o $(TARGET6) $(TEST6_OBJECTS) $(LIBS) $(LIBS_PYTHON)
+
+# $(CXX) $(CXXFLAGS) -o $(TARGET5) $(TEST5_OBJECTS) $(LIBS) $(LIBS_PYTHON)
+# $(CXX) $(CXXFLAGS) -o $(TARGET6) $(TEST6_OBJECTS) $(LIBS) $(LIBS_PYTHON)
 
 clean:
 	$(RM) $(TEST1_OBJECTS)
