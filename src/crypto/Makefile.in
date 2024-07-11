@@ -14,7 +14,7 @@ OBJECTS = PAD.o DES.o AES.o SHA.o RSA.o DSA.o test/tst.o
 
 EXTRA_OBJECTS = ../math/ownexception.o ../math/integer.o \
 	../dynamic_bitset.o ../Log.o ../math/RNG.o \
-	../math/superresolution.o ../math/modular.o ../math/vertex.o ../math/blade_math.o \
+	../math/superresolution.o ../math/modular.o ../math/vertex.o ../math/quaternion.o ../math/blade_math.o \
 	../math/real.o ../math/matrix.o ../math/correlation.o ../math/matrix_rotations.o \
 	../math/eig.o ../math/ica.o ../math/norms.o ../math/pocketfft/pocketfft.o
 
@@ -22,7 +22,7 @@ EXTRA_OBJECTS = ../math/ownexception.o ../math/integer.o \
 SOURCES = PAD.cpp DES.cpp AES.cpp SHA.cpp RSA.cpp DSA.cpp \
 	../math/ownexception.cpp ../math/integer.cpp \
 	../dynamic_bitset.cpp ../math/RNG.cpp \
-	../math/superresolution.cpp ../math/modular.cpp ../math/vertex.cpp ../math/blade_math.cpp \
+	../math/superresolution.cpp ../math/modular.cpp ../math/vertex.cpp ../math/quaternion.cpp ../math/blade_math.cpp \
 	../math/real.cpp ../math/matrix.cpp ../math/correlation.cpp ../math/matrix_rotations.cpp \
 	../math/eig.cpp ../math/ica.cpp ../math/norms.cpp ../math/pocketfft/pocketfft.c \
 	test/tst.cpp
