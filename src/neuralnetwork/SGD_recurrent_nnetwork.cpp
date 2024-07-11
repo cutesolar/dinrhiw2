@@ -82,10 +82,10 @@ namespace whiteice
 	    
 	    for(unsigned int i=r1;i<r2;i++){
 	      math::vertex<T> in  = data.access(0,i);
-	    math::vertex<T> out = data.access(1,i);
-	    
-	    dtrain.add(0, in,  true);
-	    dtrain.add(1, out, true);
+	      math::vertex<T> out = data.access(1,i);
+	      
+	      dtrain.add(0, in,  true);
+	      dtrain.add(1, out, true);
 	    }
 	    
 	    dtrain.add(2, range, true);
@@ -134,8 +134,8 @@ namespace whiteice
 
 	for(unsigned int i=0;i<c;i++){
 	
-	  range[0] = (i*data.size(0))/100;
-	  range[1] = ((i+1)*data.size(0))/100;
+	  range[0] = (i*100);
+	  range[1] = ((i+1)*100);
 
 	  if(range[0] > data.size(0)){
 	    range[0] = data.size(0);
@@ -308,6 +308,7 @@ namespace whiteice
       // in such a small cases (very little data) we just use
       // all the data both for training and testing and overfit
       if(dtrain.size(0) == 0 || dtest.size(0) == 0 || overfit){
+	logging.error("SGD_recurrent_nnetwork ctor: zero size datasets, trying use all data.");
 	dtrain = data;
 	dtest  = data;
       }
@@ -326,6 +327,9 @@ namespace whiteice
   template <typename T>
   T SGD_recurrent_nnetwork<T>::getError(const math::vertex<T>& x) const
   {
+    logging.info("SGD_recurrent_nnetwork::getError() start");
+
+    
     T e = T(0.0f);
 
     { // recurrent neural network structure, we assume episode start/end is given in the 3rd cluster
@@ -370,20 +374,20 @@ namespace whiteice
 	  // recurrency: feebacks output back to inputs and
 	  //             calculates error
 	  for(unsigned int i = start;i<end;i++){
-	    assert(input.write_subvertex(dtest.access(0, i), 0) == true);
+	    if(input.write_subvertex(dtest.access(0, i), 0) == false) assert(0);
 	    
 	    nnet.calculate(input, output);
 
-	    assert(output.subvertex(output_r, dtest.dimension(1), RDIM) == true);
-	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
+	    if(output.subvertex(output_r, dtest.dimension(1), RDIM) == false) assert(0);
+	    if(input.write_subvertex(output_r, INPUT_DATA_DIM) == false) assert(0);
 
-	    assert(output.subvertex(err, 0, dtest.dimension(1)) == true);
+	    if(output.subvertex(err, 0, dtest.dimension(1)) == false) assert(0);
 
 	    correct = dtest.access(1, i);
 
 	    if(real_error){
-	      assert(dtest.invpreprocess(1, err) == true);
-	      assert(dtest.invpreprocess(1, correct) == true);
+	      if(dtest.invpreprocess(1, err) == false) assert(0);
+	      if(dtest.invpreprocess(1, correct) == false) assert(0);
 	    }
 
 	    err -= correct;
@@ -403,6 +407,8 @@ namespace whiteice
     }
     
     e /= T( (float)dtest.size(0) ); // per N
+
+    logging.info("SGD_recurrent_nnetwork::getError() end");
     
     return e;
   }
@@ -412,6 +418,8 @@ namespace whiteice
   template <typename T>
   T SGD_recurrent_nnetwork<T>::U(const math::vertex<T>& x) const
   {
+    logging.info("SGD_recurrent_nnetwork::U() start");
+    
     T e = T(0.0f);
 
     { // recurrent neural network
@@ -456,8 +464,8 @@ namespace whiteice
 	    nnet.calculate(input, output);
 
 	    output.subvertex(output_r, dtrain.dimension(1), RDIM);
-	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
-
+	    if(input.write_subvertex(output_r, INPUT_DATA_DIM) == false) assert(0);
+	    
 	    output.subvertex(err, 0, dtrain.dimension(1));
 
 	    correct = dtrain.access(1, i);
@@ -492,6 +500,8 @@ namespace whiteice
       e += err;
     }
 #endif
+
+    logging.info("SGD_recurrent_nnetwork::U() end");
     
     return (e);    
   }
@@ -500,6 +510,7 @@ namespace whiteice
   template <typename T>
   math::vertex<T> SGD_recurrent_nnetwork<T>::Ugrad(const math::vertex<T>& x) const
   {
+    logging.info("SGD_recurrent_nnetwork::Ugrad() start");
 
     {
       // recurrent neural network!
@@ -565,17 +576,17 @@ namespace whiteice
 	  for(unsigned int i=start;i<length;i++){
 	    input.write_subvertex(dtrain.access(0,i), 0);
 	      
-	    assert(nnet.jacobian(input, FGRAD) == true);
+	    if(nnet.jacobian(input, FGRAD) == false) assert(0);
 	    // df/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
 
 	    {
-	      assert(nnet.gradient_value(input, FGRADTMP) == true);
+	      if(nnet.gradient_value(input, FGRADTMP) == false) assert(0);
 	      // df/dinput (dtrain.dimension(1)+RDIM,dtrain.dimension(0)+RDIM)
 
 	      // df/dr
-	      assert(FGRADTMP.submatrix(FRGRAD,
-					dtrain.dimension(0), 0,
-					RDIM, nnet.output_size()) == true);
+	      if(FGRADTMP.submatrix(FRGRAD,
+				    dtrain.dimension(0), 0,
+				    RDIM, nnet.output_size()) == false) assert(0);
 
 	      // KAPPA_r = I
 
@@ -583,9 +594,9 @@ namespace whiteice
 	      // dU/dw (dtrain.dimension(1)+RDIM, nnet.gradient_size())
 
 	      // KAPPA_r operation to UGRAD to select only R terms
-	      assert(UGRAD.submatrix(URGRAD,
-				     0,dtrain.dimension(1),
-				     nnet.gradient_size(), RDIM) == true);
+	      if(UGRAD.submatrix(URGRAD,
+				 0,dtrain.dimension(1),
+				 nnet.gradient_size(), RDIM) == false) assert(0);
 	    }
 
 	    // dU(n+1)/dw = df/dw + df/dr * KAPPA_r * dU(n)/dw
@@ -599,10 +610,10 @@ namespace whiteice
 	      err -= dtrain.access(1,i);
 
 	      // selects only Y terms from UGRAD
-	      assert(UGRAD.submatrix
-		     (UYGRAD,
-		      0,0,
-		      nnet.gradient_size(), dtrain.dimension(1)));
+	      if(UGRAD.submatrix
+		 (UYGRAD,
+		  0,0,
+		  nnet.gradient_size(), dtrain.dimension(1)) == false) assert(0);
 
 	      grad = err*UYGRAD;
 
@@ -610,8 +621,7 @@ namespace whiteice
 	    }
 
 	    output.subvertex(output_r, dtrain.dimension(1), RDIM);
-	    assert(input.write_subvertex(output_r, INPUT_DATA_DIM));
-	  }
+	    if(input.write_subvertex(output_r, INPUT_DATA_DIM) == false) assert(0);	  }
 
 	}
 	
@@ -631,6 +641,8 @@ namespace whiteice
 	sumgrad += alpha*x;
       }
 #endif
+
+      logging.info("SGD_recurrent_nnetwork::Ugrad() end");
       
       return sumgrad;
     }
