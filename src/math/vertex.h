@@ -16,6 +16,8 @@
 //#include "compressable.h"
 //#include "MemoryCompressor.h"
 
+#include "quaternion.h"
+
 #include <stdexcept>
 #include <exception>
 #include <iostream>
