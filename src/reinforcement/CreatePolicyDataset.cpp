@@ -60,8 +60,8 @@ namespace whiteice
 
     if(running == true || worker_thread != nullptr){
       char buf[256];
-      snprintf(buf, 256, "CreatePolicyDataset<T>::start() FAILED (%d 0x%lx)",
-	       (int)running, (long unsigned int)worker_thread);
+      snprintf(buf, 256, "CreatePolicyDataset<T>::start() FAILED (%d)",
+	       (int)running);
       
       logging.info(buf);
       return false;
