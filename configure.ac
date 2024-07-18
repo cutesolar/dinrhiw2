@@ -371,6 +371,29 @@ else
    fi
 fi
 
+AC_MSG_CHECKING([for OpenBLAS library (9)])
+obcflags=`pkg-config openblas64 --cflags 2> /dev/null`
+oblibs=`pkg-config openblas64 --libs 2> /dev/null`
+`gcc -o openblastest openblastest.c -DOPENBLAS $obcflags $oblibs > /dev/null 2> /dev/null`
+
+if [[ $? -eq 0 ]]; then
+  AS_IF([test "x$enable_openblas" == "xno"],[
+     OPENBLAS="no"
+     AC_MSG_RESULT([yes, but DISABLED])
+  ],
+  [
+     OPENBLAS="yes"
+     BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas64 --cflags`"
+     BLAS_LIBS="`pkg-config openblas64 --libs`"
+     AC_MSG_RESULT([yes, pkg-config conf file])
+   ])
+else
+   AC_MSG_RESULT([no OpenBLAS detected])
+   if [[ "x$OPENBLAS" != "xyes" ]]; then
+      OPENBLAS="no"
+   fi
+fi
+
 
 AC_ARG_ENABLE([mkl],
 	AS_HELP_STRING([--disable-mkl],[Disable Intel MKL library]))
