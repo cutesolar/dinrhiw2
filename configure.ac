@@ -207,12 +207,15 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/local/include/"
      BLAS_LIBS="-lopenblas -L/usr/local/lib/"
      AC_MSG_RESULT([yes, headers in /usr/local/include/])
-  ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
@@ -228,18 +231,22 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/include/"
      BLAS_LIBS="-L/lib/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /include/])
-  ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
    fi
 fi
+
 
 AC_MSG_CHECKING([for OpenBLAS library (3)])
 `gcc -o openblastest openblastest.c -DOPENBLAS -I/usr/include/openblas -L/lib/ -lopenblas > /dev/null 2> /dev/null`
@@ -249,17 +256,20 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/include/openblas/"
      BLAS_LIBS="-L/lib/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /usr/include/openblas/])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
-   fi   
+   fi
 fi
 
 AC_MSG_CHECKING([for OpenBLAS library (4)])
@@ -270,18 +280,22 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/local/include/openblas/"
      BLAS_LIBS="-L/lib/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /usr/local/include/openblas/])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
    fi
 fi
+
 
 AC_MSG_CHECKING([for OpenBLAS library (5)])
 `gcc -o openblastest openblastest.c -DOPENBLAS -I/opt/OpenBLAS/include/ -L/opt/OpenBLAS/bin/ -lopenblas > /dev/null 2> /dev/null`
@@ -291,18 +305,22 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/opt/OpenBLAS/include/"
      BLAS_LIBS="-L/opt/OpenBLAS/bin/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /opt/OpenBLAS/include/])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
    fi
 fi
+
 
 AC_MSG_CHECKING([for OpenBLAS library (6)])
 `gcc -o openblastest openblastest.c -DOPENBLAS -I/opt/include/ -L/opt/lib/ -lopenblas > /dev/null 2> /dev/null`
@@ -312,19 +330,21 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/opt/include/"
      BLAS_LIBS="-L/opt/lib/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /opt/include/])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
    fi
 fi
-
 
 AC_MSG_CHECKING([for OpenBLAS library (7)])
 obcflags=`pkg-config openblas --cflags 2> /dev/null`
@@ -336,12 +356,15 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas --cflags`"
      BLAS_LIBS="`pkg-config openblas --libs`"
      AC_MSG_RESULT([yes, pkg-config conf file])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
@@ -358,12 +381,15 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/ucrt64/include/openblas/"
      BLAS_LIBS="-L/ucrt64/lib/ -lopenblas"
      AC_MSG_RESULT([yes, headers in /ucrt64/include/openblas/])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
@@ -371,9 +397,10 @@ else
    fi
 fi
 
+
 AC_MSG_CHECKING([for OpenBLAS library (9)])
-obcflags=`pkg-config openblas64 --cflags 2> /dev/null`
-oblibs=`pkg-config openblas64 --libs 2> /dev/null`
+obcflags=`pkg-config openblas64 --cflags > /dev/null 2> /dev/null`
+oblibs=`pkg-config openblas64 --libs > /dev/null 2> /dev/null`
 `gcc -o openblastest openblastest.c -DOPENBLAS $obcflags $oblibs > /dev/null 2> /dev/null`
 
 if [[ $? -eq 0 ]]; then
@@ -381,18 +408,22 @@ if [[ $? -eq 0 ]]; then
      OPENBLAS="no"
      AC_MSG_RESULT([yes, but DISABLED])
   ],
-  [
+  [AS_IF([test "x$OPENBLAS" != "xyes"],[
      OPENBLAS="yes"
-     BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas64 --cflags`"
-     BLAS_LIBS="`pkg-config openblas64 --libs`"
+     BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas64 --cflags 2> /dev/null`"
+     BLAS_LIBS="`pkg-config openblas64 --libs 2> /dev/null`"
      AC_MSG_RESULT([yes, pkg-config conf file])
-   ])
+  ],
+  [
+     AC_MSG_RESULT([no, already detected])
+  ])])
 else
    AC_MSG_RESULT([no OpenBLAS detected])
    if [[ "x$OPENBLAS" != "xyes" ]]; then
       OPENBLAS="no"
    fi
 fi
+
 
 
 AC_ARG_ENABLE([mkl],

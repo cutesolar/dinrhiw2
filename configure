@@ -2196,7 +2196,9 @@ struct stat;
 /* Most of the following tests are stolen from RCS 5.7 src/conf.sh.  */
 struct buf { int x; };
 struct buf * (*rcsopen) (struct buf *, struct stat *, int);
-static char *e (char **p, int i)
+static char *e (p, i)
+     char **p;
+     int i;
 {
   return p[i];
 }
@@ -2247,7 +2249,6 @@ extern int puts (const char *);
 extern int printf (const char *, ...);
 extern int dprintf (int, const char *, ...);
 extern void *malloc (size_t);
-extern void free (void *);
 
 // Check varargs macros.  These examples are taken from C99 6.10.3.5.
 // dprintf is used instead of fprintf to avoid needing to declare
@@ -4058,11 +4059,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++11 features" >&5
 printf %s "checking for $CXX option to enable C++11 features... " >&6; }
-if test ${ac_cv_prog_cxx_11+y}
+if test ${ac_cv_prog_cxx_cxx11+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_11=no
+  ac_cv_prog_cxx_cxx11=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -4104,11 +4105,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++98 features" >&5
 printf %s "checking for $CXX option to enable C++98 features... " >&6; }
-if test ${ac_cv_prog_cxx_98+y}
+if test ${ac_cv_prog_cxx_cxx98+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_98=no
+  ac_cv_prog_cxx_cxx98=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -4889,6 +4890,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/local/include/"
@@ -4896,6 +4899,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /usr/local/include/" >&5
 printf "%s\n" "yes, headers in /usr/local/include/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -4918,6 +4927,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/include/"
@@ -4925,6 +4936,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /include/" >&5
 printf "%s\n" "yes, headers in /include/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -4933,6 +4950,7 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
       OPENBLAS="no"
    fi
 fi
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (3)" >&5
 printf %s "checking for OpenBLAS library (3)... " >&6; }
@@ -4947,6 +4965,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/include/openblas/"
@@ -4954,6 +4974,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /usr/include/openblas/" >&5
 printf "%s\n" "yes, headers in /usr/include/openblas/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -4976,6 +5002,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/usr/local/include/openblas/"
@@ -4983,6 +5011,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /usr/local/include/openblas/" >&5
 printf "%s\n" "yes, headers in /usr/local/include/openblas/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -4991,6 +5025,7 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
       OPENBLAS="no"
    fi
 fi
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (5)" >&5
 printf %s "checking for OpenBLAS library (5)... " >&6; }
@@ -5005,6 +5040,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/opt/OpenBLAS/include/"
@@ -5012,6 +5049,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /opt/OpenBLAS/include/" >&5
 printf "%s\n" "yes, headers in /opt/OpenBLAS/include/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -5020,6 +5063,7 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
       OPENBLAS="no"
    fi
 fi
+
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (6)" >&5
 printf %s "checking for OpenBLAS library (6)... " >&6; }
@@ -5034,6 +5078,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/opt/include/"
@@ -5041,6 +5087,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /opt/include/" >&5
 printf "%s\n" "yes, headers in /opt/include/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -5049,7 +5101,6 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
       OPENBLAS="no"
    fi
 fi
-
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (7)" >&5
 printf %s "checking for OpenBLAS library (7)... " >&6; }
@@ -5066,6 +5117,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas --cflags`"
@@ -5073,6 +5126,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config conf file" >&5
 printf "%s\n" "yes, pkg-config conf file" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -5096,6 +5155,8 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
      BLAS_CFLAGS="-DOPENBLAS -I/ucrt64/include/openblas/"
@@ -5103,6 +5164,12 @@ else $as_nop
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, headers in /ucrt64/include/openblas/" >&5
 printf "%s\n" "yes, headers in /ucrt64/include/openblas/" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -5112,10 +5179,11 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
    fi
 fi
 
+
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for OpenBLAS library (9)" >&5
 printf %s "checking for OpenBLAS library (9)... " >&6; }
-obcflags=`pkg-config openblas64 --cflags 2> /dev/null`
-oblibs=`pkg-config openblas64 --libs 2> /dev/null`
+obcflags=`pkg-config openblas64 --cflags > /dev/null 2> /dev/null`
+oblibs=`pkg-config openblas64 --libs > /dev/null 2> /dev/null`
 `gcc -o openblastest openblastest.c -DOPENBLAS $obcflags $oblibs > /dev/null 2> /dev/null`
 
 if [ $? -eq 0 ]; then
@@ -5127,13 +5195,21 @@ then :
 printf "%s\n" "yes, but DISABLED" >&6; }
 
 else $as_nop
+  if test "x$OPENBLAS" != "xyes"
+then :
 
      OPENBLAS="yes"
-     BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas64 --cflags`"
-     BLAS_LIBS="`pkg-config openblas64 --libs`"
+     BLAS_CFLAGS="-DOPENBLAS `pkg-config openblas64 --cflags 2> /dev/null`"
+     BLAS_LIBS="`pkg-config openblas64 --libs 2> /dev/null`"
      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes, pkg-config conf file" >&5
 printf "%s\n" "yes, pkg-config conf file" >&6; }
 
+else $as_nop
+
+     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no, already detected" >&5
+printf "%s\n" "no, already detected" >&6; }
+
+fi
 fi
 else
    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no OpenBLAS detected" >&5
@@ -5142,6 +5218,7 @@ printf "%s\n" "no OpenBLAS detected" >&6; }
       OPENBLAS="no"
    fi
 fi
+
 
 
 # Check whether --enable-mkl was given.
