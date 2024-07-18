@@ -808,7 +808,7 @@ namespace whiteice
   {
     // was 0.50f for L=40 layers and 0.75 for L=10 layers. L=100 is maybe 0.25???
     // 0.25 was used as default for 2 layers! (no problem)
-    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 0.25f; // s^d scaling for superreso values [was: 0.25f, 0.75 gives worse results]
+    const float SUPERRESOLUTION_METRIC_SCALING_FACTOR = 1.0f; // s^d scaling for superreso values [use: 0.25f, 0.75 gives worse results]
     
     if(type == 0){
       const whiteice::math::blas_complex<double> ar(2.0f,0.0f), br(1.0f, 0.0f);
@@ -822,14 +822,14 @@ namespace whiteice
 	  // RNG is real valued, a and b are complex
 	  // this means value is complex valued [-1,+1]+[-1,+1]i
 	  const auto value =
-	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)));
+	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)))/T(41.0f);
 	  
 	  whiteice::math::convert(W[l][i], value);
 	}
 
 	for(unsigned int i=0;i<b[l].size();i++){
 	  const auto value =
-	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)));
+	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)))/T(41.0f);
 	  
 	  whiteice::math::convert(b[l][i], value);
 	}
@@ -856,7 +856,7 @@ namespace whiteice
 	for(unsigned int i=0;i<W[l].size();i++){
 	  // RNG is real valued, a and b are complex
 	  // this means value is complex valued var*([-1,+1]+[-1,+1]i)
-	  const auto value = ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var;
+	  const auto value = ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var/T(41.0f);
 	  
 	  whiteice::math::convert(W[l][i], value);
 	}
@@ -866,7 +866,7 @@ namespace whiteice
 
 	for(unsigned int i=0;i<b[l].size();i++){
 	  const auto value =
-	    ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var*bias_scaling;
+	    ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var*bias_scaling/T(41.0f);
 	  
 	  whiteice::math::convert(b[l][i], value);
 	}
@@ -906,7 +906,7 @@ namespace whiteice
 	    
 	    for(unsigned int k=0;k<W[l][i].size();k++){
 	      // RNG is is complex normal value if needed
-	      const auto value = (rng.normalf())*var*factor;
+	      const auto value = (rng.normalf())*var*factor/(41.0f);
 
 	      whiteice::math::convert(W[l][i][k], value);
 
@@ -924,7 +924,7 @@ namespace whiteice
 	    // RNG is is complex normal value if needed
 	    const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
 	    
-	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling;
+	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling/T(41.0f);
 	    
 	    whiteice::math::convert(W[l][i], value);
 	  }
@@ -956,7 +956,7 @@ namespace whiteice
 
 	    for(unsigned int k=0;k<b[l][i].size();k++){
 	      // RNG is is complex normal value if neededq
-	      const auto value = (rng.normalf())*var*bias_scaling*factor;
+	      const auto value = (rng.normalf())*var*bias_scaling*factor/(41.0f);
 	      
 	      whiteice::math::convert(b[l][i][k], value);
 
@@ -978,7 +978,7 @@ namespace whiteice
 	    // RNG is is complex normal value if needed
 	    const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
 	    
-	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling*bias_scaling;
+	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling*bias_scaling/T(41.0f);
 	    
 	    whiteice::math::convert(b[l][i], value);
 	  }
@@ -2356,29 +2356,37 @@ namespace whiteice
       }
       
     }
-    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+    else if(nonlinearity[layer] == chebyshev){ // Chebyshev polynomials
 
       // no large values..
       T in = input;
 
       for(unsigned int n=0;n<input.size();n++){
-        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
-        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+	for(unsigned int k=0;k<input[n].size();k++){
+	  if(input[n][k] > T(+10.0f)[0]) in[n][k] = T(+10.0f)[0];
+	  else if(input[n][k] < T(-10.0f)[0]) in[n][k] = T(-10.0f)[0];
+	}
       }
       
       
       T output = in;
       
-      const unsigned int hermite_degree = 1 + (neuron % 3);
+      const unsigned int chebyshev_degree = 1 + (neuron % 5);
 
-      if(hermite_degree == 1){
-	output = T(2.0f)*in;
+      if(chebyshev_degree == 1){
+	output = in;
       }
-      else if(hermite_degree == 2){
-	output = T(4.0f)*in*in - T(2.0f);
+      else if(chebyshev_degree == 2){
+	output = T(2.0f)*in*in - T(1.0f);
       }
-      else if(hermite_degree == 3){
-	output = T(8.0f)*in*in*in - T(12.0f)*in;
+      else if(chebyshev_degree == 3){
+	output = T(4.0f)*in*in*in - T(3.0f)*in;
+      }
+      else if(chebyshev_degree == 4){
+	output = T(8.0f)*in*in*in*in + T(8.0f)*in*in + T(1.0f);
+      }
+      else if(chebyshev_degree == 5){
+	output = T(16.0f)*in*in*in*in*in - T(20.0f)*in*in*in + T(5.0f)*in;
       }
 
 
@@ -2717,29 +2725,37 @@ namespace whiteice
 	}
       }      
     }
-    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+    else if(nonlinearity[layer] == chebyshev){ // Chebyshev polynomials
 
       // no large values..
       T in = input;
 
       for(unsigned int n=0;n<input.size();n++){
-        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
-        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+	for(unsigned int k=0;k<input[n].size();k++){
+	  if(input[n][k] > T(+10.0f)[0]) in[n][k] = T(+10.0f)[0];
+	  else if(input[n][k] < T(-10.0f)[0]) in[n][k] = T(-10.0f)[0];
+	}
       }
       
 
       T output = in;
 
-      const unsigned int hermite_degree = 1 + (neuron % 3);
+      const unsigned int chebyshev_degree = 1 + (neuron % 5);
 
-      if(hermite_degree == 1){
-	output = T(2.0f);
+      if(chebyshev_degree == 1){
+	output = T(1.0f);
       }
-      else if(hermite_degree == 2){
-	output = T(8.0f)*in;
+      else if(chebyshev_degree == 2){
+	output = T(4.0f)*in;
       }
-      else if(hermite_degree == 3){
-	output = T(24.0f)*in*in - T(12.0f);
+      else if(chebyshev_degree == 3){
+	output = T(12.0f)*in*in - T(3.0f);
+      }
+      else if(chebyshev_degree == 4){
+	output = T(32.0f)*in*in*in + T(16.0f)*in;
+      }
+      else if(chebyshev_degree == 5){
+	output = T(80.0f)*in*in*in*in - T(60.0f)*in*in + T(5.0f);
       }
 
 
@@ -3148,29 +3164,36 @@ namespace whiteice
       }
       
     }
-    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+    else if(nonlinearity[layer] == chebyshev){ // Chebyshev polynomials
 
       // no large values..
       T in = input;
 
       for(unsigned int n=0;n<input.size();n++){
-        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
-        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+	for(unsigned int k=0;k<input[n].size();k++){
+	  if(input[n][k] > T(+10.0f)[0]) in[n][k] = T(+10.0f)[0];
+	  else if(input[n][k] < T(-10.0f)[0]) in[n][k] = T(-10.0f)[0];
+	}
       }
-      
 
       T output = in;
 
-      const unsigned int hermite_degree = 1 + (neuron % 3);
+      const unsigned int chebyshev_degree = 1 + (neuron % 5);
 
-      if(hermite_degree == 1){
-	output = T(2.0f)*in;
+      if(chebyshev_degree == 1){
+	output = in;
       }
-      else if(hermite_degree == 2){
-	output = T(4.0f)*in*in - T(2.0f);
+      else if(chebyshev_degree == 2){
+	output = T(2.0f)*in*in - T(1.0f);
       }
-      else if(hermite_degree == 3){
-	output = T(8.0f)*in*in*in - T(12.0f)*in;
+      else if(chebyshev_degree == 3){
+	output = T(4.0f)*in*in*in - T(3.0f)*in;
+      }
+      else if(chebyshev_degree == 4){
+	output = T(8.0f)*in*in*in*in + T(8.0f)*in*in + T(1.0f);
+      }
+      else if(chebyshev_degree == 5){
+	output = T(16.0f)*in*in*in*in*in - T(20.0f)*in*in*in + T(5.0f)*in;
       }
 
 
@@ -3449,32 +3472,40 @@ namespace whiteice
 	}
       }      
     }
-    else if(nonlinearity[layer] == hermite){ // Hermite polynomials
+    else if(nonlinearity[layer] == chebyshev){ // Chebyshev polynomials
 
       // no large values..
       T in = input;
 
       for(unsigned int n=0;n<input.size();n++){
-        if(input[n] > T(+10.0f)[0]) in[n] = T(+10.0f)[0];
-        else if(input[n] < T(-10.0f)[0]) in[n] = T(-10.0f)[0];
+	for(unsigned int k=0;k<input[n].size();k++){
+	  if(input[n][k] > T(+10.0f)[0]) in[n][k] = T(+10.0f)[0];
+	  else if(input[n][k] < T(-10.0f)[0]) in[n][k] = T(-10.0f)[0];
+	}
       }
       
 
       T output = in;
       
-      const unsigned int hermite_degree = 1 + (neuron % 3);
-
-      if(hermite_degree == 1){
-	output = T(2.0f);
+      const unsigned int chebyshev_degree = 1 + (neuron % 5);
+      
+      if(chebyshev_degree == 1){
+	output = T(1.0f);
       }
-      else if(hermite_degree == 2){
-	output = T(8.0f)*in;
+      else if(chebyshev_degree == 2){
+	output = T(4.0f)*in;
       }
-      else if(hermite_degree == 3){
-	output = T(24.0f)*in*in - T(12.0f);
+      else if(chebyshev_degree == 3){
+	output = T(12.0f)*in*in - T(3.0f);
       }
-
-
+      else if(chebyshev_degree == 4){
+	output = T(32.0f)*in*in*in + T(16.0f)*in;
+      }
+      else if(chebyshev_degree == 5){
+	output = T(80.0f)*in*in*in*in - T(60.0f)*in*in + T(5.0f);
+      }
+      
+      
       if(batchnorm && layer != getLayers()-1){
 	return output/bn_sigma[layer][neuron];
       }
@@ -4745,7 +4776,7 @@ namespace whiteice
 	  else if(nonlinearity[l] == tanh10){
 	    data[l] = T(7.0);
 	  }
-	  else if(nonlinearity[l] == hermite){
+	  else if(nonlinearity[l] == chebyshev){
 	    data[l] = T(8.0);
 	  }
 	  else return false; // error!
@@ -4939,7 +4970,7 @@ namespace whiteice
 	  else if(conf_data[l] == T(5.0)) conf_nonlins[l] = rectifier;
 	  else if(conf_data[l] == T(6.0)) conf_nonlins[l] = softmax;
 	  else if(conf_data[l] == T(7.0)) conf_nonlins[l] = tanh10;
-	  else if(conf_data[l] == T(8.0)) conf_nonlins[l] = hermite;
+	  else if(conf_data[l] == T(8.0)) conf_nonlins[l] = chebyshev;
 	  else return false; // unknown non-linearity
 	}
       }

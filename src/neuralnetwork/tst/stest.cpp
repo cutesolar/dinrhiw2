@@ -100,8 +100,8 @@ int main()
 #if 1
   arch.clear();
   arch.push_back(4);
-  arch.push_back(20); // was: 20,50
-  arch.push_back(20); // was: 20,50
+  arch.push_back(100); // was: 20,50
+  arch.push_back(100); // was: 20,50
   arch.push_back(4);
 #endif
   
@@ -117,13 +117,13 @@ int main()
 #endif
 
   // pureLinear non-linearity (layers are all linear) [pureLinear or rectifier]
-  net.setArchitecture(arch, nnetwork< math::blas_real<double> >::rectifier); // rectifier, hermite 
+  net.setArchitecture(arch, nnetwork< math::blas_real<double> >::chebyshev); // rectifier, hermite, chebyshev 
   snet.setArchitecture(arch, nnetwork< math::superresolution<
 		       math::blas_real<double>,
-		       math::modular<unsigned int> > >::rectifier); // rectifier, hermite
+		       math::modular<unsigned int> > >::chebyshev); // rectifier, hermite, chebyshev
 
-  net.randomize();
-  snet.randomize();
+  net.randomize(0.001);
+  snet.randomize(0.001);
   net.setResidual(false); // was: false, true
   snet.setResidual(false);
 
@@ -330,7 +330,7 @@ int main()
 
 
   // SGD gradient descent code for superresolution..
-  if(0){
+  if(1){
 
     std::cout << "Stochastic Gradient Descent (SGD) optimizer for superreso neural networks."
 	      << std::endl;

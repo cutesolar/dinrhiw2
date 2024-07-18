@@ -817,7 +817,7 @@ namespace whiteice
 	  else if(ints[l] == 7)
 	    nl[l] = whiteice::nnetwork<T>::tanh10;
 	  else if(ints[l] == 8)
-	    nl[l] = whiteice::nnetwork<T>::hermite;
+	    nl[l] = whiteice::nnetwork<T>::chebyshev;
 	  else
 	    return false; // bad data
 	}
@@ -1073,7 +1073,7 @@ namespace whiteice
 	      ints.push_back(6);
 	    else if(nl[l] == whiteice::nnetwork<T>::tanh10)
 	      ints.push_back(7);
-	    else if(nl[l] == whiteice::nnetwork<T>::hermite)
+	    else if(nl[l] == whiteice::nnetwork<T>::chebyshev)
 	      ints.push_back(8);
 	    else
 	      return false;
