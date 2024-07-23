@@ -822,14 +822,14 @@ namespace whiteice
 	  // RNG is real valued, a and b are complex
 	  // this means value is complex valued [-1,+1]+[-1,+1]i
 	  const auto value =
-	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)))/T(41.0f);
+	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)));
 	  
 	  whiteice::math::convert(W[l][i], value);
 	}
 
 	for(unsigned int i=0;i<b[l].size();i++){
 	  const auto value =
-	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)))/T(41.0f);
+	    EXTRA_SCALING*((T(ar)*T(rng.uniformf()) - T(br)) + (T(ai)*T(rng.uniformf()) - T(bi)));
 	  
 	  whiteice::math::convert(b[l][i], value);
 	}
@@ -856,7 +856,7 @@ namespace whiteice
 	for(unsigned int i=0;i<W[l].size();i++){
 	  // RNG is real valued, a and b are complex
 	  // this means value is complex valued var*([-1,+1]+[-1,+1]i)
-	  const auto value = ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var/T(41.0f);
+	  const auto value = ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var;
 	  
 	  whiteice::math::convert(W[l][i], value);
 	}
@@ -866,7 +866,7 @@ namespace whiteice
 
 	for(unsigned int i=0;i<b[l].size();i++){
 	  const auto value =
-	    ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var*bias_scaling/T(41.0f);
+	    ((T(rng.uniformf())*ar - br) + (T(rng.uniformf())*ai - bi))*var*bias_scaling;
 	  
 	  whiteice::math::convert(b[l][i], value);
 	}
@@ -906,7 +906,7 @@ namespace whiteice
 	    
 	    for(unsigned int k=0;k<W[l][i].size();k++){
 	      // RNG is is complex normal value if needed
-	      const auto value = (rng.normalf())*var*factor/(41.0f);
+	      const auto value = (rng.normalf())*var*factor;
 
 	      whiteice::math::convert(W[l][i][k], value);
 
@@ -924,7 +924,7 @@ namespace whiteice
 	    // RNG is is complex normal value if needed
 	    const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
 	    
-	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling/T(41.0f);
+	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling;
 	    
 	    whiteice::math::convert(W[l][i], value);
 	  }
@@ -956,7 +956,7 @@ namespace whiteice
 
 	    for(unsigned int k=0;k<b[l][i].size();k++){
 	      // RNG is is complex normal value if neededq
-	      const auto value = (rng.normalf())*var*bias_scaling*factor/(41.0f);
+	      const auto value = (rng.normalf())*var*bias_scaling*factor;
 	      
 	      whiteice::math::convert(b[l][i][k], value);
 
@@ -978,7 +978,7 @@ namespace whiteice
 	    // RNG is is complex normal value if needed
 	    const T scaling = math::sqrt(T(0.5f)); // CN(0,1) = N(0,0.5^2) + N(0,0.5^2)*i
 	    
-	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling*bias_scaling/T(41.0f);
+	    const auto value = (T(rng.normalf())*var + T(rng.normalf())*ivar)*scaling*bias_scaling;
 	    
 	    whiteice::math::convert(b[l][i], value);
 	  }
