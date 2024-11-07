@@ -504,7 +504,8 @@ namespace whiteice
 
     // fpclassify() is buggy.. for some reason it does not detect NaNs correctly (sometimes) .. or it is a compiler bug
     inline bool isnan(float v){
-      return (std::fpclassify(v) == FP_NAN);
+      return std::isnan(v);
+      // return (std::fpclassify(v) == FP_NAN);
       //|| (*((unsigned int*)&v) == 0xFFC00000);
     }
     
