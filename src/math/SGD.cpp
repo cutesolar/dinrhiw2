@@ -361,16 +361,19 @@ namespace whiteice
 	  if(smart_convergence_check){
 	    errors.push_back(real_besty); // NOTE: getError() must return >= 0.0 values
 	    
-	    if(errors.size() >= 100){
+	    if(errors.size() >= 50){
 	      
-	      while(errors.size() > 100)
+	      while(errors.size() > 50)
 		errors.pop_front();
-	      
+
 	      // make all values to be positive
 	      T min_value = *errors.begin();
 	      
 	      for(const auto& e : errors)
 		if(e < min_value) min_value = e;
+
+	      if(min_value > T(0.0))
+		min_value = T(0.0);
 
 	      
 	      T m = T(0.0f);
@@ -392,7 +395,7 @@ namespace whiteice
 	      if(m > T(0.0f))
 		r = s/m;
 	      
-	      if(r[0] <= T(0.005f)[0]){ // convergence: 0.1% st.dev. when compared to mean.
+	      if(r[0] <= T(0.005f)[0]){ // convergence: 0.5% st.dev. when compared to mean.
 		solution_converged = true;
 		break;
 	      }
