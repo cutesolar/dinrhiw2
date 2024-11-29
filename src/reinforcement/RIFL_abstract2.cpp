@@ -496,7 +496,7 @@ namespace whiteice
 
   // how many percent smaller is reinforcement value with random actions vs policy actions
   template <typename T>
-  bool RIFL_abstract2<T>::executionStatistics(T& percent_change) const
+  bool RIFL_abstract2<T>::executionStatistics(T& percent_change, const bool rescale_to_min_value) const
   {
     std::lock_guard<std::mutex> lock(reinforcements_mutex);
     
@@ -520,11 +520,14 @@ namespace whiteice
     if(stdev < T(0.0))
       stdev = T(0.0);
 
-    stdev = sqrt(stdev/reinforcements.size()); // mean's stdev 
+    stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
+
+    T min_random = reinforcements_random[0];
 
     for(const auto& r : reinforcements_random){
       mean_random += r;
       stdev_random += r*r;
+      if(r < min_random) min_random = r;
     }
 
     mean_random /= reinforcements_random.size();
@@ -536,16 +539,20 @@ namespace whiteice
 
     stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
 
+    
+    if(rescale_to_min_value == false)
+      min_random = 0.0;
+
     // p% = (mean - mean_random)/mean
     // min(p%) = (mean-stdev -(mean_random+stdev_random))/(mean+stdev)
 
     // if(mean+stdev <= T(0.0)) return false;
 
-    if(mean_random <= T(0.0)) return false;  
+    if((mean_random-min_random) <= T(0.0)) return false;
 
     // percent_change = (mean-stdev - (mean_random+stdev_random))/(mean+stdev);
 
-    percent_change = T(100.0)*(mean - mean_random)/mean_random; // percentages
+    percent_change = T(100.0)*(mean - mean_random)/(mean_random - min_random); // percentages
 
     return true;
   }
@@ -750,11 +757,11 @@ namespace whiteice
     auto reinforcements_load = reinforcements;
     auto reinforcements_random_load = reinforcements_random;
 
-    Q_mutex.unlock();
-    policy_mutex.unlock();
-    has_model_mutex.unlock();
-    database_mutex.unlock();
     reinforcements_mutex.unlock();
+    database_mutex.unlock();
+    has_model_mutex.unlock();
+    policy_mutex.unlock();
+    Q_mutex.unlock();
     
     
     {
@@ -816,9 +823,15 @@ namespace whiteice
 
       v = db.access(0,0);
 
-      hasModel_load.resize(2);
-      hasModel_load[0] = (int)v[0].c[0];
-      hasModel_load[1] = (int)v[1].c[0];
+      if(v.size() == 2){
+	hasModel_load.resize(2);
+	hasModel_load[0] = (int)v[0].c[0];
+	hasModel_load[1] = (int)v[1].c[0];
+      }
+      else{
+	logging.error("RIFL_abstract2::load() loading hasModel dataset file failed (3)");
+	return false;
+      }
     }
 
     {
@@ -1109,7 +1122,7 @@ namespace whiteice
     while(thread_is_running > 0){
 
       if(sleepMode == true){
-	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	continue; // we do not do anything and only sleep
       }
 
