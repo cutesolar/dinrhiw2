@@ -100,6 +100,7 @@ namespace whiteice
 	  
 	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
+	  nn.setBatchNorm(false);
 	  
 	  Q.importNetwork(nn);
 	  lagged_Q.importNetwork(nn);
@@ -154,6 +155,7 @@ namespace whiteice
 	  
 	  nn.randomize(2, T(0.9)); // was 1.0
 	  nn.setResidual(true);
+	  nn.setBatchNorm(false);
 	  
 	  policy.importNetwork(nn);
 	  lagged_policy.importNetwork(nn);
@@ -250,6 +252,7 @@ namespace whiteice
 	  
 	  nn.randomize(2, T(0.5)); // was 1.0
 	  nn.setResidual(true);
+	  nn.setBatchNorm(false);
 	  
 	  Q.importNetwork(nn);
 
@@ -284,7 +287,7 @@ namespace whiteice
 	  
 	  nn.randomize(2, T(0.9)); // was 1.0
 	  nn.setResidual(true);
-	  nn.setBatchNorm(true);
+	  nn.setBatchNorm(false);
 	  
 	  policy.importNetwork(nn);
 
@@ -1124,6 +1127,24 @@ namespace whiteice
       if(sleepMode == true){
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	continue; // we do not do anything and only sleep
+      }
+
+      if(learningMode == false){
+	if(dataset_thread){
+	  delete dataset_thread;
+	  dataset_thread = nullptr;
+	}
+	
+	if(dataset2_thread){
+	  delete dataset2_thread;
+	  dataset2_thread = nullptr;
+	}
+
+	grad.stopComputation();
+	grad.reset();
+
+	grad2.stopComputation();
+	grad2.reset();
       }
 
       counter++;
