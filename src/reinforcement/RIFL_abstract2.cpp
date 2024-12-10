@@ -537,7 +537,7 @@ namespace whiteice
       int SAMPLES = 1;
       {
 	std::lock_guard<std::mutex> locke(epsilon_mutex);
-	SAMPLES = (int)round(500*epsilon.c[0]);
+	SAMPLES = (int)round(1000*epsilon.c[0]);
       }
       
       if(SAMPLES <= 0) SAMPLES = 1;
@@ -590,7 +590,7 @@ namespace whiteice
       
       {
 	std::lock_guard<std::mutex> locke(epsilon_mutex);
-	SAMPLES = (int)round(500*(1.0 - epsilon.c[0]));
+	SAMPLES = (int)round(1000*(1.0 - epsilon.c[0]));
       }
       
       if(SAMPLES <= 0) SAMPLES = 1;
