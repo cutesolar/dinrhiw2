@@ -529,7 +529,10 @@ namespace whiteice
       stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
     }
     else{
-      int start = reinforcements.size()-200;
+      int SAMPLES = (int)round(500*epsilon.c[0]);
+      if(SAMPLES <= 0) SAMPLES = 1;
+      
+      int start = reinforcements.size() - SAMPLES;
       int end = reinforcements.size();
 
       if(start <= 0) start = 0;
@@ -573,7 +576,10 @@ namespace whiteice
       stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
     }
     else{
-      int start = reinforcements_random.size()-200;
+      int SAMPLES = (int)round(500*(1.0 - epsilon.c[0]));
+      if(SAMPLES <= 0) SAMPLES = 1;
+      
+      int start = reinforcements_random.size()-SAMPLES;
       int end = reinforcements_random.size();
 
       if(start <= 0) start = 0;
