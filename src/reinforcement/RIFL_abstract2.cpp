@@ -508,7 +508,9 @@ namespace whiteice
     percent_change = T(0.0f);
     
     if(reinforcements.size() <= 10 || reinforcements_random.size() <= 10)
-      return false; 
+      return false;
+
+    if(epsilon == T(0.0f) || epsilon == T(1.0f)) return false;
 
     T mean = T(0.0), stdev = T(0.0);
     T mean_random = T(0.0), stdev_random = T(0.0);
@@ -530,6 +532,7 @@ namespace whiteice
     }
     else{
       int SAMPLES = (int)round(500*epsilon.c[0]);
+      
       if(SAMPLES <= 0) SAMPLES = 1;
       
       int start = reinforcements.size() - SAMPLES;
