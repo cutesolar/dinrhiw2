@@ -499,7 +499,9 @@ namespace whiteice
 
   // how many percent smaller is reinforcement value with random actions vs policy actions
   template <typename T>
-  bool RIFL_abstract2<T>::executionStatistics(T& percent_change, const bool rescale_to_min_value) const
+  bool RIFL_abstract2<T>::executionStatistics(T& percent_change,
+					      const bool rescale_to_min_value,
+					      const bool use_only_most_recent) const
   {
     std::lock_guard<std::mutex> lock(reinforcements_mutex);
     
@@ -511,37 +513,89 @@ namespace whiteice
     T mean = T(0.0), stdev = T(0.0);
     T mean_random = T(0.0), stdev_random = T(0.0);
 
-    for(const auto& r : reinforcements){
-      mean += r;
-      stdev += r*r;
+    if(use_only_most_recent == false){
+      for(const auto& r : reinforcements){
+	mean += r;
+	stdev += r*r;
+      }
+
+      mean /= reinforcements.size();
+      stdev /= reinforcements.size();
+
+      stdev -= mean*mean;
+      if(stdev < T(0.0))
+	stdev = T(0.0);
+
+      stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
     }
+    else{
+      int start = reinforcements.size()-100;
+      int end = reinforcements.size();
 
-    mean /= reinforcements.size();
-    stdev /= reinforcements.size();
-    
-    stdev -= mean*mean;
-    if(stdev < T(0.0))
-      stdev = T(0.0);
+      if(start <= 0) start = 0;
 
-    stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
+      for(int i=start;i<end;i++){
+	const auto& r = reinforcements[i];
+	
+	mean += r;
+	stdev += r*r;
+      }
 
-    T min_random = reinforcements_random[0];
+      mean /= (end-start);
+      stdev /= (end-start);
 
-    for(const auto& r : reinforcements_random){
-      mean_random += r;
-      stdev_random += r*r;
-      if(r < min_random) min_random = r;
+      stdev -= mean*mean;
+      if(stdev < T(0.0))
+	stdev = T(0.0);
+
+      stdev = sqrt(stdev/(end-start)); // mean's stdev
     }
-
-    mean_random /= reinforcements_random.size();
-    stdev_random /= reinforcements_random.size();
     
-    stdev_random -= mean_random*mean_random;
-    if(stdev_random < T(0.0))
-      stdev_random = T(0.0);
 
-    stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
+    T min_random = T(0.0);
 
+    if(use_only_most_recent == false){
+      min_random = reinforcements_random[0];
+      
+      for(const auto& r : reinforcements_random){
+	mean_random += r;
+	stdev_random += r*r;
+	if(r < min_random) min_random = r;
+      }
+      
+      mean_random /= reinforcements_random.size();
+      stdev_random /= reinforcements_random.size();
+
+      stdev_random -= mean_random*mean_random;
+      if(stdev_random < T(0.0))
+	stdev_random = T(0.0);
+      
+      stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
+    }
+    else{
+      int start = reinforcements_random.size()-100;
+      int end = reinforcements_random.size();
+
+      if(start <= 0) start = 0;
+      
+      min_random = reinforcements_random[start];
+      
+      for(int i=start;i<end;i++){
+	const auto& r = reinforcements_random[i];
+	mean_random += r;
+	stdev_random += r*r;
+	if(r < min_random) min_random = r;
+      }
+      
+      mean_random /= (end-start);
+      stdev_random /= (end-start);
+
+      stdev_random -= mean_random*mean_random;
+      if(stdev_random < T(0.0))
+	stdev_random = T(0.0);
+      
+      stdev_random = sqrt(stdev_random/(end-start)); // mean's stdev
+    }
     
     if(rescale_to_min_value == false)
       min_random = 0.0;
