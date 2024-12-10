@@ -529,7 +529,7 @@ namespace whiteice
       stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
     }
     else{
-      int start = reinforcements.size()-100;
+      int start = reinforcements.size()-200;
       int end = reinforcements.size();
 
       if(start <= 0) start = 0;
@@ -573,7 +573,7 @@ namespace whiteice
       stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
     }
     else{
-      int start = reinforcements_random.size()-100;
+      int start = reinforcements_random.size()-200;
       int end = reinforcements_random.size();
 
       if(start <= 0) start = 0;
