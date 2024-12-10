@@ -818,6 +818,8 @@ namespace whiteice
 	    nl[l] = whiteice::nnetwork<T>::tanh10;
 	  else if(ints[l] == 8)
 	    nl[l] = whiteice::nnetwork<T>::chebyshev;
+	  else if(ints[l] == 9)
+	    nl[l] = whiteice::nnetwork<T>::reluSinCos;
 	  else
 	    return false; // bad data
 	}
@@ -1075,6 +1077,8 @@ namespace whiteice
 	      ints.push_back(7);
 	    else if(nl[l] == whiteice::nnetwork<T>::chebyshev)
 	      ints.push_back(8);
+	    else if(nl[l] == whiteice::nnetwork<T>::reluSinCos)
+	      ints.push_back(9);
 	    else
 	      return false;
 	  }

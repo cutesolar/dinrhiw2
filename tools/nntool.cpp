@@ -315,7 +315,7 @@ int main(int argc, char** argv)
     
     if(SIMULATION_DEPTH > 1){
       if(verbose){
-	printf("Simple recurrent neural network (leaky rectifier).\n");
+	printf("Simple recurrent neural network (leaky rectifier+sin+cos).\n");
       }
     }
 
@@ -389,7 +389,7 @@ int main(int argc, char** argv)
 
     
     whiteice::nnetwork< whiteice::math::blas_real<float> >::nonLinearity nl =
-      whiteice::nnetwork< whiteice::math::blas_real<float> >::rectifier;
+      whiteice::nnetwork< whiteice::math::blas_real<float> >::reluSinCos; //whiteice::nnetwork< whiteice::math::blas_real<float> >::rectifier;
 
     if(linearnet) // only make sense when testing optimization
       nl = whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear;
@@ -401,7 +401,7 @@ int main(int argc, char** argv)
     }
 
     whiteice::nnetwork< math::superresolution<math::blas_real<float>, math::modular<unsigned int> > >::nonLinearity snl =
-      whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::rectifier;
+      whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::reluSinCos; // whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::rectifier;
 
     if(linearnet) // only make sense when testing optimization
       snl = whiteice::nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear;
@@ -477,7 +477,7 @@ int main(int argc, char** argv)
 	if(linearnet) // only make sense when testing optimization
 	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
 	else
-	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::rectifier);
+	  nn->setNonlinearity(whiteice::nnetwork< whiteice::math::blas_real<float> >::reluSinCos); // WAS: rectifier
 	nn->setNonlinearity(nn->getLayers()-1,
 			    whiteice::nnetwork< whiteice::math::blas_real<float> >::pureLinear);
       }
@@ -487,7 +487,7 @@ int main(int argc, char** argv)
 	if(linearnet) // only make sense when testing optimization
 	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
 	else
-	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::rectifier);
+	  snn->setNonlinearity(nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::reluSinCos); // WAS: rectifier
 	snn->setNonlinearity(snn->getLayers()-1,
 			     nnetwork< math::superresolution< math::blas_real<float>, math::modular<unsigned int> > >::pureLinear);
       }

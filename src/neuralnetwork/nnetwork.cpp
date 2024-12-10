@@ -2398,6 +2398,85 @@ namespace whiteice
       }
       
     }
+    else if(nonlinearity[layer] == reluSinCos){
+
+      const unsigned int index = neuron % 3;
+
+      if(index == 0){ // ReLU(x)
+	
+	if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	   typeid(T) == typeid(whiteice::math::blas_real<double>))
+	{
+	  if(input.first().real() < 0.0f){
+	    T output = T(RELUcoef*input.first().real());
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	  else{
+	    T output = T(input.first().real());
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	}
+	else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
+		typeid(T) == typeid(whiteice::math::blas_complex<double>))
+	{
+	  math::blas_complex<double> out;
+	  out.real(input.first().real());
+	  out.imag(input.first().imag());
+	  
+	  if(input.first().real() < 0.0f){
+	    out.real(RELUcoef*out.real());
+	  }
+	  
+	  if(input.first().imag() < 0.0f){
+	    out.imag(RELUcoef*out.imag());
+	  }
+	  
+	  T output = T(out);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else assert(0);
+	
+      }
+      else if(index == 1){ // Sin(x)
+	T output = sin(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}	
+      }
+      else if(index == 2){ // Cos(x)
+	T output = cos(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}	
+      }
+      
+    }
     else if(nonlinearity[layer] == pureLinear){
       T output = input; // all layers/neurons are linear..
 
@@ -2766,6 +2845,94 @@ namespace whiteice
 	return output;
       }
       
+    }
+    else if(nonlinearity[layer] == reluSinCos){
+      
+      const unsigned int index = neuron % 3;
+
+      if(index == 0){ // ReLU(x)
+
+	if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	   typeid(T) == typeid(whiteice::math::blas_real<double>))
+	{
+	  if(input.first().real() < 0.0f){
+	    T output = T(RELUcoef);
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return output/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	  else{
+	    T output = T(1.00f);
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return output/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	}
+	else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
+		typeid(T) == typeid(whiteice::math::blas_complex<double>)){
+	  
+	  math::blas_complex<double> out;
+	  out.real(input.first().real());
+	  out.imag(input.first().imag());
+	  
+	  if(input.first().real() < 0.0f){
+	    out.real(RELUcoef*out.real());
+	  }
+	  
+	  if(input.first().imag() < 0.0f){
+	    out.imag(RELUcoef*out.imag());
+	  }
+	  
+	  // const T epsilon = T(1e-6);
+	  const math::blas_complex<double> epsilon = math::blas_complex<double>(1e-6);
+	  
+	  // correct derivate is Df(z) = f(z)/z
+	  if(abs(input.first().real()) > 1e-9)
+	    out /= (input.first());
+	  else
+	    out /= (input.first() + epsilon);
+	  
+	  T output = T(out);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	  
+	}
+	else assert(0);
+	
+      }
+      else if(index == 1){ // Sin(x)
+	T output = cos(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
+      else if(index == 2){ // Cos(x)
+	T output = -sin(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
     }
     else if(nonlinearity[layer] == pureLinear){
       T output = T(1.0f); // all layers/neurons are linear..
@@ -3204,7 +3371,86 @@ namespace whiteice
 	return output;
       }
       
-    }    
+    }
+    else if(nonlinearity[layer] == reluSinCos){
+
+      const unsigned int index = neuron % 3;
+      
+      if(index == 0){ // ReLU(x)
+	
+	if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	   typeid(T) == typeid(whiteice::math::blas_real<double>))
+	{
+	  if(input.first().real() < 0.0f){
+	    T output = T(RELUcoef*input.first().real());
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	  else{
+	    T output = T(input.first().real());
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	}
+	else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
+		typeid(T) == typeid(whiteice::math::blas_complex<double>))
+	{
+	  math::blas_complex<double> out;
+	  out.real(input.first().real());
+	  out.imag(input.first().imag());
+	  
+	  if(input.first().real() < 0.0f){
+	    out.real(RELUcoef*out.real());
+	  }
+	  
+	  if(input.first().imag() < 0.0f){
+	    out.imag(RELUcoef*out.imag());
+	  }
+	  
+	  T output = T(out);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	}
+	else assert(0);
+	
+      }
+      else if(index == 1){ // Sin(x)
+	T output = sin(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}	
+      }
+      else if(index == 2){ // Cos(x)
+	T output = cos(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return (output - bn_mu[layer][neuron])/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}	
+      }
+      
+    }
     else if(nonlinearity[layer] == pureLinear){
       T output = input; // all layers/neurons are linear..
       
@@ -3511,6 +3757,95 @@ namespace whiteice
       }
       else{
 	return output;
+      }
+      
+    }
+    else if(nonlinearity[layer] == reluSinCos){
+
+      const unsigned int index = neuron % 3;
+
+      if(index == 0){ // ReLU(x)
+	
+	if(typeid(T) == typeid(whiteice::math::blas_real<float>) ||
+	   typeid(T) == typeid(whiteice::math::blas_real<double>))
+	{
+	  if(input.first().real() < 0.0f){
+	    T output = T(RELUcoef);
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return output/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	  else{
+	    T output = T(1.00f);
+	    
+	    if(batchnorm && layer != getLayers()-1){
+	      return output/bn_sigma[layer][neuron];
+	    }
+	    else{
+	      return output;
+	    }
+	  }
+	}
+	else if(typeid(T) == typeid(whiteice::math::blas_complex<float>) ||
+		typeid(T) == typeid(whiteice::math::blas_complex<double>)){
+	  
+	  math::blas_complex<double> out;
+	  out.real(input.first().real());
+	  out.imag(input.first().imag());
+	  
+	  if(input.first().real() < 0.0f){
+	    out.real(RELUcoef*out.real());
+	  }
+	  
+	  if(input.first().imag() < 0.0f){
+	    out.imag(RELUcoef*out.imag());
+	  }
+	  
+	  // const T epsilon = T(1e-6);
+	  const math::blas_complex<double> epsilon = math::blas_complex<double>(1e-6);
+	  
+	  // correct derivate is Df(z) = f(z)/z
+	  if(abs(input.first().real()) > 1e-9)
+	    out /= (input.first());
+	  else
+	    out /= (input.first() + epsilon);
+	  
+	  T output = T(out);
+	  
+	  if(batchnorm && layer != getLayers()-1){
+	    return output/bn_sigma[layer][neuron];
+	  }
+	  else{
+	    return output;
+	  }
+	  
+	}
+	else assert(0);
+	
+      }
+      else if(index == 1){ // Sin(x)
+	T output = cos(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
+      }
+      else if(index == 2){ // Cos(x)
+	T output = -sin(input);
+
+	if(batchnorm && layer != getLayers()-1){
+	  return output/bn_sigma[layer][neuron];
+	}
+	else{
+	  return output;
+	}
       }
       
     }
@@ -4779,6 +5114,9 @@ namespace whiteice
 	  else if(nonlinearity[l] == chebyshev){
 	    data[l] = T(8.0);
 	  }
+	  else if(nonlinearity[l] == reluSinCos){
+	    data[l] = T(9.0);
+	  }
 	  else return false; // error!
 	}
 
@@ -4971,6 +5309,7 @@ namespace whiteice
 	  else if(conf_data[l] == T(6.0)) conf_nonlins[l] = softmax;
 	  else if(conf_data[l] == T(7.0)) conf_nonlins[l] = tanh10;
 	  else if(conf_data[l] == T(8.0)) conf_nonlins[l] = chebyshev;
+	  else if(conf_data[l] == T(9.0)) conf_nonlins[l] = reluSinCos;
 	  else return false; // unknown non-linearity
 	}
       }

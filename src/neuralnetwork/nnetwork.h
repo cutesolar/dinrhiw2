@@ -47,7 +47,8 @@ namespace whiteice
       softmax = 6, // for complex neural networks: this derivates ok and is similar to ReLU rectifier
       tanh10 = 7, // for limiting output to [-10,+10] interval
       // rectifierAndSquared = 8, // TODO not implemented yet: ReLU and x^2 squared non-linearity every other neuron
-      chebyshev = 8 // Chebyshev polynomials (first 5 polynomials, C_1(x)..C_5(x)
+      chebyshev = 8, // Chebyshev polynomials (first 5 polynomials, C_1(x)..C_5(x)
+      reluSinCos = 9 // three activations = [relu, sin, cos, relu, sin, cos ..]
     };
     
     
