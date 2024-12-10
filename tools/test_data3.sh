@@ -35,7 +35,7 @@ ARCH="141-141-141-141-4"
 
 # ./nntool -v --samples 1000 commviol-test.ds $ARCH commviol-nn.cfg lbfgs
 
-./nntool -v --samples 500 commviol-test.ds $ARCH commviol-nn.cfg grad
+./nntool -v --time 500 commviol-test.ds $ARCH commviol-nn.cfg grad
 # ./nntool -v --time 1000 --threads 1 commviol-test.ds $ARCH commviol-nn.cfg pgrad
 
 

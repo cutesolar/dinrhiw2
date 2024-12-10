@@ -1160,10 +1160,12 @@ namespace whiteice
 	      no_improve_iterations++;
 	    }
 	    else{
-	      this->bestx = x;
-	      this->best_error = new_error;
-	      this->best_pure_error = new_error;
-	      (*(this->nn)) = *nn;
+	      if(new_error < this->best_pure_error){
+		this->bestx = x;
+		this->best_error = new_error;
+		this->best_pure_error = new_error;
+		(*(this->nn)) = *nn;
+	      }
 	      
 	      real_besty = new_error;
 	      pure_real_besty = new_error;
