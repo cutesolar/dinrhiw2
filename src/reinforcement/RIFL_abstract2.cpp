@@ -510,7 +510,10 @@ namespace whiteice
     if(reinforcements.size() <= 10 || reinforcements_random.size() <= 10)
       return false;
 
-    if(epsilon == T(0.0f) || epsilon == T(1.0f)) return false;
+    {
+      std::lock_guard<std::mutex> locke(epsilon_mutex);
+      if(epsilon == T(0.0f) || epsilon == T(1.0f)) return false;
+    }
 
     T mean = T(0.0), stdev = T(0.0);
     T mean_random = T(0.0), stdev_random = T(0.0);
@@ -531,7 +534,11 @@ namespace whiteice
       stdev = sqrt(stdev/reinforcements.size()); // mean's stdev
     }
     else{
-      int SAMPLES = (int)round(500*epsilon.c[0]);
+      int SAMPLES = 1;
+      {
+	std::lock_guard<std::mutex> locke(epsilon_mutex);
+	SAMPLES = (int)round(500*epsilon.c[0]);
+      }
       
       if(SAMPLES <= 0) SAMPLES = 1;
       
@@ -579,7 +586,13 @@ namespace whiteice
       stdev_random = sqrt(stdev_random/reinforcements_random.size()); // mean's stdev
     }
     else{
-      int SAMPLES = (int)round(500*(1.0 - epsilon.c[0]));
+      int SAMPLES = 1;
+      
+      {
+	std::lock_guard<std::mutex> locke(epsilon_mutex);
+	SAMPLES = (int)round(500*(1.0 - epsilon.c[0]));
+      }
+      
       if(SAMPLES <= 0) SAMPLES = 1;
       
       int start = reinforcements_random.size()-SAMPLES;
